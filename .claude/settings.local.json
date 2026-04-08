@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm /Users/darmikon/.claude/skills/touch-grass)",
+      "Bash(ln -s ../../.agents/skills/rethink /Users/darmikon/.claude/skills/rethink)",
+      "Skill(commit-commands:commit)"
+    ]
+  }
+}
