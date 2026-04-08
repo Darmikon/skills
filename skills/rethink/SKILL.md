@@ -1,25 +1,26 @@
 ---
 name: rethink
-description: Use when a bug has persisted through 3 or more fix attempts without resolution, when each fix creates a new symptom in a different location, when the same incorrect diagnosis has been made multiple times, or when the investigation has been running in circles. Triggers on "still broken", "tried that already", "this is the same bug", or when fixes are not holding.
+description: Use when any task has persisted through 3 or more attempts without resolution — bugs, feature implementations, questions, or any request the user keeps asking you to redo. Triggers on repeated failures, "still broken", "tried that already", "this is the same bug", "that's not what I asked", "no do it again", "I already told you", or when the user is visibly frustrated with repeated unsuccessful attempts at the same task.
 ---
 
 # Rethink
 
-Take a breath. Step back from the code. The bug isn't smarter than you — your mental model just has a crack in it. This skill stops all code changes and walks you through finding that crack, patching it, and making sure the next person (including future-you) doesn't fall in the same hole.
+Take a breath. Step back. You're not stuck because the task is hard — your mental model has a crack in it. This skill stops all action and walks you through finding that crack, patching it, and making sure the next person (including future-you) doesn't fall in the same hole.
 
-**Core principle:** You are not stuck because the fix is hard. You are stuck because at least one belief about this system is wrong. Stop fixing. Start disproving.
+**Core principle:** You are not stuck because the solution is hard. You are stuck because at least one belief about the problem, the requirements, or the system is wrong. Stop doing. Start disproving.
 
 ## When to Use
 
 Use when **any** of these are true:
 
-- Three or more fix attempts have failed for the same bug
-- Each fix creates a new symptom in a different location
-- The diagnosis has changed between attempts
-- A fix "worked" temporarily, then broke again
-- You're explaining the same bug differently on each attempt
+- **Bugs:** Three or more fix attempts have failed for the same bug, each fix creates new symptoms, or a fix "worked" temporarily then broke again
+- **Feature implementation:** The user has asked you to redo or rework the same feature 3+ times because the output doesn't match what they want
+- **Questions/requests:** The user keeps rephrasing or re-asking the same question because your answers aren't addressing what they actually need
+- **Any task:** You've attempted the same thing multiple times with different approaches and none have satisfied the user
+- The diagnosis, approach, or interpretation has changed between attempts
+- You're explaining or justifying the same work differently on each attempt
 
-Do **not** use this for first-attempt debugging. This is for when you've been going in circles.
+Do **not** use this for first attempts. This is for when you've been going in circles — regardless of whether the task is a bug, a feature, a refactor, or a question.
 
 ---
 
@@ -27,35 +28,43 @@ Do **not** use this for first-attempt debugging. This is for when you've been go
 
 ### 1.0 Declare a Moratorium
 
-**No more code changes until Phase 2 is complete.**
+**No more code changes, answers, or output until Phase 2 is complete.**
 
 State it explicitly:
 
-> "We've made [N] fix attempts without resolution. Stepping back to audit assumptions before writing any more code."
+> "We've made [N] attempts without resolution. Stepping back to audit assumptions before taking any more action."
 
-### 1.1 Create a Bug Memory File
+### 1.1 Create a Problem Memory File
 
-Create `documentation/<feature-or-area>/bug-memory.md` if one doesn't already exist. This is the **single source of truth** for this investigation. It persists across sessions, branches, and conversations.
+Create `documentation/<feature-or-area>/problem-memory.md` if one doesn't already exist. This is the **single source of truth** for this investigation. It persists across sessions, branches, and conversations.
 
 Structure:
 
 ```markdown
-# [Feature/Area] — Bug Memory
+# [Feature/Area] — Problem Memory
 
-> [One-line description of the bug]
+> [One-line description of the problem]
 > Last updated: [date]
 
 ---
 
-## Bug: [Short name]
+## Problem: [Short name]
 
-### Status: [Investigating / Attempt N / FIXED]
+### Type: [Bug / Feature / Question / Refactor / Other]
 
-### Reproduction
+### Status: [Investigating / Attempt N / RESOLVED]
 
-[Exact steps, both variants if applicable]
+### What the user actually wants
 
-### Root cause
+[In their words, not your interpretation — quote them if possible]
+
+### Reproduction / Success criteria
+
+[For bugs: exact steps to reproduce]
+[For features: what "done" looks like from the user's perspective]
+[For questions: what the user is actually trying to understand or accomplish]
+
+### Root cause of repeated failure
 
 [Fill in as understanding evolves — mark confidence level]
 
@@ -63,87 +72,97 @@ Structure:
 
 #### Attempt 1: [Short description]
 
-- **Files**: [what was changed]
-- **Hypothesis**: [what you believed]
-- **Result**: [what actually happened]
+- **What was done**: [code changed, answer given, approach taken]
+- **Hypothesis**: [what you believed the user wanted or what you believed would work]
+- **Result**: [what actually happened / user's reaction]
 - **What we learned**: [signal extracted from the failure]
 
 ### Key files
 
-[List of files relevant to this bug — keeps context hot across sessions]
+[List of files relevant to this problem — keeps context hot across sessions]
 
 ### Key constraints
 
 [Things that must NOT be touched, and why]
+[User preferences or requirements that were missed in earlier attempts]
 ```
 
-**Important patterns for the bug memory:**
+**Important patterns for the problem memory:**
 
 - Update it after EVERY attempt, not just failures
 - Record what each failed attempt _did_ prove, not just that it failed
 - Keep the "Key files" list current — this is what future sessions need to read first
 - Mark constraints clearly — "DO NOT touch X" with the reason
+- For repeated user rejections, record **exactly what the user said was wrong** — their words, not your interpretation
 
-### 1.2 Instrument with Diagnostic Logging
+### 1.2 Gather Evidence
 
-Before any more fix attempts, add diagnostic logs that trace the bug's pipeline end-to-end. The goal is **observability** — you can't fix what you can't see.
+Before any more attempts, collect evidence about what's actually happening vs. what you assumed.
 
-**Logging rules:**
+**For bugs — instrument with diagnostic logging:**
 
-- Use a consistent prefix: `[BugName]` or `[FeatureName]` so logs are greppable in Metro/device output
-- Log at **every layer boundary** the bug might cross (JS component render -> hook state -> native callback -> provider -> UI output)
-- Log **both the value AND the context**: not just `width=390` but `[Portal] ScreenContainer RENDER: 390x750 top=0`
-- Number or name the log points so you can trace activation chains: step 1 fires, step 2 fires, etc.
-- Use `console.log` for now — these are diagnostic and will be removed in cleanup
+- Add logs that trace the pipeline end-to-end
+- Use a consistent prefix so logs are greppable
+- Log at every layer boundary the bug might cross
+- Log both the value AND the context
+- Key question: "At which exact point does the correct value become the wrong value?"
 
-**Where to place logs (React Native):**
+**For features / repeated user rejections — re-read what the user actually asked:**
 
-- Component render functions: current state values
-- Hook effects: when they fire, with what inputs
-- Callbacks from native modules: confirm they actually execute
-- Provider state changes: registration, activation, deactivation
-- `onLayout` handlers: actual measured dimensions vs expected
+- Go back to the user's **original request** and every correction they made since
+- List the **exact words** the user used to reject each attempt
+- Compare what you delivered vs. what they described — where's the gap?
+- Key question: "What is the user asking for that I keep not delivering?"
 
-**Key question the logs should answer:** "At which exact point does the correct value become the wrong value?" That boundary is where the bug lives.
+**For questions / repeated re-asks:**
+
+- What did the user originally ask?
+- What did you answer each time?
+- What did the user say was wrong or insufficient about each answer?
+- Key question: "What does the user actually need to know, and why aren't my answers landing?"
+
+The goal is **observability** — you can't solve what you don't understand.
 
 ---
 
 ## Phase 2: Audit Assumptions
 
-### 2.1 Map the Fix History
+### 2.1 Map the Attempt History
 
-If not already in bug-memory.md, list every attempted fix:
+If not already in problem-memory.md, list every attempt:
 
-| #   | What was changed | What was expected | What actually happened | Signal |
-| --- | ---------------- | ----------------- | ---------------------- | ------ |
-| 1   | ...              | ...               | ...                    | ...    |
+| #   | What was done | What was expected | What actually happened / User reaction | Signal |
+| --- | ------------- | ----------------- | -------------------------------------- | ------ |
+| 1   | ...           | ...               | ...                                    | ...    |
 
 The **Signal** column is critical — what did this failed attempt teach you? Every failure narrows the search space.
 
-> **Stop here.** Is there a consistent gap between "expected" and "actual"? If every fix produced an unexpected result, the mental model is wrong.
+> **Stop here.** Is there a consistent gap between "expected" and "actual"? If every attempt produced an unexpected result or user rejection, the mental model is wrong.
 
 ### 2.2 Surface and Test Assumptions
 
-Write out every belief held about the bug:
+Write out every belief held about the problem:
 
 ```markdown
 ## Assumption Audit
 
-| Assumption                              | Evidence FOR    | Evidence AGAINST     | Verdict                             |
-| --------------------------------------- | --------------- | -------------------- | ----------------------------------- |
-| "The bug lives in [layer]"              | [Observed data] | [Contradicting data] | Confirmed / Unconfirmed / DISPROVED |
-| "The fix belongs in [file]"             | ...             | ...                  | ...                                 |
-| "[API/framework] behaves as documented" | ...             | ...                  | ...                                 |
+| Assumption                                  | Evidence FOR    | Evidence AGAINST     | Verdict                             |
+| ------------------------------------------- | --------------- | -------------------- | ----------------------------------- |
+| "The problem lives in [layer/area]"         | [Observed data] | [Contradicting data] | Confirmed / Unconfirmed / DISPROVED |
+| "The user wants [X]"                        | ...             | ...                  | ...                                 |
+| "The solution belongs in [file/approach]"   | ...             | ...                  | ...                                 |
+| "[API/framework] behaves as documented"     | ...             | ...                  | ...                                 |
 ```
 
 Include assumptions about:
 
-- **Where** the bug lives — which layer of the stack
-- **When** it manifests — on what event, transition, or lifecycle
-- **What scope** the fix needs — can it be fixed at this layer, or must it be fixed elsewhere?
-- **What the user sees** vs what has been verified with logs/evidence
+- **What the user actually wants** — quote their words, not your interpretation
+- **Where** the problem lives — which layer, file, or concept
+- **When** it manifests — on what event, input, or condition
+- **What scope** the solution needs — is the approach itself wrong, or just the execution?
+- **What you delivered** vs what the user described — are they the same thing?
 
-Be ruthless: _"I thought this was the case"_ is not evidence. _"The log output showed X"_ is evidence.
+Be ruthless: _"I thought this was the case"_ is not evidence. _"The user said X"_ or _"The log output showed X"_ is evidence.
 
 ### 2.3 Find the Earliest Wrong Turn
 
@@ -155,21 +174,23 @@ From the disproved assumptions, identify the one furthest upstream:
 
 ## Phase 3: Escalate the Approach
 
-After finding the wrong assumption, assess whether the **entire category of fix** is viable, not just the specific implementation.
+After finding the wrong assumption, assess whether the **entire category of approach** is viable, not just the specific implementation.
 
-### Approach Categories (React Native example)
+### Approach Categories
 
-| Category                        | Example                                       | When to abandon                                                                          |
-| ------------------------------- | --------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| JS styling inside the container | explicit dimensions, keys, remounts           | When logs show correct Yoga layout but wrong visual output                               |
-| Native layout invalidation      | setNeedsLayout, layoutIfNeeded                | When invalidation produces zero frame changes (especially under Fabric/New Architecture) |
-| Lifecycle patching              | intercepting VC callbacks, rotation observers | When the framework manages the lifecycle opaquely                                        |
-| Rendering bypass                | portals, absolute overlays, modal screens     | Usually the last resort — works when the container itself is the problem                 |
+| Task type | Category example | When to abandon |
+| --------- | ---------------- | --------------- |
+| Bug fix | Fixing at the symptom layer | When logs show the root cause is in a different layer entirely |
+| Bug fix | Working around the framework | When the framework explicitly manages the behavior you're patching |
+| Feature | Interpreting the request literally | When the user keeps rejecting output that matches your literal interpretation |
+| Feature | Building from scratch | When the user wanted a modification of something existing |
+| Question | Answering the surface question | When the user keeps re-asking — they need a different depth or angle |
+| Any | Iterating within the same approach | When 3 attempts in the same category all fail differently |
 
-**The key question:** "Have I proven that NO fix in this category can work, or just that THIS fix didn't work?"
+**The key question:** "Have I proven that NO solution in this category can work, or just that THIS attempt didn't work?"
 
-- If the category is dead, document it in bug-memory.md and move to the next category. Don't iterate within a dead category.
-- If only the specific fix failed, design a new experiment within the same category.
+- If the category is dead, document it in problem-memory.md and move to the next category. Don't iterate within a dead category.
+- If only the specific attempt failed, design a new experiment within the same category.
 
 ### Design One Experiment
 
@@ -182,7 +203,7 @@ After finding the wrong assumption, assess whether the **entire category of fix*
 **If false, I'll observe:** [What would appear instead]
 ```
 
-> **Stop here.** Get approval before running. Then run, observe, and update bug-memory.md with findings.
+> **Stop here.** Get approval before running. Then run, observe, and update problem-memory.md with findings.
 
 ---
 
@@ -190,11 +211,12 @@ After finding the wrong assumption, assess whether the **entire category of fix*
 
 Once the correct mental model is established:
 
-1. Write a new fix plan from scratch, independent of all previous attempts
-2. Keep all diagnostic logging in place during the fix
-3. Test on device (not just in tests) for visual/layout bugs
-4. Verify by reading the diagnostic log chain end-to-end — every step should show correct values
-5. Update bug-memory.md with the result (SUCCESS or what went wrong)
+1. Write a new solution plan from scratch, independent of all previous attempts
+2. For bugs: keep all diagnostic logging in place during the fix
+3. For features: explicitly state what you're about to deliver and confirm it matches the user's words before writing code
+4. For questions: restate what you now understand the user needs before answering
+5. Verify the result against the user's original words, not your interpretation
+6. Update problem-memory.md with the result (SUCCESS or what went wrong)
 
 ---
 
@@ -202,9 +224,9 @@ Once the correct mental model is established:
 
 **This phase runs after the fix is confirmed working.** Don't skip it — this is what makes the pain worth it.
 
-### 5.1 Update Bug Memory
+### 5.1 Update Problem Memory
 
-Mark the bug as FIXED in `bug-memory.md`. Add:
+Mark the problem as RESOLVED in `problem-memory.md`. Add:
 
 - The final solution and why it works (conceptual, not just "what files changed")
 - A cleanup TODO list: diagnostic logs to remove, dead code to delete, tests to run
@@ -213,11 +235,11 @@ Mark the bug as FIXED in `bug-memory.md`. Add:
 
 Write a brief explanation of:
 
-1. **What the bug actually was** — not the symptom, but the root cause in plain language
-2. **What mental model was wrong** — the key false belief that led to failed attempts
-3. **Why the fix works** — what layer/approach succeeded and why previous categories couldn't
+1. **What the actual problem was** — not the symptom, but the root cause of repeated failure in plain language
+2. **What mental model was wrong** — the key false belief that led to failed attempts (this could be a misunderstanding of the user's intent, not just a technical misunderstanding)
+3. **Why the solution works** — what approach succeeded and why previous categories couldn't
 
-Add it to bug-memory.md under a "Why the fix works" section.
+Add it to problem-memory.md under a "Why the solution works" section.
 
 ### 5.3 Suggest CLAUDE.md / Project Doc Additions
 
@@ -234,18 +256,18 @@ Present these as suggestions for the user to approve, not automatic edits.
 After the user confirms learnings are captured:
 
 - Remove all diagnostic `console.log` lines (check the prefixed tag you used)
-- Remove any dead code from failed attempts (native modules, unused hooks, etc.)
+- Remove any dead code from failed attempts
 - Run the test suite
-- Keep bug-memory.md — it's documentation, not temporary
+- Keep problem-memory.md — it's documentation, not temporary
 
 ---
 
 ## Guidelines
 
 - **The moratorium is real.** No "just one more quick try" until assumptions are audited. That impulse is what got you here.
-- **Separate observation from interpretation.** "The log shows 390x700" is observation. "Therefore the frame is stale" is interpretation — and may be the next wrong assumption.
-- **Every failed fix is signal.** It means the system behaved in a way that wasn't predicted. The gap between prediction and reality is where the truth lives.
-- **Log before you fix.** If you can't see the bug's full pipeline, you're guessing. Guessing is what got you here.
+- **Separate observation from interpretation.** "The user said X" is observation. "Therefore the user wants Y" is interpretation — and may be the next wrong assumption.
+- **Every failed attempt is signal.** It means the outcome didn't match the expectation. The gap between prediction and reality is where the truth lives.
+- **Understand before you act.** If you can't articulate exactly what went wrong in previous attempts, you're guessing. Guessing is what got you here.
 - **Know when to abandon a category, not just an attempt.** Three failures in the same category is a pattern. Ask: "Have I proven this category can't work?"
-- **In React Native, bugs can cross layer boundaries.** A symptom visible in JS may root in native layout, VC lifecycle, or Fabric's shadow tree. Don't assume the layer without log evidence at each boundary.
-- **Capture the learnings.** The debugging pain is an investment. The CLAUDE.md addition is the return on that investment.
+- **Re-read the user's actual words.** When features or questions keep getting rejected, the answer is almost always in what the user already told you. Go back and read their exact words instead of relying on your interpretation.
+- **Capture the learnings.** The pain of repeated failure is an investment. The CLAUDE.md addition is the return on that investment.
