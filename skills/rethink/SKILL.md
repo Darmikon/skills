@@ -1,9 +1,9 @@
 ---
-name: touch-grass
+name: rethink
 description: Use when a bug has persisted through 3 or more fix attempts without resolution, when each fix creates a new symptom in a different location, when the same incorrect diagnosis has been made multiple times, or when the investigation has been running in circles. Triggers on "still broken", "tried that already", "this is the same bug", or when fixes are not holding.
 ---
 
-# Touch Grass
+# Rethink
 
 Take a breath. Step back from the code. The bug isn't smarter than you — your mental model just has a crack in it. This skill stops all code changes and walks you through finding that crack, patching it, and making sure the next person (including future-you) doesn't fall in the same hole.
 
