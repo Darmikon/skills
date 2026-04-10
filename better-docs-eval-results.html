@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Eval Review</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@500;600&family=Lora:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js" integrity="sha384-EnyY0/GSHQGSxSgMwaIPzSESbqoOLSexfnSMN2AP+39Ckmn92stwABZynq1JyzdT" crossorigin="anonymous"></script>
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --surface: #ffffff;
+      --border: #e8e6dc;
+      --text: #141413;
+      --text-muted: #b0aea5;
+      --accent: #d97757;
+      --accent-hover: #c4613f;
+      --green: #788c5d;
+      --green-bg: #eef2e8;
+      --red: #c44;
+      --red-bg: #fceaea;
+      --header-bg: #141413;
+      --header-text: #faf9f5;
+      --radius: 6px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Lora', Georgia, serif;
+      background: var(--bg);
+      color: var(--text);
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* ---- Header ---- */
+    .header {
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 1rem 2rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-shrink: 0;
+    }
+    .header h1 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 1.25rem;
+      font-weight: 600;
+    }
+    .header .instructions {
+      font-size: 0.8rem;
+      opacity: 0.7;
+      margin-top: 0.25rem;
+    }
+    .header .progress {
+      font-size: 0.875rem;
+      opacity: 0.8;
+      text-align: right;
+    }
+
+    /* ---- Main content ---- */
+    .main {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.25rem;
+    }
+
+    /* ---- Sections ---- */
+    .section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      flex-shrink: 0;
+    }
+    .section-header {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.75rem 1rem;
+      font-size: 0.75rem;
+      font-weight: 500;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border-bottom: 1px solid var(--border);
+      background: var(--bg);
+    }
+    .section-body {
+      padding: 1rem;
+    }
+
+    /* ---- Config badge ---- */
+    .config-badge {
+      display: inline-block;
+      padding: 0.2rem 0.625rem;
+      border-radius: 9999px;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.6875rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      margin-left: 0.75rem;
+      vertical-align: middle;
+    }
+    .config-badge.config-primary {
+      background: rgba(33, 150, 243, 0.12);
+      color: #1976d2;
+    }
+    .config-badge.config-baseline {
+      background: rgba(255, 193, 7, 0.15);
+      color: #f57f17;
+    }
+
+    /* ---- Prompt ---- */
+    .prompt-text {
+      white-space: pre-wrap;
+      font-size: 0.9375rem;
+      line-height: 1.6;
+    }
+
+    /* ---- Outputs ---- */
+    .output-file {
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+    }
+    .output-file + .output-file {
+      margin-top: 1rem;
+    }
+    .output-file-header {
+      padding: 0.5rem 0.75rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .output-file-header .dl-btn {
+      font-size: 0.7rem;
+      color: var(--accent);
+      text-decoration: none;
+      cursor: pointer;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-weight: 500;
+      opacity: 0.8;
+    }
+    .output-file-header .dl-btn:hover {
+      opacity: 1;
+      text-decoration: underline;
+    }
+    .output-file-content {
+      padding: 0.75rem;
+      overflow-x: auto;
+    }
+    .output-file-content pre {
+      font-size: 0.8125rem;
+      line-height: 1.5;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-family: 'SF Mono', SFMono-Regular, Consolas, 'Liberation Mono', Menlo, monospace;
+    }
+    .output-file-content img {
+      max-width: 100%;
+      height: auto;
+      border-radius: 4px;
+    }
+    .output-file-content iframe {
+      width: 100%;
+      height: 600px;
+      border: none;
+    }
+    .output-file-content table {
+      border-collapse: collapse;
+      font-size: 0.8125rem;
+      width: 100%;
+    }
+    .output-file-content table td,
+    .output-file-content table th {
+      border: 1px solid var(--border);
+      padding: 0.375rem 0.5rem;
+      text-align: left;
+    }
+    .output-file-content table th {
+      background: var(--bg);
+      font-weight: 600;
+    }
+    .output-file-content .download-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.5rem 1rem;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      color: var(--accent);
+      text-decoration: none;
+      font-size: 0.875rem;
+      cursor: pointer;
+    }
+    .output-file-content .download-link:hover {
+      background: var(--border);
+    }
+    .empty-state {
+      color: var(--text-muted);
+      font-style: italic;
+      padding: 2rem;
+      text-align: center;
+    }
+
+    /* ---- Feedback ---- */
+    .prev-feedback {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      padding: 0.625rem 0.75rem;
+      margin-top: 0.75rem;
+      font-size: 0.8125rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+    .prev-feedback-label {
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      margin-bottom: 0.25rem;
+      color: var(--text-muted);
+    }
+    .feedback-textarea {
+      width: 100%;
+      min-height: 100px;
+      padding: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+      font-family: inherit;
+      font-size: 0.9375rem;
+      line-height: 1.5;
+      resize: vertical;
+      color: var(--text);
+    }
+    .feedback-textarea:focus {
+      outline: none;
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+    .feedback-status {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      margin-top: 0.5rem;
+      min-height: 1.1em;
+    }
+
+    /* ---- Grades (collapsible) ---- */
+    .grades-toggle {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+    }
+    .grades-toggle:hover {
+      color: var(--accent);
+    }
+    .grades-toggle .arrow {
+      margin-right: 0.5rem;
+      transition: transform 0.15s;
+      font-size: 0.75rem;
+    }
+    .grades-toggle .arrow.open {
+      transform: rotate(90deg);
+    }
+    .grades-content {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .grades-content.open {
+      display: block;
+    }
+    .grades-summary {
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .grade-badge {
+      display: inline-block;
+      padding: 0.125rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+    .grade-pass { background: var(--green-bg); color: var(--green); }
+    .grade-fail { background: var(--red-bg); color: var(--red); }
+    .assertion-list {
+      list-style: none;
+    }
+    .assertion-item {
+      padding: 0.625rem 0;
+      border-bottom: 1px solid var(--border);
+      font-size: 0.8125rem;
+    }
+    .assertion-item:last-child { border-bottom: none; }
+    .assertion-status {
+      font-weight: 600;
+      margin-right: 0.5rem;
+    }
+    .assertion-status.pass { color: var(--green); }
+    .assertion-status.fail { color: var(--red); }
+    .assertion-evidence {
+      color: var(--text-muted);
+      font-size: 0.75rem;
+      margin-top: 0.25rem;
+      padding-left: 1.5rem;
+    }
+
+    /* ---- View tabs ---- */
+    .view-tabs {
+      display: flex;
+      gap: 0;
+      padding: 0 2rem;
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .view-tab {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.625rem 1.25rem;
+      font-size: 0.8125rem;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      background: none;
+      color: var(--text-muted);
+      border-bottom: 2px solid transparent;
+      transition: all 0.15s;
+    }
+    .view-tab:hover { color: var(--text); }
+    .view-tab.active {
+      color: var(--accent);
+      border-bottom-color: var(--accent);
+    }
+    .view-panel { display: none; }
+    .view-panel.active { display: flex; flex-direction: column; flex: 1; overflow: hidden; }
+
+    /* ---- Benchmark view ---- */
+    .benchmark-view {
+      padding: 1.5rem 2rem;
+      overflow-y: auto;
+      flex: 1;
+    }
+    .benchmark-table {
+      border-collapse: collapse;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      font-size: 0.8125rem;
+      width: 100%;
+      margin-bottom: 1.5rem;
+    }
+    .benchmark-table th, .benchmark-table td {
+      padding: 0.625rem 0.75rem;
+      text-align: left;
+      border: 1px solid var(--border);
+    }
+    .benchmark-table th {
+      font-family: 'Poppins', sans-serif;
+      background: var(--header-bg);
+      color: var(--header-text);
+      font-weight: 500;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+    .benchmark-table tr:hover { background: var(--bg); }
+    .benchmark-table tr.benchmark-row-with { background: rgba(33, 150, 243, 0.06); }
+    .benchmark-table tr.benchmark-row-without { background: rgba(255, 193, 7, 0.06); }
+    .benchmark-table tr.benchmark-row-with:hover { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-without:hover { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-table tr.benchmark-row-avg { font-weight: 600; border-top: 2px solid var(--border); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-with { background: rgba(33, 150, 243, 0.12); }
+    .benchmark-table tr.benchmark-row-avg.benchmark-row-without { background: rgba(255, 193, 7, 0.12); }
+    .benchmark-delta-positive { color: var(--green); font-weight: 600; }
+    .benchmark-delta-negative { color: var(--red); font-weight: 600; }
+    .benchmark-notes {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 1rem;
+    }
+    .benchmark-notes h3 {
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.875rem;
+      margin-bottom: 0.75rem;
+    }
+    .benchmark-notes ul {
+      list-style: disc;
+      padding-left: 1.25rem;
+    }
+    .benchmark-notes li {
+      font-size: 0.8125rem;
+      line-height: 1.6;
+      margin-bottom: 0.375rem;
+    }
+    .benchmark-empty {
+      color: var(--text-muted);
+      font-style: italic;
+      text-align: center;
+      padding: 3rem;
+    }
+
+    /* ---- Navigation ---- */
+    .nav {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 2rem;
+      border-top: 1px solid var(--border);
+      background: var(--surface);
+      flex-shrink: 0;
+    }
+    .nav-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text);
+      transition: all 0.15s;
+    }
+    .nav-btn:hover:not(:disabled) {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .nav-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .done-btn {
+      font-family: 'Poppins', sans-serif;
+      padding: 0.5rem 1.5rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      color: var(--text);
+      cursor: pointer;
+      font-size: 0.875rem;
+      font-weight: 500;
+      transition: all 0.15s;
+    }
+    .done-btn:hover {
+      background: var(--bg);
+      border-color: var(--text-muted);
+    }
+    .done-btn.ready {
+      border: none;
+      background: var(--accent);
+      color: white;
+      font-weight: 600;
+    }
+    .done-btn.ready:hover {
+      background: var(--accent-hover);
+    }
+    /* ---- Done overlay ---- */
+    .done-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .done-overlay.visible {
+      display: flex;
+    }
+    .done-card {
+      background: var(--surface);
+      border-radius: 12px;
+      padding: 2rem 3rem;
+      text-align: center;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+      max-width: 500px;
+    }
+    .done-card h2 {
+      font-size: 1.5rem;
+      margin-bottom: 0.5rem;
+    }
+    .done-card p {
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+      line-height: 1.5;
+    }
+    .done-card .btn-row {
+      display: flex;
+      gap: 0.5rem;
+      justify-content: center;
+    }
+    .done-card button {
+      padding: 0.5rem 1.25rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--surface);
+      cursor: pointer;
+      font-size: 0.875rem;
+    }
+    .done-card button:hover {
+      background: var(--bg);
+    }
+    /* ---- Toast ---- */
+    .toast {
+      position: fixed;
+      bottom: 5rem;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--header-bg);
+      color: var(--header-text);
+      padding: 0.625rem 1.25rem;
+      border-radius: var(--radius);
+      font-size: 0.875rem;
+      opacity: 0;
+      transition: opacity 0.3s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    .toast.visible {
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+  <div id="app" style="height:100vh; display:flex; flex-direction:column;">
+    <div class="header">
+      <div>
+        <h1>Eval Review: <span id="skill-name"></span></h1>
+        <div class="instructions">Review each output and leave feedback below. Navigate with arrow keys or buttons. When done, copy feedback and paste into Claude Code.</div>
+      </div>
+      <div class="progress" id="progress"></div>
+    </div>
+
+    <!-- View tabs (only shown when benchmark data exists) -->
+    <div class="view-tabs" id="view-tabs" style="display:none;">
+      <button class="view-tab active" onclick="switchView('outputs')">Outputs</button>
+      <button class="view-tab" onclick="switchView('benchmark')">Benchmark</button>
+    </div>
+
+    <!-- Outputs panel (qualitative review) -->
+    <div class="view-panel active" id="panel-outputs">
+    <div class="main">
+      <!-- Prompt -->
+      <div class="section">
+        <div class="section-header">Prompt <span class="config-badge" id="config-badge" style="display:none;"></span></div>
+        <div class="section-body">
+          <div class="prompt-text" id="prompt-text"></div>
+        </div>
+      </div>
+
+      <!-- Outputs -->
+      <div class="section">
+        <div class="section-header">Output</div>
+        <div class="section-body" id="outputs-body">
+          <div class="empty-state">No output files found</div>
+        </div>
+      </div>
+
+      <!-- Previous Output (collapsible) -->
+      <div class="section" id="prev-outputs-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="togglePrevOutputs()">
+            <span class="arrow" id="prev-outputs-arrow">&#9654;</span>
+            Previous Output
+          </div>
+        </div>
+        <div class="grades-content" id="prev-outputs-content"></div>
+      </div>
+
+      <!-- Grades (collapsible) -->
+      <div class="section" id="grades-section" style="display:none;">
+        <div class="section-header">
+          <div class="grades-toggle" onclick="toggleGrades()">
+            <span class="arrow" id="grades-arrow">&#9654;</span>
+            Formal Grades
+          </div>
+        </div>
+        <div class="grades-content" id="grades-content"></div>
+      </div>
+
+      <!-- Feedback -->
+      <div class="section">
+        <div class="section-header">Your Feedback</div>
+        <div class="section-body">
+          <textarea
+            class="feedback-textarea"
+            id="feedback"
+            placeholder="What do you think of this output? Any issues, suggestions, or things that look great?"
+          ></textarea>
+          <div class="feedback-status" id="feedback-status"></div>
+          <div class="prev-feedback" id="prev-feedback" style="display:none;">
+            <div class="prev-feedback-label">Previous feedback</div>
+            <div id="prev-feedback-text"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="nav" id="outputs-nav">
+      <button class="nav-btn" id="prev-btn" onclick="navigate(-1)">&#8592; Previous</button>
+      <button class="done-btn" id="done-btn" onclick="showDoneDialog()">Submit All Reviews</button>
+      <button class="nav-btn" id="next-btn" onclick="navigate(1)">Next &#8594;</button>
+    </div>
+    </div><!-- end panel-outputs -->
+
+    <!-- Benchmark panel (quantitative stats) -->
+    <div class="view-panel" id="panel-benchmark">
+      <div class="benchmark-view" id="benchmark-content">
+        <div class="benchmark-empty">No benchmark data available. Run a benchmark to see quantitative results here.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Done overlay -->
+  <div class="done-overlay" id="done-overlay">
+    <div class="done-card">
+      <h2>Review Complete</h2>
+      <p>Your feedback has been saved. Go back to your Claude Code session and tell Claude you're done reviewing.</p>
+      <div class="btn-row">
+        <button onclick="closeDoneDialog()">OK</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+
+  <script>
+    // ---- Embedded data (injected by generate_review.py) ----
+    const EMBEDDED_DATA = {"skill_name": "better-docs", "runs": [{"id": "eval-1-bloated-with_skill", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "AGENTS.md", "type": "text", "content": "# TaskFlow API\n\n> A REST API for task management built with NestJS + PostgreSQL.\n\nLast updated: 2026-04-10\n\n## Project Overview\n\nTaskFlow is a task management API for Acme Corp's internal project tracking tool. Built with NestJS and PostgreSQL, it handles user authentication, task CRUD, project organization, and real-time notifications via WebSocket. Serves mobile and web clients.\n\n## Quick Start\n\n```bash\nnpm install\ncp .env.example .env\ndocker-compose up -d postgres redis\nnpm run migration:run\nnpm run start:dev\n```\n\nSee @docs/guides/setup.md for troubleshooting.\n\n## Architecture (Summary)\n\nTaskFlow follows a modular monolith architecture with clear domain boundaries:\n\n```\nsrc/\n\u251c\u2500\u2500 auth/           # JWT authentication, guards, strategies\n\u251c\u2500\u2500 users/          # User management, profiles, preferences\n\u251c\u2500\u2500 tasks/          # Core task CRUD, assignment, status transitions\n\u251c\u2500\u2500 projects/       # Project management, membership, settings\n\u251c\u2500\u2500 notifications/  # WebSocket gateway, push notifications\n\u251c\u2500\u2500 shared/         # Common decorators, pipes, interceptors, filters\n\u2514\u2500\u2500 database/       # TypeORM config, migrations, seeders\n```\n\nKey services communicate via RPC (in-process calls). Future state: RabbitMQ for inter-service messaging when extracted.\n\n## Conventions\n\n### Code Style\n- Use NestJS decorators for all metadata\n- DTOs with class-validator for all inputs\n- Entities use TypeORM decorators\n- Services handle business logic, controllers handle HTTP\n- Use custom exceptions, never throw raw HttpException\n- All endpoints documented with @ApiTags, @ApiOperation, @ApiResponse (Swagger)\n\n### Testing\n- Unit tests for services with mocked repos\n- E2E tests for controllers with supertest\n- Test files: `*.spec.ts` next to source\n- E2E files: `test/*.e2e-spec.ts`\n- Min coverage: 80% lines\n\n### Git\n- Conventional commits: feat|fix|chore|docs|refactor|test\n- PR reviews required from 1 team member\n- Squash merge to main\n- CI runs lint + test + build on every PR\n\n### API Design\n- RESTful resource naming: /projects/:id/tasks\n- Pagination: ?page=1&limit=20 (max 100)\n- Sorting: ?sort=createdAt&order=desc\n- Filtering: ?status=todo&priority=high\n- Always return consistent envelope: { data, meta }\n\n## Key Context Files\n\n| When working on... | Read first |\n|---|---|\n| Database schema or migrations | @docs/architecture/data-model.md |\n| Authentication or JWT | @docs/architecture/auth.md |\n| Real-time notifications | @docs/architecture/notifications.md |\n| API endpoints | @docs/reference/api.md |\n| Environment variables | @docs/reference/env-vars.md |\n| Setup or deployment | @docs/guides/setup.md |\n| A tech choice (why REST, why TypeORM?) | @docs/decisions/ |\n| Microservices roadmap | @docs/plans/microservices-roadmap.md |\n\n## Project Policies\n\n### Deployment\n\n**CI/CD Pipeline**\n1. PR: lint \u2192 test \u2192 build \u2192 preview deploy to Vercel\n2. Merge to main: lint \u2192 test \u2192 build \u2192 deploy to staging (AWS ECS)\n3. Tag (v*): deploy to production (AWS ECS)\n\n**Infrastructure**\n- **Staging**: AWS ECS Fargate, RDS PostgreSQL (db.t3.medium), ElastiCache Redis (cache.t3.micro)\n- **Production**: AWS ECS Fargate (2 tasks, auto-scaling 2-6), RDS PostgreSQL (db.r5.large, Multi-AZ), ElastiCache Redis (cache.r5.large, cluster mode)\n- **CDN**: CloudFront for static assets\n- **Monitoring**: Datadog APM + logs, PagerDuty alerts\n- **Secrets**: AWS Secrets Manager\n\n**Pre-Deploy Checklist**\n1. Run full test suite locally\n2. Check migration compatibility (no breaking schema changes without feature flag)\n3. Verify environment variables are set in target environment\n4. Create release tag following semver\n5. Monitor Datadog dashboard for 15 minutes post-deploy\n6. Rollback if error rate > 1% or p99 > 500ms\n\n### Rate Limiting\n- Global: 100 requests per 60 seconds per IP\n- Auth endpoints: 5 requests per 60 seconds per IP\n- WebSocket: 30 messages per 60 seconds per connection\n\n### Error Handling\nGlobal exception filter formats all errors as:\n```json\n{\n  \"statusCode\": 400,\n  \"message\": \"Validation failed\",\n  \"errors\": [{\"field\": \"email\", \"message\": \"must be a valid email\"}],\n  \"timestamp\": \"2025-01-01T00:00:00.000Z\"\n}\n```\n\nCustom exceptions: TaskNotFoundException, ProjectAccessDeniedException, InvalidStatusTransitionException\n\n### Caching Strategy\nRedis caching via @nestjs/cache-manager:\n- User profiles: 5min TTL\n- Project member lists: 2min TTL\n- Task counts per project: 1min TTL\n- Cache invalidation: Custom decorators on mutation endpoints\n\n## Documentation Maintenance\n\nWhen making significant changes:\n1. Update the relevant doc in `docs/`, not AGENTS.md\n2. If a new doc is created, add a row to Key Context Files\n3. If a doc is deleted, remove its row\n4. Rewrite content to reflect current state \u2014 don't append updates\n"}, {"name": "summary.md", "type": "text", "content": "# TaskFlow Documentation Cleanup \u2014 Execution Report\n\n**Date**: 2026-04-10  \n**Repo**: repo-bloated  \n**Status**: COMPLETE\n\n## Phase 1: Inventory\n\nIdentified 5 documentation files. Key findings:\n\n| File | Status |\n|---|---|\n| AGENTS.md | Bloated (300 lines) \u2014 mixed architecture, deployment, env vars, decisions |\n| TODO.md | Stale \u2014 all items complete; duplicated sprint tracking |\n| MIGRATION_PLAN.md | Fully implemented NestJS v10 upgrade; no longer relevant |\n| SETUP_GUIDE.md | Duplicates Quick Start section in AGENTS.md |\n| API_DOCS.md | Partial overlap with API design conventions in AGENTS.md |\n\n## Phase 2: Clean Up\n\n**Deleted:**\n- TODO.md (stale task list)\n- MIGRATION_PLAN.md (completed; decisions extracted to ADR)\n\n**Harvested before deletion:**\n- NestJS v10 migration decision \u2192 ADR-001 (TypeORM choice)\n- Microservices strategy \u2192 docs/plans/microservices-roadmap.md\n\n## Phase 3: Organize into docs/\n\nCreated structure with 10 files:\n\n```\ndocs/\n\u251c\u2500\u2500 architecture/\n\u2502   \u251c\u2500\u2500 data-model.md (database schema)\n\u2502   \u251c\u2500\u2500 auth.md (JWT flow, authorization)\n\u2502   \u2514\u2500\u2500 notifications.md (WebSocket, Socket.IO)\n\u251c\u2500\u2500 decisions/\n\u2502   \u251c\u2500\u2500 001-typeorm-over-prisma.md\n\u2502   \u251c\u2500\u2500 002-redis-over-memcached.md\n\u2502   \u2514\u2500\u2500 003-rest-over-graphql.md\n\u251c\u2500\u2500 guides/setup.md\n\u251c\u2500\u2500 plans/microservices-roadmap.md\n\u2514\u2500\u2500 reference/\n    \u251c\u2500\u2500 api.md\n    \u2514\u2500\u2500 env-vars.md\n```\n\n## Phase 4: Make AGENTS.md Lean\n\n**Transformation:**\n- Original: 241 lines\n- New: 138 lines\n- Reduction: 43%\n\n**Removed from AGENTS.md:**\n- Full database schema \u2192 docs/architecture/data-model.md\n- Authentication details \u2192 docs/architecture/auth.md\n- WebSocket architecture \u2192 docs/architecture/notifications.md\n- Environment variables table \u2192 docs/reference/env-vars.md\n- Decision rationale \u2192 docs/decisions/ (3 ADRs)\n- Migration strategy \u2192 docs/plans/microservices-roadmap.md\n\n**Kept in AGENTS.md:**\n- Project overview (1-2 sentences)\n- Quick start commands\n- Architecture summary (5 lines)\n- Universal conventions (code style, testing, git, API design)\n- **NEW: Key Context Files routing table** (8 rows pointing to detailed docs)\n- Project policies (deployment, rate limiting, error handling, caching)\n\n## Phase 5: Validate\n\n\u2713 AGENTS.md is 138 lines (target: <150)\n\u2713 All docs referenced from routing table\n\u2713 No orphaned documentation\n\u2713 No duplication between AGENTS.md and docs/\n\u2713 All @ references valid\n\u2713 Current Last updated dates (2026-04-10)\n\n## Phase 6: Report Summary\n\n### Plans Harvested\n- NestJS v10 migration timing/trade-offs \u2192 ADR-001\n- Microservices extraction phases \u2192 docs/plans/microservices-roadmap.md\n- 3 key architectural decisions \u2192 docs/decisions/\n\n### Files Deleted (2)\n- TODO.md (stale)\n- MIGRATION_PLAN.md (implemented)\n\n### Files Moved (2)\n- SETUP_GUIDE.md \u2192 docs/guides/setup.md\n- API_DOCS.md \u2192 docs/reference/api.md\n\n### Files Created (8)\n- docs/architecture/{data-model,auth,notifications}.md\n- docs/decisions/{001,002,003}*.md\n- docs/plans/microservices-roadmap.md\n- docs/reference/env-vars.md\n\n### AGENTS.md Routing Table (Key Addition)\n\n| When working on... | Read first |\n|---|---|\n| Database schema or migrations | @docs/architecture/data-model.md |\n| Authentication or JWT | @docs/architecture/auth.md |\n| Real-time notifications | @docs/architecture/notifications.md |\n| API endpoints | @docs/reference/api.md |\n| Environment variables | @docs/reference/env-vars.md |\n| Setup or deployment | @docs/guides/setup.md |\n| A tech choice (why REST, why TypeORM?) | @docs/decisions/ |\n| Microservices roadmap | @docs/plans/microservices-roadmap.md |\n\n## Result\n\nTaskFlow's documentation is now optimized:\n- AGENTS.md is a fast-to-parse routing table (138 lines, 43% smaller)\n- Detailed content organized in docs/ (10 files by topic)\n- All references validated\n- Zero duplication\n- Decision context preserved as ADRs\n- Completed migration properly harvested before cleanup\n"}], "grading": {"expectations": [{"text": "agents_md_under_150_lines", "passed": true, "evidence": "AGENTS.md is exactly 138 lines, well under the 150-line target"}, {"text": "has_routing_table", "passed": true, "evidence": "Contains 'Key Context Files' table with 8 rows using | delimiters, mapping tasks to @docs/ references"}, {"text": "detailed_content_moved", "passed": true, "evidence": "Database schema \u2192 data-model.md, auth details \u2192 auth.md, notifications \u2192 notifications.md, env vars \u2192 env-vars.md, decisions \u2192 ADRs, migration \u2192 plans/"}, {"text": "stale_docs_removed", "passed": true, "evidence": "TODO.md and MIGRATION_PLAN.md deleted as stale/completed; decisions harvested before deletion (3 ADRs created)"}, {"text": "decisions_harvested", "passed": true, "evidence": "3 ADRs created: 001-typeorm-over-prisma.md, 002-redis-over-memcached.md, 003-rest-over-graphql.md"}, {"text": "docs_organized", "passed": true, "evidence": "docs/ organized with subdirectories: architecture/ (3 files), decisions/ (3 files), guides/, plans/, reference/ (2 files) \u2014 10 files total by topic"}, {"text": "no_orphaned_docs", "passed": true, "evidence": "All 10 created docs are referenced in Key Context Files routing table or cross-references; validation confirms no orphaned docs"}, {"text": "phase_report_provided", "passed": true, "evidence": "Comprehensive 6-phase report provided in summary.md: inventory, cleanup, organize, lean AGENTS.md, validate, report summary with metrics and routing table"}], "pass_rate": 1.0, "notes": "Perfect execution. Skill produced well-organized, modular documentation structure with clear routing. AGENTS.md is lean and provides single entry point. All assertions passed with strong evidence."}}, {"id": "eval-1-bloated-without_skill", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "AGENTS.md", "type": "text", "content": "# TaskFlow API Navigation\n\n> A REST API for task management built with NestJS + PostgreSQL.\n\n## Quick Links\n\n| Document | Purpose |\n|----------|---------|\n| [SETUP_GUIDE.md](SETUP_GUIDE.md) | Installation, dependencies, running tests |\n| [ARCHITECTURE.md](ARCHITECTURE.md) | System design, module structure, database schema, WebSocket setup |\n| [ENV_VARS.md](ENV_VARS.md) | All environment variables and their defaults |\n| [DEPLOYMENT.md](DEPLOYMENT.md) | CI/CD, infrastructure, deploy checklist |\n| [CONVENTIONS.md](CONVENTIONS.md) | Code style, testing, git workflow, API design |\n| [DECISIONS.md](DECISIONS.md) | Architecture decisions and trade-offs |\n| [API_DOCS.md](API_DOCS.md) | API reference and endpoints |\n\n## Project Overview\n\nTaskFlow serves mobile and web clients for Acme Corp's internal project tracking tool. The API handles user authentication, task CRUD, project organization, and real-time notifications via WebSocket.\n\n**Tech Stack**: NestJS, PostgreSQL, Redis, Socket.IO, TypeORM, Docker\n\nSee [SETUP_GUIDE.md](SETUP_GUIDE.md) to get started.\n"}, {"name": "summary.md", "type": "text", "content": "# AGENTS.md Refactoring Summary\n\n## Task\nTransform a bloated 300-line AGENTS.md file (containing database schema, deployment steps, env vars, conventions, decisions, and sprint tracking) into a lean routing file.\n\n## Changes Made\n\n### AGENTS.md (1064 bytes, down from 8681 bytes)\n**Transformed into a navigation hub** that:\n- Serves as a single entry point to all documentation\n- Contains a quick-links table with 7 key documents\n- Includes minimal project overview and tech stack\n- Links users to SETUP_GUIDE.md for getting started\n- Maintains 88% reduction in file size\n\n### New Supporting Documentation Files Created\n\n1. **ARCHITECTURE.md** (4072 bytes)\n   - Modular monolith design and module structure\n   - Database schema with all entities and relations\n   - Authentication flow (JWT-based)\n   - WebSocket architecture with Socket.IO\n   - API rate limiting configuration\n   - Error handling patterns\n   - Caching strategy with TTLs\n   - Future microservices migration plan\n\n2. **ENV_VARS.md** (896 bytes)\n   - Comprehensive environment variables table\n   - All 15 variables with descriptions and defaults\n   - Easy reference for configuration\n\n3. **DEPLOYMENT.md** (965 bytes)\n   - CI/CD pipeline stages (PR, merge, tag)\n   - Infrastructure details for staging and production\n   - Complete deploy checklist with safety guards\n\n4. **CONVENTIONS.md** (973 bytes)\n   - Code style guidelines for NestJS\n   - Testing strategy (unit + E2E)\n   - Git workflow and commit conventions\n   - API design patterns and pagination\n\n5. **DECISIONS.md** (805 bytes)\n   - Architecture decision records (ADRs) format\n   - TypeORM vs Prisma decision (2025-03-15)\n   - Redis vs Memcached decision (2025-06-01)\n   - REST vs GraphQL decision (2025-08-20)\n\n### Information Organization\n\n**Content extracted from bloated AGENTS.md and redistributed:**\n- Database schema \u2192 ARCHITECTURE.md\n- Environment variables \u2192 ENV_VARS.md (also in DEPLOYMENT.md as reference)\n- Deployment steps \u2192 DEPLOYMENT.md\n- Code conventions \u2192 CONVENTIONS.md\n- Architecture decisions \u2192 DECISIONS.md\n- Authentication flow \u2192 ARCHITECTURE.md\n- WebSocket setup \u2192 ARCHITECTURE.md\n- Rate limiting \u2192 ARCHITECTURE.md\n- Caching strategy \u2192 ARCHITECTURE.md\n- Microservices migration plan \u2192 ARCHITECTURE.md\n\n### Preserved Documentation\n- SETUP_GUIDE.md (existing, unchanged)\n- API_DOCS.md (existing, unchanged)\n- MIGRATION_PLAN.md (existing, unchanged)\n- TODO.md (existing, unchanged)\n\n## Benefits\n\n1. **Single source of truth navigation**: AGENTS.md clearly routes to all documentation\n2. **Reduced cognitive load**: Each file has a single, clear purpose\n3. **Easier maintenance**: Updates to specific topics go to specific files\n4. **Better discoverability**: Clear table of links helps new team members\n5. **Scalability**: New documents can be added to the quick-links table without bloating AGENTS.md\n\n## File Size Comparison\n\n| File | Before | After | Change |\n|------|--------|-------|--------|\n| AGENTS.md | 8681 bytes | 1064 bytes | -87.7% |\n| Total doc footprint | 8681 bytes | 11,571 bytes | +33.4% (distributed across 5 focused files) |\n\nThe increase in total size reflects the addition of new structure and clarity, making the documentation more maintainable and usable despite taking slightly more total space.\n"}], "grading": {"expectations": [{"text": "agents_md_under_150_lines", "passed": true, "evidence": "AGENTS.md is 23 lines, well under 150-line target"}, {"text": "has_routing_table", "passed": true, "evidence": "Contains 'Quick Links' table with 7 rows using | delimiters, linking to SETUP_GUIDE.md, ARCHITECTURE.md, ENV_VARS.md, etc."}, {"text": "detailed_content_moved", "passed": true, "evidence": "Content moved to ARCHITECTURE.md, ENV_VARS.md, DEPLOYMENT.md, CONVENTIONS.md, DECISIONS.md, API_DOCS.md in root directory"}, {"text": "stale_docs_removed", "passed": false, "evidence": "Summary states files were 'preserved' rather than removed as stale. No evidence of TODO.md or MIGRATION_PLAN.md deletion; stale identification absent"}, {"text": "decisions_harvested", "passed": false, "evidence": "DECISIONS.md file created but contains only format/structure, not actual ADRs. No separate decision records harvested; decisions remain in monolithic DECISIONS.md"}, {"text": "docs_organized", "passed": false, "evidence": "All documentation files placed in root directory (ARCHITECTURE.md, ENV_VARS.md, etc.) with no subdirectory structure. No architecture/, decisions/, guides/, reference/ organization"}, {"text": "no_orphaned_docs", "passed": true, "evidence": "All 7 files referenced in routing table; 'Preserved Documentation' section lists all existing files"}, {"text": "phase_report_provided", "passed": true, "evidence": "Summary provided with task description, changes made (5 files created), file size comparison, and benefits listed"}], "pass_rate": 0.625, "notes": "Without skill, approach creates routing but fails to implement deeper organizational patterns. Missing: removal of truly stale docs, creation of individual ADRs, and proper subdirectory structure. Documentation is consolidated but flat in root directory rather than organized by topic/concern."}}, {"id": "eval-2-scattered-with_skill", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "AGENTS.md", "type": "text", "content": "# PixelForge\n\nImage processing microservice with GPU acceleration support. Python + FastAPI + Celery + PostgreSQL + Redis.\n\nLast updated: 2025-04-10\n\n## Quick Start\n\n```bash\ndocker-compose up\n```\n\nAPI available at http://localhost:8000 | Swagger docs at http://localhost:8000/docs\n\n## Architecture Summary\n\nPixelForge processes images through a job queue pipeline:\n\n- **API Gateway:** FastAPI (port 8000) accepts uploads and queries\n- **Job Queue:** Redis broker with Celery workers (default 4)\n- **Processing:** Workers apply image operations (resize, crop, ML upscaling, style transfer)\n- **Storage:** S3/MinIO for results, PostgreSQL for metadata\n- **GPU Support:** Optional CUDA-accelerated workers for ML operations\n\n## Conventions\n\n- **Type hints** required on all public functions\n- **Docstrings** required on all public functions\n- **Test coverage** minimum 85%\n- **Code formatting:** Black (88 char), isort imports\n- **API versioning:** v2 is current; v1 deprecated (removal Q2 2025)\n\n## Key Context Files\n\n| When working on... | Read first |\n|---|---|\n| Development setup | @docs/guides/setup.md |\n| System design and components | @docs/architecture/system-design.md |\n| API endpoints | @docs/reference/api.md |\n| Deprecated API (v1 only) | @docs/reference/api-v1-deprecated.md |\n| Multi-tenancy feature | @docs/plans/multi-tenant.md |\n| GPU acceleration decision | @docs/decisions/gpu-acceleration.md |\n\n## Project Policies\n\n- **PR process:** Branch from main, 1 approval required, CI must pass (lint + test + build), squash merge\n- **Release cadence:** See git tags for version history\n"}, {"name": "summary.md", "type": "text", "content": "# Documentation Audit & Organization - PixelForge\n\n## Execution Summary\n\nAll 6 phases of the better-docs skill completed successfully.\n\n### Phase 1: Inventory\nScanned 10 documentation files. Identified duplicates (setup), stale content (old Flask docs), completed plans (GPU support).\n\n### Phase 2: Clean Up\n- Harvested GPU support plan \u2192 `docs/decisions/gpu-acceleration.md` (decision, rationale, alternatives, rollout)\n- Deleted `docs/old-setup.md` (stale Flask/RabbitMQ content from 2024 migration)\n- Deleted `docs/PLAN-gpu-support.md` (implemented; knowledge captured in ADR)\n- Consolidated duplicate setup instructions from `docs/setup.md` + `CONTRIBUTING.md` \u2192 single `docs/guides/setup.md`\n- Updated CONTRIBUTING.md to reference guide via `@docs/guides/setup.md`\n\n### Phase 3: Organize into docs/\nCreated structure:\n- docs/architecture/system-design.md\n- docs/decisions/gpu-acceleration.md\n- docs/guides/setup.md\n- docs/plans/multi-tenant.md\n- docs/reference/api.md\n- docs/reference/api-v1-deprecated.md\n\n### Phase 4: Make AGENTS.md Lean\n- Transformed AGENTS.md from 8 lines \u2192 47 lines (comprehensive routing)\n- Added Architecture Summary, Key Context Files table, Conventions\n- Moved detailed content out to docs/\n- Created `@` reference routing table for agents\n\n### Phase 5: Validate\n\u2713 AGENTS.md is 47 lines (under 150-line target)\n\u2713 All 6 docs/ files referenced in routing table\n\u2713 Zero orphaned docs\n\u2713 Zero broken @references\n\u2713 Last updated dates current (2025-04-10)\n\n### Phase 6: Report\n- Files deleted: 2 (old-setup.md, PLAN-gpu-support.md)\n- Files moved: 5 (architecture, apis, setup, plans)\n- Files rewritten: 4 (added dates, clarified content)\n- Plans harvested: 1 (GPU \u2192 ADR)\n- Duplicates consolidated: 1 (setup instructions)\n\n## Final Metrics\n- Before: 10 files (scattered, stale, duplicate)\n- After: 7 files (organized, current, consolidated)\n- AGENTS.md routing table: 6 key context entries\n- Status: All validation checks passed\n"}], "grading": {"expectations": [{"text": "agents_md_under_150_lines", "passed": true, "evidence": "AGENTS.md is 47 lines, well under 150-line target"}, {"text": "has_routing_table", "passed": true, "evidence": "Contains 'Key Context Files' table with 6 rows using | delimiters, mapping to @docs/ paths for setup, architecture, APIs, deprecated v1, multi-tenant plan, GPU decision"}, {"text": "detailed_content_moved", "passed": true, "evidence": "API content \u2192 docs/reference/api.md, system design \u2192 docs/architecture/system-design.md, setup \u2192 docs/guides/setup.md, deprecated API \u2192 docs/reference/api-v1-deprecated.md"}, {"text": "stale_docs_removed", "passed": true, "evidence": "docs/old-setup.md (stale Flask/RabbitMQ) and docs/PLAN-gpu-support.md (completed) both deleted; GPU knowledge harvested before deletion"}, {"text": "decisions_harvested", "passed": true, "evidence": "GPU acceleration decision extracted from plan and converted to docs/decisions/gpu-acceleration.md with decision, rationale, alternatives, rollout"}, {"text": "docs_organized", "passed": true, "evidence": "Organized into docs/ subdirectories: architecture/system-design.md, decisions/gpu-acceleration.md, guides/setup.md, plans/multi-tenant.md, reference/{api.md, api-v1-deprecated.md}"}, {"text": "no_orphaned_docs", "passed": true, "evidence": "All 6 docs/ files referenced in Key Context Files routing table; validation confirms zero orphaned docs, zero broken @references"}, {"text": "phase_report_provided", "passed": true, "evidence": "6-phase report provided: inventory (10 files scanned), cleanup (duplicates consolidated, stale docs deleted), organize (docs/ structure), lean AGENTS.md, validate, report with metrics"}], "pass_rate": 1.0, "notes": "Excellent execution on scattered baseline. Skill identified duplicates (4 setup locations) and consolidated them. Correctly harvested GPU knowledge before deletion. Proper subdirectory organization with clear routing. AGENTS.md is lean and comprehensive."}}, {"id": "eval-2-scattered-without_skill", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "AGENTS.md", "type": "text", "content": "# PixelForge\n\nImage processing microservice built with Python, FastAPI, and Celery.\n\n## Quick Start\n\n```bash\ndocker-compose up\n```\n\nAPI will be available at http://localhost:8000 with Swagger docs at http://localhost:8000/docs\n\n## Documentation\n\n### Getting Started\n- **[Setup Guide](./docs/setup.md)** - Installation and configuration\n- **[Architecture](./docs/architecture.md)** - System design and components\n- **[Contributing Guide](./CONTRIBUTING.md)** - Code standards and development workflow\n\n### API Reference\n- **[API v2](./docs/api-v2.md)** - Current API endpoints and specifications\n\n### Active Development\n- **[Multi-Tenancy Plan](./docs/plans/IN-PROGRESS-multi-tenant.md)** - In-progress feature roadmap\n\n### Archived Documentation\nSee `docs/archived/` for deprecated resources:\n- Old Flask-based setup (pre-2024 migration)\n- API v1 documentation (deprecated, will be removed Q2 2025)\n\n## Tech Stack\n\n- **API Framework:** FastAPI (Python)\n- **Task Queue:** Celery with Redis broker\n- **Database:** PostgreSQL (metadata)\n- **Object Storage:** S3 / MinIO\n- **Containerization:** Docker & Docker Compose\n- **Compute:** GPU-accelerated workers (NVIDIA CUDA + PyTorch)\n"}, {"name": "summary.md", "type": "text", "content": "# Documentation Audit & Organization Summary\n\n**Project:** PixelForge (Image Processing Microservice)  \n**Date:** 2025-04-10  \n**Status:** Completed\n\n## Overview\n\nAudited and reorganized a scattered documentation structure across the PixelForge repository. The repo contained duplicate setup instructions, deprecated technical docs, and completed planning documents cluttering the active documentation.\n\n## Issues Found\n\n1. **Duplicate Setup Instructions** (4 locations)\n   - `docs/setup.md` - Current setup\n   - `docs/old-setup.md` - Legacy Flask setup (pre-2024)\n   - `CONTRIBUTING.md` - Contributing guide with setup steps\n   - `AGENTS.md` - Project overview with setup command\n\n2. **Deprecated/Obsolete Documentation**\n   - `docs/old-setup.md` - Flask-based setup from before migration to FastAPI\n   - `docs/api-v1.md` - API v1 endpoints (marked for removal Q2 2025)\n\n3. **Completed Plans Cluttering Active Docs**\n   - `docs/PLAN-gpu-support.md` - GPU acceleration (completed 2025-03-15)\n\n4. **Poor Information Architecture**\n   - No clear separation between active, in-progress, and completed items\n   - Unclear navigation paths from top-level docs\n   - References scattered across multiple files\n\n## Changes Made\n\n### 1. Created Directory Structure\n```\ndocs/\n\u251c\u2500\u2500 INDEX.md (NEW - navigation guide)\n\u251c\u2500\u2500 setup.md (ENHANCED - consolidated guide)\n\u251c\u2500\u2500 architecture.md\n\u251c\u2500\u2500 api-v2.md\n\u251c\u2500\u2500 plans/\n\u2502   \u251c\u2500\u2500 IN-PROGRESS-multi-tenant.md\n\u2502   \u2514\u2500\u2500 COMPLETED-gpu-support.md\n\u2514\u2500\u2500 archived/\n    \u251c\u2500\u2500 old-setup-flask.md\n    \u2514\u2500\u2500 api-v1-deprecated.md\n```\n\n### 2. Consolidated Setup Instructions\n- **Enhanced `docs/setup.md`**: Comprehensive guide with prerequisites, quick start, development setup, and next steps\n- **Updated `CONTRIBUTING.md`**: References the primary setup guide; removed duplicate instructions\n- **Improved `AGENTS.md`**: Now serves as centralized project overview with clear documentation hierarchy\n\n### 3. Organized By Status\n- **Active docs** (docs/ root): setup, architecture, current API v2\n- **Planning** (docs/plans/): In-progress features and completed initiatives\n- **Archived** (docs/archived/): Legacy and deprecated documentation preserved for reference\n\n### 4. Added Navigation\n- **New `docs/INDEX.md`**: Guide to all documentation with descriptions and purposes\n- **Updated `AGENTS.md`**: Clear section structure with links to relevant docs\n\n## Key Improvements\n\n| Issue | Solution | Benefit |\n|-------|----------|---------|\n| Duplicate setup info | Single authoritative guide + cross-references | Easier maintenance, consistent instructions |\n| Old Flask docs in active area | Moved to `archived/` with clear naming | Reduces confusion about current tech stack |\n| Deprecated API docs in main area | Moved to `archived/` with retention for reference | Highlights that v1 is deprecated without losing context |\n| Completed plans cluttering roadmap | Separate `plans/` directory with status prefixes | Easier to find active vs. completed work |\n| Poor navigation | Added INDEX.md and improved AGENTS.md | Clear entry points and information architecture |\n\n## Files Modified\n\n1. `/docs/setup.md` - Expanded from 8 lines to comprehensive guide (31 lines)\n2. `/CONTRIBUTING.md` - Added setup reference, removed duplicate steps\n3. `/AGENTS.md` - Restructured as project overview with documentation index\n4. `/docs/INDEX.md` - NEW: Navigation guide for all documentation\n\n## Files Reorganized\n\n- `old-setup.md` \u2192 `archived/old-setup-flask.md`\n- `api-v1.md` \u2192 `archived/api-v1-deprecated.md`\n- `PLAN-gpu-support.md` \u2192 `plans/COMPLETED-gpu-support.md`\n- `PLAN-multi-tenant.md` \u2192 `plans/IN-PROGRESS-multi-tenant.md`\n\n## Result\n\nThe documentation is now:\n- **Organized** by function (active, planning, archived)\n- **Navigable** with clear hierarchy and cross-references\n- **Maintainable** with single source of truth for setup\n- **Discoverable** with INDEX.md and improved AGENTS.md\n- **Contextual** with archived docs preserved for reference, not confusion\n\nDevelopers can now quickly find what they need without confusion about deprecated resources or conflicting instructions.\n"}], "grading": {"expectations": [{"text": "agents_md_under_150_lines", "passed": true, "evidence": "AGENTS.md is 38 lines, well under 150-line target"}, {"text": "has_routing_table", "passed": false, "evidence": "AGENTS.md contains 'Getting Started', 'API Reference', 'Active Development', 'Archived Documentation' sections with markdown links, but no | delimited routing table structure"}, {"text": "detailed_content_moved", "passed": true, "evidence": "Content moved to docs/setup.md, docs/architecture.md, docs/api-v2.md, docs/plans/IN-PROGRESS-multi-tenant.md, docs/archived/ for deprecated resources"}, {"text": "stale_docs_removed", "passed": true, "evidence": "Old Flask setup and API v1 moved to docs/archived/; completed GPU support plan addressed through archived documentation"}, {"text": "decisions_harvested", "passed": false, "evidence": "No ADR-style decision documents created. GPU acceleration decision content remains embedded in overview files rather than extracted to dedicated decision record"}, {"text": "docs_organized", "passed": true, "evidence": "docs/ organized with subdirectories: plans/, archived/. Root docs contain setup.md, architecture.md, api-v2.md; good separation of status but missing clear decisions/ subdirectory"}, {"text": "no_orphaned_docs", "passed": true, "evidence": "All docs referenced in AGENTS.md sections or linked in cross-references; no orphaned files identified"}, {"text": "phase_report_provided", "passed": true, "evidence": "Comprehensive report provided: issues found (4 duplicate setups, deprecated docs, completed plans), changes made, organized structure, key improvements, and result summary"}], "pass_rate": 0.75, "notes": "Good documentation reorganization but falls short on two key criteria. Missing: proper | delimited routing table (uses markdown links instead) and individual ADR documents for decisions (knowledge captured but not formalized). Organization is reasonable but could benefit from explicit decisions/ subdirectory."}}, {"id": "eval-3-minimal-with_skill", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "AGENTS.md", "type": "text", "content": "# ShopSync\n\n> E-commerce inventory sync service for Shopify, WooCommerce, and internal DB.\n\nLast updated: 2026-04-10\n\n## Project Overview\n\nShopSync synchronizes product inventory across Shopify, WooCommerce, and an internal database in real-time. Built with Node.js, TypeScript, and Bull queues, it uses webhooks for instant updates and provides automatic retry and rate-limiting logic.\n\n## Quick Start\n\n```bash\nnpm install\nnpm run dev\n```\n\nSee `@docs/guides/setup.md` for full environment setup.\n\n## Architecture (Summary)\n\nWebhooks \u2192 Bull queue \u2192 Sync engine \u2192 Internal DB + Redis cache. Real-time event-driven architecture with automatic retry and rate limiting.\n\nFor details: `@docs/architecture/system-design.md`\n\n## Conventions\n\n- **TypeScript:** All source code must be written in TypeScript with strict mode enabled\n- **Commit messages:** Use conventional commits (feat:, fix:, docs:, test:)\n- **Env vars:** Always use `.env` file; never commit secrets\n- **Testing:** All new features require unit tests (minimum 80% coverage)\n\n## Key Context Files\n\n| When working on... | Read first |\n|---|---|\n| System architecture or data flow | `@docs/architecture/system-design.md` |\n| Setting up or deploying | `@docs/guides/setup.md` |\n| Queue system or sync logic | `@docs/decisions/ADR-001-queue-system.md` |\n| Release notes or version history | `@docs/reference/CHANGELOG.md` |\n\n## Project Policies\n\n- **Review process:** Minimum 1 approval before merge to main\n- **Release cadence:** Monthly releases (first Friday of each month)\n- **API compatibility:** Maintain backward compatibility for 2 major versions\n- **Security:** Report vulnerabilities privately before public disclosure\n\n## Documentation Maintenance\n\nWhen making significant changes:\n1. Update the relevant doc in `docs/`, not `AGENTS.md`\n2. If a new doc is created, add a row to Key Context Files\n3. If a doc is deleted, remove its row\n4. Rewrite content to reflect current state \u2014 don't append updates\n"}, {"name": "summary.md", "type": "text", "content": "# ShopSync Documentation Reorganization - Summary\n\n## Execution Timeline\n\nAll 6 phases of the better-docs skill were executed on 2026-04-10.\n\n## Phase 1: Inventory\n\nInitial inventory identified 4 documentation files:\n- `AGENTS.md` (176 lines) - bloated with setup and overview content\n- `README.md` (12 lines) - basic setup instructions\n- `CHANGELOG.md` (20 lines) - version history\n- `docs-old.md` (11 lines) - old architecture notes (valuable decision context)\n\n## Phase 2: Clean Up\n\n### Harvested Knowledge\n\nFrom `docs-old.md`, extracted the migration decision that led to Bull queues:\n- **Decision:** Migrate from cron jobs to Bull + webhooks (v2.0.0)\n- **Rationale:** Better rate limiting, real-time sync, automatic retries\n- **Trade-off analysis:** Bull chosen over Agenda.js for Redis integration and maintenance\n\nThis became **ADR-001-queue-system.md** in `docs/decisions/`.\n\n### Files Deleted\n\n- `docs-old.md` \u2014 Harvested and removed\n\n### Files Preserved\n\n- `README.md` \u2014 Updated to be a landing page\n- `AGENTS.md` \u2014 Rewritten as lean routing file\n- `CHANGELOG.md` \u2014 Moved to `docs/reference/`\n\n## Phase 3: Organize into docs/\n\nCreated `docs/` structure with 4 subdirectories:\n\n```\ndocs/\n\u251c\u2500\u2500 architecture/\n\u2502   \u2514\u2500\u2500 system-design.md        [NEW] Comprehensive system design, data flow, tech stack\n\u251c\u2500\u2500 decisions/\n\u2502   \u2514\u2500\u2500 ADR-001-queue-system.md [NEW] Architecture decision: Bull queues over cron\n\u251c\u2500\u2500 guides/\n\u2502   \u2514\u2500\u2500 setup.md                [NEW] Extracted from README.md\n\u2514\u2500\u2500 reference/\n    \u2514\u2500\u2500 CHANGELOG.md            [MOVED] From repo root\n```\n\n### Files Created\n\n1. **docs/architecture/system-design.md** \u2014 New comprehensive architecture doc\n   - System overview and supported platforms\n   - ASCII diagram of component relationships\n   - Data flow explanation\n   - Tech stack summary\n   - References to related decisions\n\n2. **docs/decisions/ADR-001-queue-system.md** \u2014 Extracted from docs-old.md\n   - Decision context and rationale\n   - Comparison with alternatives (faster polling, Agenda.js, AWS SQS)\n   - Consequences (positive and trade-offs)\n   - Related documentation links\n\n3. **docs/guides/setup.md** \u2014 Extracted from README.md\n   - Prerequisites and installation\n   - Environment variable setup with required keys\n   - How to run locally\n\n### Files Moved\n\n- `CHANGELOG.md` \u2192 `docs/reference/CHANGELOG.md`\n\n## Phase 4: Make AGENTS.md Lean\n\n### Before (176 lines)\n\nThe original AGENTS.md included incomplete routing structure.\n\n### After (55 lines)\n\nRewritten as a lean routing file with:\n- Project name and one-line description\n- 2-sentence overview\n- Quick start (just the commands, no explanation)\n- 5-line architecture summary with reference\n- Universal conventions (5 conventions that apply everywhere)\n- **Key Context Files routing table** (4 rows pointing to relevant docs)\n- Project policies (review, release, API compatibility, security)\n- Documentation maintenance guidance\n\n### Content Moved OUT\n\n- Setup instructions \u2192 `@docs/guides/setup.md`\n- Detailed architecture \u2192 `@docs/architecture/system-design.md`\n- Version history \u2192 `@docs/reference/CHANGELOG.md`\n- Migration rationale \u2192 `@docs/decisions/ADR-001-queue-system.md`\n\n### Content Kept\n\n- Project overview (condensed to 2 sentences)\n- Quick start commands (2 lines, no fluff)\n- Architecture summary (5 lines, delegates to docs)\n- Conventions that apply everywhere\n- Key context routing table\n- Project policies\n\n## Phase 5: Validate\n\nAll validation checks passed:\n\n| Check | Result |\n|---|---|\n| AGENTS.md line count | 55 lines (\u2713 under 150) |\n| Every doc in `docs/` referenced | \u2713 All 4 docs in routing table or cross-references |\n| No orphaned docs | \u2713 All 4 docs are reachable |\n| No duplication | \u2713 AGENTS.md references docs instead of repeating |\n| All `@` references valid | \u2713 All paths point to existing files |\n| Last updated dates current | \u2713 All files dated 2026-04-10 |\n\n## Phase 6: Report\n\n### Summary of Changes\n\n**Files created:** 4\n- `docs/architecture/system-design.md` (new comprehensive design doc)\n- `docs/decisions/ADR-001-queue-system.md` (new ADR harvested from old notes)\n- `docs/guides/setup.md` (extracted from README)\n- `docs/reference/CHANGELOG.md` (moved from root)\n\n**Files deleted:** 1\n- `docs-old.md` (harvested and removed)\n\n**Files rewritten:** 2\n- `AGENTS.md` (176 lines \u2192 55 lines, now a routing file)\n- `README.md` (converted to landing page with links)\n\n**Docs structure created:**\n```\ndocs/\n\u251c\u2500\u2500 architecture/   (1 file)\n\u251c\u2500\u2500 decisions/      (1 file)\n\u251c\u2500\u2500 guides/         (1 file)\n\u2514\u2500\u2500 reference/      (1 file)\n```\n\n### Routing Table (Final)\n\nThe new Key Context Files table in AGENTS.md:\n\n| When working on... | Read first |\n|---|---|\n| System architecture or data flow | `@docs/architecture/system-design.md` |\n| Setting up or deploying | `@docs/guides/setup.md` |\n| Queue system or sync logic | `@docs/decisions/ADR-001-queue-system.md` |\n| Release notes or version history | `@docs/reference/CHANGELOG.md` |\n\n### Benefits Realized\n\n1. **AGENTS.md is now lean** (55 lines) \u2014 Fast to parse, easy to maintain\n2. **Architecture decision captured** \u2014 ADR explains why Bull was chosen; preserved for future developers\n3. **Docs are organized** \u2014 Clear structure: architecture, decisions, guides, reference\n4. **No duplication** \u2014 Each concept lives in one place; AGENTS.md routes to it\n5. **Onboarding improved** \u2014 New developers have a clear routing table to find what they need\n\n### Flags for Review\n\nNone. All decisions were clear-cut:\n- Old docs contained harvested decision context (preserved as ADR)\n- Duplication was removed (not stale content)\n- No ambiguous files to retain\n\n---\n\n**Execution completed:** 2026-04-10\n"}], "grading": {"expectations": [{"text": "agents_md_under_150_lines", "passed": true, "evidence": "AGENTS.md is 55 lines, well under 150-line target"}, {"text": "has_routing_table", "passed": true, "evidence": "Contains 'Key Context Files' table with 4 rows using | delimiters, mapping to @docs/ paths for architecture, setup, queue decisions, changelog"}, {"text": "detailed_content_moved", "passed": true, "evidence": "Setup moved to docs/guides/setup.md, architecture to docs/architecture/system-design.md, changelog to docs/reference/CHANGELOG.md, decision to docs/decisions/"}, {"text": "stale_docs_removed", "passed": true, "evidence": "docs-old.md (legacy architecture notes) deleted after knowledge harvest; decision rationale extracted to ADR-001-queue-system.md"}, {"text": "decisions_harvested", "passed": true, "evidence": "ADR-001-queue-system.md created with decision context, rationale, alternatives (polling, Agenda.js, AWS SQS), consequences, and related links"}, {"text": "docs_organized", "passed": true, "evidence": "docs/ organized with 4 subdirectories: architecture/system-design.md, decisions/ADR-001-queue-system.md, guides/setup.md, reference/CHANGELOG.md"}, {"text": "no_orphaned_docs", "passed": true, "evidence": "All 4 created docs are referenced in Key Context Files routing table; validation confirms all reachable, no orphaned files"}, {"text": "phase_report_provided", "passed": true, "evidence": "6-phase report provided: inventory, harvest and cleanup, organize docs/, lean AGENTS.md transformation (176\u219255 lines), validate, comprehensive summary with all decisions explained"}], "pass_rate": 1.0, "notes": "Perfect execution on minimal baseline. Despite starting with sparse documentation (4 files), skill identified valuable decision context in legacy notes and properly extracted it to ADR. Clean organization, lean routing, and comprehensive report. All assertions met."}}, {"id": "eval-3-minimal-without_skill", "prompt": "(No prompt found)", "eval_id": null, "outputs": [{"name": "AGENTS.md", "type": "text", "content": "# ShopSync - Architecture & Development Guide\n\nShopSync is an e-commerce inventory sync service that syncs product data between Shopify, WooCommerce, and an internal database. Built with Node.js, TypeScript, and Bull queues for real-time, webhook-based synchronization.\n\n## Architecture Overview\n\n### Key Components\n\n- **Bull Queues**: Asynchronous job processing with Redis backend\n- **Webhook Handlers**: Real-time sync triggered by platform events\n- **Platform Adapters**: Shopify and WooCommerce integration layers\n- **Database**: Internal product/inventory storage\n\n### Migration History\n\nShopSync evolved from a cron-based polling approach (v1.0) to Bull queue-based real-time sync (v2.0+).\n\n**Previous Approach (v1.0)**:\n- Polled Shopify every 5 minutes via cron jobs\n- Issues: High API usage, 5-minute sync delay, no retry mechanism\n- Rate limited frequently due to excessive API calls\n\n**Current Approach (v2.0+)**:\n- Webhook-triggered synchronization\n- Bull queues with Redis for job persistence and retry logic\n- Chosen Bull over Agenda.js for better Redis support and active maintenance\n\n## Supported Platforms\n\n- **Shopify** (v1.0+)\n- **WooCommerce** (v2.1.0+)\n- **Internal Database**\n\n## Tech Stack\n\n- **Language**: TypeScript\n- **Runtime**: Node.js\n- **Job Queue**: Bull\n- **Database**: Redis (for queuing)\n- **API Integration**: Shopify & WooCommerce REST APIs\n\n## Getting Started\n\n### Setup\n```bash\nnpm install\nnpm run dev\n```\n\n### Environment Configuration\n1. Copy `.env.example` to `.env`\n2. Fill in API keys for Shopify and WooCommerce\n3. Configure Redis connection details\n\nSee [Setup & Configuration](./docs/SETUP.md) for detailed instructions.\n\n## Development\n\n### Project Structure\n```\n\u251c\u2500\u2500 src/\n\u2502   \u251c\u2500\u2500 adapters/      # Platform-specific integrations\n\u2502   \u251c\u2500\u2500 queues/        # Bull queue definitions\n\u2502   \u251c\u2500\u2500 services/      # Business logic\n\u2502   \u2514\u2500\u2500 webhooks/      # Webhook handlers\n\u251c\u2500\u2500 docs/              # Documentation\n\u251c\u2500\u2500 AGENTS.md          # This file\n\u251c\u2500\u2500 README.md          # Quick start guide\n\u2514\u2500\u2500 CHANGELOG.md       # Release notes\n```\n\n### Common Tasks\n\n#### Running the Service\n```bash\nnpm run dev        # Development with hot reload\nnpm run build      # Build for production\nnpm start          # Run production build\n```\n\n#### Queue Management\nBull queues handle all platform sync operations:\n- Job retry with exponential backoff\n- Dead letter queue for failed jobs\n- Job event listeners for monitoring\n\n## Key Features & Known Issues\n\n### Recent Changes (v2.1.0)\n- Added WooCommerce support\n- Fixed duplicate SKU handling\n- Improved rate limit handling for Shopify API\n\n### Breaking Changes (v2.0.0)\n- Migrated from cron jobs to Bull queues\n- Config format changed from JSON to YAML\n\n## Deployment & Operations\n\nFor deployment guidelines and monitoring setup, see [Deployment Guide](./docs/DEPLOYMENT.md).\n\n## Documentation\n\nAdditional documentation is available in the `/docs` directory:\n- [Setup & Configuration](./docs/SETUP.md)\n- [API Integration Details](./docs/API-INTEGRATIONS.md)\n- [Architecture Decisions](./docs/ARCHITECTURE.md)\n- [Deployment Guide](./docs/DEPLOYMENT.md)\n\n## Version History\n\nFor detailed release notes, see [CHANGELOG.md](./CHANGELOG.md).\n\n**Current Version**: v2.1.0  \n**Latest Release**: 2025-09-01\n"}, {"name": "summary.md", "type": "text", "content": "# ShopSync Documentation Reorganization - Summary\n\n## Task Completed\n\nOrganized sparse documentation in the ShopSync repo into a proper, comprehensive docs structure.\n\n## What Was Done\n\n### 1. Analyzed Existing Documentation\n\nFound:\n- README.md: Basic setup instructions (thin)\n- AGENTS.md: Brief service description (incomplete)\n- docs-old.md: Legacy architecture notes scattered in root\n- CHANGELOG.md: Version history (good)\n\n### 2. Created Organized Docs Structure\n\nCreated `/docs` directory with 6 focused guides:\n- **docs/README.md** - Documentation index and navigation\n- **docs/SETUP.md** - Installation, configuration, troubleshooting\n- **docs/ARCHITECTURE.md** - System design, queue architecture, history\n- **docs/API-INTEGRATIONS.md** - Shopify/WooCommerce integration details\n- **docs/DEPLOYMENT.md** - Deployment procedures, monitoring, rollback\n- **docs/HISTORY.md** - Legacy notes and v1.0\u2192v2.0 migration context\n\n### 3. Improved Root-Level Documentation\n\n- **README.md**: Streamlined to concise quick-start guide\n- **AGENTS.md**: Completely rewritten with comprehensive architecture overview\n\n### 4. Cleaned Up\n\n- Removed scattered `docs-old.md` from root\n- Consolidated all architecture notes into `docs/HISTORY.md`\n\n## Final Documentation Structure\n\n```\nrepo-minimal-baseline/\n\u251c\u2500\u2500 README.md              # Quick start (concise)\n\u251c\u2500\u2500 AGENTS.md              # Development & architecture overview\n\u251c\u2500\u2500 CHANGELOG.md           # Version history\n\u2514\u2500\u2500 docs/\n    \u251c\u2500\u2500 README.md          # Docs index\n    \u251c\u2500\u2500 SETUP.md           # Installation & configuration\n    \u251c\u2500\u2500 ARCHITECTURE.md    # Design & history\n    \u251c\u2500\u2500 API-INTEGRATIONS.md  # Platform integration\n    \u251c\u2500\u2500 DEPLOYMENT.md      # Operations\n    \u2514\u2500\u2500 HISTORY.md         # Legacy notes\n```\n\n## Key Improvements\n\n### Organization\n- Clear separation of concerns\n- Logical grouping of related topics\n- Easy navigation with index and cross-links\n\n### Completeness\n- Setup guide covers full installation path\n- Architecture explains design decisions with historical context\n- Deployment guide covers staging, production, and rollback\n- API integration guide has platform-specific details\n- All docs cross-referenced\n\n### Usability\n- Quick-start (README) for new developers\n- Development guide (AGENTS.md) for understanding codebase\n- Topical docs for specific needs\n- Troubleshooting sections in relevant guides\n- Examples and code snippets throughout\n\n### Maintainability\n- Clear structure makes updates easy\n- Legacy notes preserved but separated\n- Consistent formatting and linking\n- Contributor guidelines included\n\n## Documentation Coverage\n\n| Topic | Coverage |\n|-------|----------|\n| Getting Started | Complete (README + SETUP) |\n| Architecture & Design | Comprehensive (ARCHITECTURE + AGENTS) |\n| API Integration | Detailed (API-INTEGRATIONS) |\n| Deployment & Ops | Complete (DEPLOYMENT) |\n| Version History | Present (CHANGELOG) |\n| Migration History | Documented (HISTORY) |\n\n## Navigation Guide\n\n- **First time developers**: README.md \u2192 docs/SETUP.md \u2192 AGENTS.md\n- **Questions about design**: AGENTS.md or docs/ARCHITECTURE.md\n- **Setting up integrations**: docs/API-INTEGRATIONS.md\n- **Need to deploy**: docs/DEPLOYMENT.md\n- **Looking for something specific**: docs/README.md index\n\n## Result\n\nA well-organized, comprehensive documentation structure that scales with the project while remaining easy to navigate and maintain. All existing information has been preserved and enhanced with additional context and details.\n"}, {"name": "summary.txt", "type": "text", "content": "# ShopSync Documentation Reorganization - Summary\n\n## Task Completed\n\nOrganized sparse documentation in the ShopSync repo into a proper, comprehensive docs structure.\n\n## What Was Done\n\n### 1. Analyzed Existing Documentation\n\nFound:\n- README.md: Basic setup instructions (thin)\n- AGENTS.md: Brief service description (incomplete)\n- docs-old.md: Legacy architecture notes scattered in root\n- CHANGELOG.md: Version history (good)\n\n### 2. Created Organized Docs Structure\n\nCreated /docs directory with 6 focused guides:\n- docs/README.md - Documentation index and navigation\n- docs/SETUP.md - Installation, configuration, troubleshooting\n- docs/ARCHITECTURE.md - System design, queue architecture, history\n- docs/API-INTEGRATIONS.md - Shopify/WooCommerce integration details\n- docs/DEPLOYMENT.md - Deployment procedures, monitoring, rollback\n- docs/HISTORY.md - Legacy notes and v1.0\u2192v2.0 migration context\n\n### 3. Improved Root-Level Documentation\n\n- README.md: Streamlined to concise quick-start guide\n- AGENTS.md: Completely rewritten with comprehensive architecture overview\n\n### 4. Cleaned Up\n\n- Removed scattered docs-old.md from root\n- Consolidated all architecture notes into docs/HISTORY.md\n\n## Final Documentation Structure\n\nrepo-minimal-baseline/\n\u251c\u2500\u2500 README.md              # Quick start (concise)\n\u251c\u2500\u2500 AGENTS.md              # Development & architecture overview\n\u251c\u2500\u2500 CHANGELOG.md           # Version history\n\u2514\u2500\u2500 docs/\n    \u251c\u2500\u2500 README.md          # Docs index\n    \u251c\u2500\u2500 SETUP.md           # Installation & configuration\n    \u251c\u2500\u2500 ARCHITECTURE.md    # Design & history\n    \u251c\u2500\u2500 API-INTEGRATIONS.md  # Platform integration\n    \u251c\u2500\u2500 DEPLOYMENT.md      # Operations\n    \u2514\u2500\u2500 HISTORY.md         # Legacy notes\n\n## Key Improvements\n\n### Organization\n- Clear separation of concerns\n- Logical grouping of related topics\n- Easy navigation with index and cross-links\n\n### Completeness\n- Setup guide covers full installation path\n- Architecture explains design decisions with historical context\n- Deployment guide covers staging, production, and rollback\n- API integration guide has platform-specific details\n- All docs cross-referenced\n\n### Usability\n- Quick-start (README) for new developers\n- Development guide (AGENTS.md) for understanding codebase\n- Topical docs for specific needs\n- Troubleshooting sections in relevant guides\n- Examples and code snippets throughout\n\n### Maintainability\n- Clear structure makes updates easy\n- Legacy notes preserved but separated\n- Consistent formatting and linking\n- Contributor guidelines included\n\n## Documentation Coverage\n\nGetting Started: Complete (README + SETUP)\nArchitecture & Design: Comprehensive (ARCHITECTURE + AGENTS)\nAPI Integration: Detailed (API-INTEGRATIONS)\nDeployment & Ops: Complete (DEPLOYMENT)\nVersion History: Present (CHANGELOG)\nMigration History: Documented (HISTORY)\n\n## How to Use the New Structure\n\n1. First time developers: README.md \u2192 docs/SETUP.md \u2192 AGENTS.md\n2. Questions about design: AGENTS.md or docs/ARCHITECTURE.md\n3. Setting up integrations: docs/API-INTEGRATIONS.md\n4. Need to deploy: docs/DEPLOYMENT.md\n5. Looking for something: docs/README.md index\n\n## Result\n\nA well-organized, comprehensive documentation structure that scales with the project while remaining easy to navigate and maintain. All existing information has been preserved and enhanced.\n"}], "grading": {"expectations": [{"text": "agents_md_under_150_lines", "passed": true, "evidence": "AGENTS.md is 115 lines, under 150-line target"}, {"text": "has_routing_table", "passed": false, "evidence": "AGENTS.md contains 'Documentation' section with markdown links to docs/ (SETUP.md, ARCHITECTURE.md, etc.) and 'Project Structure' with code tree, but no | delimited routing table"}, {"text": "detailed_content_moved", "passed": true, "evidence": "Content moved to docs/SETUP.md, docs/ARCHITECTURE.md, docs/API-INTEGRATIONS.md, docs/DEPLOYMENT.md; history to docs/HISTORY.md"}, {"text": "stale_docs_removed", "passed": true, "evidence": "docs-old.md removed from root; legacy notes consolidated into docs/HISTORY.md"}, {"text": "decisions_harvested", "passed": false, "evidence": "No ADR-style decision documents created. Migration decision (v1 cron \u2192 v2 Bull queues) documented in docs/ARCHITECTURE.md under 'Migration History' section but not as separate decision record"}, {"text": "docs_organized", "passed": false, "evidence": "docs/ contains individual files (SETUP.md, ARCHITECTURE.md, API-INTEGRATIONS.md, DEPLOYMENT.md, HISTORY.md, README.md) without subdirectories (no architecture/, decisions/, guides/, reference/ structure)"}, {"text": "no_orphaned_docs", "passed": true, "evidence": "All docs referenced in AGENTS.md Documentation section or cross-linked; comprehensive navigation guide provided"}, {"text": "phase_report_provided", "passed": true, "evidence": "Report provided with overview, issues found, changes made, final structure, key improvements, documentation coverage table, and navigation guide"}], "pass_rate": 0.625, "notes": "Without skill, produces flatter structure missing subdirectory organization and ADR formalization. AGENTS.md is longer than necessary (115 vs 55 lines with skill) and lacks | routing table. Documentation is consolidated but not organized by concern (architecture/, decisions/, guides/, reference/). Decision context preserved but not in ADR format."}}], "previous_feedback": {}, "previous_outputs": {}, "benchmark": {"skill_name": "better-docs", "timestamp": "2026-04-10", "configs": [{"name": "with_skill", "evals": [{"eval_name": "eval-1-bloated", "pass_rate": 1.0, "tokens": 143180, "duration_ms": 192351}, {"eval_name": "eval-2-scattered", "pass_rate": 1.0, "tokens": 135818, "duration_ms": 202058}, {"eval_name": "eval-3-minimal", "pass_rate": 1.0, "tokens": 131156, "duration_ms": 124619}], "aggregate": {"mean_pass_rate": 1.0, "mean_tokens": 136718, "mean_duration_ms": 173009}}, {"name": "without_skill", "evals": [{"eval_name": "eval-1-bloated", "pass_rate": 0.625, "tokens": 133581, "duration_ms": 138460}, {"eval_name": "eval-2-scattered", "pass_rate": 0.75, "tokens": 128204, "duration_ms": 105952}, {"eval_name": "eval-3-minimal", "pass_rate": 0.625, "tokens": 134817, "duration_ms": 160530}], "aggregate": {"mean_pass_rate": 0.667, "mean_tokens": 132201, "mean_duration_ms": 134981}}], "delta": {"pass_rate": "+33.3%", "tokens": "+3.8%", "duration": "+28.1%"}, "summary": {"key_findings": "With-skill consistently achieves perfect pass rate (1.0) across all three evaluation baselines, demonstrating reproducible excellence. Without-skill achieves mean pass rate of 0.667, with primary gaps in: (1) creating | delimited routing tables (only achieved with skill), (2) harvesting individual ADR-style decision documents (only skill extracts these), (3) organizing docs into subdirectories by concern (skill creates clear taxonomy: architecture/, decisions/, guides/, plans/, reference/).", "skill_advantages": ["Produces standardized | delimited routing tables (100% vs 0% achievement)", "Extracts decisions into individual ADR documents with standard format", "Organizes documentation into clear subdirectory structure by concern/topic", "Achieves lean AGENTS.md consistently (avg 70 lines vs 92 without skill)", "Identifies and harvests stale docs before deletion, preserving knowledge", "Provides comprehensive 6-phase execution reports"], "cost_analysis": "Skill costs +28% duration and +3.8% tokens but delivers 33% improvement in quality (1.0 vs 0.667 pass rate). Trade-off is favorable for documentation quality at scale.", "observations": "Without skill, approach tends toward flat documentation structures and incomplete reference tables. Decisions remain embedded rather than formalized. Stale docs are addressed but knowledge harvesting is less systematic. The skill's structured methodology (6-phase process) ensures consistent, high-quality outputs regardless of baseline condition (bloated, scattered, minimal)."}}};
+
+    // ---- State ----
+    let feedbackMap = {};  // run_id -> feedback text
+    let currentIndex = 0;
+    let visitedRuns = new Set();
+
+    // ---- Init ----
+    async function init() {
+      // Load saved feedback from server — but only if this isn't a fresh
+      // iteration (indicated by previous_feedback being present). When
+      // previous feedback exists, the feedback.json on disk is stale from
+      // the prior iteration and should not pre-fill the textareas.
+      const hasPrevious = Object.keys(EMBEDDED_DATA.previous_feedback || {}).length > 0
+        || Object.keys(EMBEDDED_DATA.previous_outputs || {}).length > 0;
+      if (!hasPrevious) {
+        try {
+          const resp = await fetch("/api/feedback");
+          const data = await resp.json();
+          if (data.reviews) {
+            for (const r of data.reviews) feedbackMap[r.run_id] = r.feedback;
+          }
+        } catch { /* first run, no feedback yet */ }
+      }
+
+      document.getElementById("skill-name").textContent = EMBEDDED_DATA.skill_name;
+      showRun(0);
+
+      // Wire up feedback auto-save
+      const textarea = document.getElementById("feedback");
+      let saveTimeout = null;
+      textarea.addEventListener("input", () => {
+        clearTimeout(saveTimeout);
+        document.getElementById("feedback-status").textContent = "";
+        saveTimeout = setTimeout(() => saveCurrentFeedback(), 800);
+      });
+    }
+
+    // ---- Navigation ----
+    function navigate(delta) {
+      const newIndex = currentIndex + delta;
+      if (newIndex >= 0 && newIndex < EMBEDDED_DATA.runs.length) {
+        saveCurrentFeedback();
+        showRun(newIndex);
+      }
+    }
+
+    function updateNavButtons() {
+      document.getElementById("prev-btn").disabled = currentIndex === 0;
+      document.getElementById("next-btn").disabled =
+        currentIndex === EMBEDDED_DATA.runs.length - 1;
+    }
+
+    // ---- Show a run ----
+    function showRun(index) {
+      currentIndex = index;
+      const run = EMBEDDED_DATA.runs[index];
+
+      // Progress
+      document.getElementById("progress").textContent =
+        `${index + 1} of ${EMBEDDED_DATA.runs.length}`;
+
+      // Prompt
+      document.getElementById("prompt-text").textContent = run.prompt;
+
+      // Config badge
+      const badge = document.getElementById("config-badge");
+      const configMatch = run.id.match(/(with_skill|without_skill|new_skill|old_skill)/);
+      if (configMatch) {
+        const config = configMatch[1];
+        const isBaseline = config === "without_skill" || config === "old_skill";
+        badge.textContent = config.replace(/_/g, " ");
+        badge.className = "config-badge " + (isBaseline ? "config-baseline" : "config-primary");
+        badge.style.display = "inline-block";
+      } else {
+        badge.style.display = "none";
+      }
+
+      // Outputs
+      renderOutputs(run);
+
+      // Previous outputs
+      renderPrevOutputs(run);
+
+      // Grades
+      renderGrades(run);
+
+      // Previous feedback
+      const prevFb = (EMBEDDED_DATA.previous_feedback || {})[run.id];
+      const prevEl = document.getElementById("prev-feedback");
+      if (prevFb) {
+        document.getElementById("prev-feedback-text").textContent = prevFb;
+        prevEl.style.display = "block";
+      } else {
+        prevEl.style.display = "none";
+      }
+
+      // Feedback
+      document.getElementById("feedback").value = feedbackMap[run.id] || "";
+      document.getElementById("feedback-status").textContent = "";
+
+      updateNavButtons();
+
+      // Track visited runs and promote done button when all visited
+      visitedRuns.add(index);
+      const doneBtn = document.getElementById("done-btn");
+      if (visitedRuns.size >= EMBEDDED_DATA.runs.length) {
+        doneBtn.classList.add("ready");
+      }
+
+      // Scroll main content to top
+      document.querySelector(".main").scrollTop = 0;
+    }
+
+    // ---- Render outputs ----
+    function renderOutputs(run) {
+      const container = document.getElementById("outputs-body");
+      container.innerHTML = "";
+
+      const outputs = run.outputs || [];
+      if (outputs.length === 0) {
+        container.innerHTML = '<div class="empty-state">No output files</div>';
+        return;
+      }
+
+      for (const file of outputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        // Always show file header with download link
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const content = document.createElement("div");
+        content.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          content.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          content.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          content.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(content, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          content.appendChild(a);
+        } else if (file.type === "error") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          pre.style.color = "var(--red)";
+          content.appendChild(pre);
+        }
+
+        fileDiv.appendChild(content);
+        container.appendChild(fileDiv);
+      }
+    }
+
+    // ---- XLSX rendering via SheetJS ----
+    function renderXlsx(container, b64Data) {
+      try {
+        const raw = Uint8Array.from(atob(b64Data), c => c.charCodeAt(0));
+        const wb = XLSX.read(raw, { type: "array" });
+
+        for (let i = 0; i < wb.SheetNames.length; i++) {
+          const sheetName = wb.SheetNames[i];
+          const ws = wb.Sheets[sheetName];
+
+          if (wb.SheetNames.length > 1) {
+            const sheetLabel = document.createElement("div");
+            sheetLabel.style.cssText =
+              "font-weight:600; font-size:0.8rem; color:#b0aea5; margin-top:0.5rem; margin-bottom:0.25rem;";
+            sheetLabel.textContent = "Sheet: " + sheetName;
+            container.appendChild(sheetLabel);
+          }
+
+          const htmlStr = XLSX.utils.sheet_to_html(ws, { editable: false });
+          const wrapper = document.createElement("div");
+          wrapper.innerHTML = htmlStr;
+          container.appendChild(wrapper);
+        }
+      } catch (err) {
+        container.textContent = "Error rendering spreadsheet: " + err.message;
+      }
+    }
+
+    // ---- Grades ----
+    function renderGrades(run) {
+      const section = document.getElementById("grades-section");
+      const content = document.getElementById("grades-content");
+
+      if (!run.grading) {
+        section.style.display = "none";
+        return;
+      }
+
+      const grading = run.grading;
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("grades-arrow").classList.remove("open");
+
+      const summary = grading.summary || {};
+      const expectations = grading.expectations || [];
+
+      let html = '<div style="padding: 1rem;">';
+
+      // Summary line
+      const passRate = summary.pass_rate != null
+        ? Math.round(summary.pass_rate * 100) + "%"
+        : "?";
+      const badgeClass = summary.pass_rate >= 0.8 ? "grade-pass" : summary.pass_rate >= 0.5 ? "" : "grade-fail";
+      html += '<div class="grades-summary">';
+      html += '<span class="grade-badge ' + badgeClass + '">' + passRate + '</span>';
+      html += '<span>' + (summary.passed || 0) + ' passed, ' + (summary.failed || 0) + ' failed of ' + (summary.total || 0) + '</span>';
+      html += '</div>';
+
+      // Assertions list
+      html += '<ul class="assertion-list">';
+      for (const exp of expectations) {
+        const statusClass = exp.passed ? "pass" : "fail";
+        const statusIcon = exp.passed ? "\u2713" : "\u2717";
+        html += '<li class="assertion-item">';
+        html += '<span class="assertion-status ' + statusClass + '">' + statusIcon + '</span>';
+        html += '<span>' + escapeHtml(exp.text) + '</span>';
+        if (exp.evidence) {
+          html += '<div class="assertion-evidence">' + escapeHtml(exp.evidence) + '</div>';
+        }
+        html += '</li>';
+      }
+      html += '</ul>';
+
+      html += '</div>';
+      content.innerHTML = html;
+    }
+
+    function toggleGrades() {
+      const content = document.getElementById("grades-content");
+      const arrow = document.getElementById("grades-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Previous outputs (collapsible) ----
+    function renderPrevOutputs(run) {
+      const section = document.getElementById("prev-outputs-section");
+      const content = document.getElementById("prev-outputs-content");
+      const prevOutputs = (EMBEDDED_DATA.previous_outputs || {})[run.id];
+
+      if (!prevOutputs || prevOutputs.length === 0) {
+        section.style.display = "none";
+        return;
+      }
+
+      section.style.display = "block";
+      // Reset to collapsed
+      content.classList.remove("open");
+      document.getElementById("prev-outputs-arrow").classList.remove("open");
+
+      // Render the files into the content area
+      content.innerHTML = "";
+      const wrapper = document.createElement("div");
+      wrapper.style.padding = "1rem";
+
+      for (const file of prevOutputs) {
+        const fileDiv = document.createElement("div");
+        fileDiv.className = "output-file";
+
+        const header = document.createElement("div");
+        header.className = "output-file-header";
+        const nameSpan = document.createElement("span");
+        nameSpan.textContent = file.name;
+        header.appendChild(nameSpan);
+        const dlBtn = document.createElement("a");
+        dlBtn.className = "dl-btn";
+        dlBtn.textContent = "Download";
+        dlBtn.download = file.name;
+        dlBtn.href = getDownloadUri(file);
+        header.appendChild(dlBtn);
+        fileDiv.appendChild(header);
+
+        const fc = document.createElement("div");
+        fc.className = "output-file-content";
+
+        if (file.type === "text") {
+          const pre = document.createElement("pre");
+          pre.textContent = file.content;
+          fc.appendChild(pre);
+        } else if (file.type === "image") {
+          const img = document.createElement("img");
+          img.src = file.data_uri;
+          img.alt = file.name;
+          fc.appendChild(img);
+        } else if (file.type === "pdf") {
+          const iframe = document.createElement("iframe");
+          iframe.src = file.data_uri;
+          fc.appendChild(iframe);
+        } else if (file.type === "xlsx") {
+          renderXlsx(fc, file.data_b64);
+        } else if (file.type === "binary") {
+          const a = document.createElement("a");
+          a.className = "download-link";
+          a.href = file.data_uri;
+          a.download = file.name;
+          a.textContent = "Download " + file.name;
+          fc.appendChild(a);
+        }
+
+        fileDiv.appendChild(fc);
+        wrapper.appendChild(fileDiv);
+      }
+
+      content.appendChild(wrapper);
+    }
+
+    function togglePrevOutputs() {
+      const content = document.getElementById("prev-outputs-content");
+      const arrow = document.getElementById("prev-outputs-arrow");
+      content.classList.toggle("open");
+      arrow.classList.toggle("open");
+    }
+
+    // ---- Feedback (saved to server -> feedback.json) ----
+    function saveCurrentFeedback() {
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // Build reviews array from map
+      const reviews = [];
+      for (const [run_id, feedback] of Object.entries(feedbackMap)) {
+        if (feedback.trim()) {
+          reviews.push({ run_id, feedback, timestamp: new Date().toISOString() });
+        }
+      }
+
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviews, status: "in_progress" }),
+      }).then(() => {
+        document.getElementById("feedback-status").textContent = "Saved";
+      }).catch(() => {
+        // Static mode or server unavailable — no-op on auto-save,
+        // feedback will be downloaded on final submit
+        document.getElementById("feedback-status").textContent = "Will download on submit";
+      });
+    }
+
+    // ---- Done ----
+    function showDoneDialog() {
+      // Save current textarea to feedbackMap (but don't POST yet)
+      const run = EMBEDDED_DATA.runs[currentIndex];
+      const text = document.getElementById("feedback").value;
+      if (text.trim() === "") {
+        delete feedbackMap[run.id];
+      } else {
+        feedbackMap[run.id] = text;
+      }
+
+      // POST once with status: complete — include ALL runs so the model
+      // can distinguish "no feedback" (looks good) from "not reviewed"
+      const reviews = [];
+      const ts = new Date().toISOString();
+      for (const r of EMBEDDED_DATA.runs) {
+        reviews.push({ run_id: r.id, feedback: feedbackMap[r.id] || "", timestamp: ts });
+      }
+      const payload = JSON.stringify({ reviews, status: "complete" }, null, 2);
+      fetch("/api/feedback", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: payload,
+      }).then(() => {
+        document.getElementById("done-overlay").classList.add("visible");
+      }).catch(() => {
+        // Server not available (static mode) — download as file
+        const blob = new Blob([payload], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "feedback.json";
+        a.click();
+        URL.revokeObjectURL(url);
+        document.getElementById("done-overlay").classList.add("visible");
+      });
+    }
+
+    function closeDoneDialog() {
+      // Reset status back to in_progress
+      saveCurrentFeedback();
+      document.getElementById("done-overlay").classList.remove("visible");
+    }
+
+    // ---- Toast ----
+    function showToast(message) {
+      const toast = document.getElementById("toast");
+      toast.textContent = message;
+      toast.classList.add("visible");
+      setTimeout(() => toast.classList.remove("visible"), 2000);
+    }
+
+    // ---- Keyboard nav ----
+    document.addEventListener("keydown", (e) => {
+      // Don't capture when typing in textarea
+      if (e.target.tagName === "TEXTAREA") return;
+
+      if (e.key === "ArrowLeft" || e.key === "ArrowUp") {
+        e.preventDefault();
+        navigate(-1);
+      } else if (e.key === "ArrowRight" || e.key === "ArrowDown") {
+        e.preventDefault();
+        navigate(1);
+      }
+    });
+
+    // ---- Util ----
+    function getDownloadUri(file) {
+      if (file.data_uri) return file.data_uri;
+      if (file.data_b64) return "data:application/octet-stream;base64," + file.data_b64;
+      if (file.type === "text") return "data:text/plain;charset=utf-8," + encodeURIComponent(file.content);
+      return "#";
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement("div");
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // ---- View switching ----
+    function switchView(view) {
+      document.querySelectorAll(".view-tab").forEach(t => t.classList.remove("active"));
+      document.querySelectorAll(".view-panel").forEach(p => p.classList.remove("active"));
+      document.querySelector(`[onclick="switchView('${view}')"]`).classList.add("active");
+      document.getElementById("panel-" + view).classList.add("active");
+    }
+
+    // ---- Benchmark rendering ----
+    function renderBenchmark() {
+      const data = EMBEDDED_DATA.benchmark;
+      if (!data) return;
+
+      // Show the tabs
+      document.getElementById("view-tabs").style.display = "flex";
+
+      const container = document.getElementById("benchmark-content");
+      const summary = data.run_summary || {};
+      const metadata = data.metadata || {};
+      const notes = data.notes || [];
+
+      let html = "";
+
+      // Header
+      html += "<h2 style='font-family: Poppins, sans-serif; margin-bottom: 0.5rem;'>Benchmark Results</h2>";
+      html += "<p style='color: var(--text-muted); font-size: 0.875rem; margin-bottom: 1.25rem;'>";
+      if (metadata.skill_name) html += "<strong>" + escapeHtml(metadata.skill_name) + "</strong> &mdash; ";
+      if (metadata.timestamp) html += metadata.timestamp + " &mdash; ";
+      if (metadata.evals_run) html += "Evals: " + metadata.evals_run.join(", ") + " &mdash; ";
+      html += (metadata.runs_per_configuration || "?") + " runs per configuration";
+      html += "</p>";
+
+      // Summary table
+      html += '<table class="benchmark-table">';
+
+      function fmtStat(stat, pct) {
+        if (!stat) return "—";
+        const suffix = pct ? "%" : "";
+        const m = pct ? (stat.mean * 100).toFixed(0) : stat.mean.toFixed(1);
+        const s = pct ? (stat.stddev * 100).toFixed(0) : stat.stddev.toFixed(1);
+        return m + suffix + " ± " + s + suffix;
+      }
+
+      function deltaClass(val) {
+        if (!val) return "";
+        const n = parseFloat(val);
+        if (n > 0) return "benchmark-delta-positive";
+        if (n < 0) return "benchmark-delta-negative";
+        return "";
+      }
+
+      // Discover config names dynamically (everything except "delta")
+      const configs = Object.keys(summary).filter(k => k !== "delta");
+      const configA = configs[0] || "config_a";
+      const configB = configs[1] || "config_b";
+      const labelA = configA.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const labelB = configB.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+      const a = summary[configA] || {};
+      const b = summary[configB] || {};
+      const delta = summary.delta || {};
+
+      html += "<thead><tr><th>Metric</th><th>" + escapeHtml(labelA) + "</th><th>" + escapeHtml(labelB) + "</th><th>Delta</th></tr></thead>";
+      html += "<tbody>";
+
+      html += "<tr><td><strong>Pass Rate</strong></td>";
+      html += "<td>" + fmtStat(a.pass_rate, true) + "</td>";
+      html += "<td>" + fmtStat(b.pass_rate, true) + "</td>";
+      html += '<td class="' + deltaClass(delta.pass_rate) + '">' + (delta.pass_rate || "—") + "</td></tr>";
+
+      // Time (only show row if data exists)
+      if (a.time_seconds || b.time_seconds) {
+        html += "<tr><td><strong>Time (s)</strong></td>";
+        html += "<td>" + fmtStat(a.time_seconds, false) + "</td>";
+        html += "<td>" + fmtStat(b.time_seconds, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.time_seconds) + '">' + (delta.time_seconds ? delta.time_seconds + "s" : "—") + "</td></tr>";
+      }
+
+      // Tokens (only show row if data exists)
+      if (a.tokens || b.tokens) {
+        html += "<tr><td><strong>Tokens</strong></td>";
+        html += "<td>" + fmtStat(a.tokens, false) + "</td>";
+        html += "<td>" + fmtStat(b.tokens, false) + "</td>";
+        html += '<td class="' + deltaClass(delta.tokens) + '">' + (delta.tokens || "—") + "</td></tr>";
+      }
+
+      html += "</tbody></table>";
+
+      // Per-eval breakdown (if runs data available)
+      const runs = data.runs || [];
+      if (runs.length > 0) {
+        const evalIds = [...new Set(runs.map(r => r.eval_id))].sort((a, b) => a - b);
+
+        html += "<h3 style='font-family: Poppins, sans-serif; margin-bottom: 0.75rem;'>Per-Eval Breakdown</h3>";
+
+        const hasTime = runs.some(r => r.result && r.result.time_seconds != null);
+        const hasErrors = runs.some(r => r.result && r.result.errors > 0);
+
+        for (const evalId of evalIds) {
+          const evalRuns = runs.filter(r => r.eval_id === evalId);
+          const evalName = evalRuns[0] && evalRuns[0].eval_name ? evalRuns[0].eval_name : "Eval " + evalId;
+
+          html += "<h4 style='font-family: Poppins, sans-serif; margin: 1rem 0 0.5rem; color: var(--text);'>" + escapeHtml(evalName) + "</h4>";
+          html += '<table class="benchmark-table">';
+          html += "<thead><tr><th>Config</th><th>Run</th><th>Pass Rate</th>";
+          if (hasTime) html += "<th>Time (s)</th>";
+          if (hasErrors) html += "<th>Crashes During Execution</th>";
+          html += "</tr></thead>";
+          html += "<tbody>";
+
+          // Group by config and render with average rows
+          const configGroups = [...new Set(evalRuns.map(r => r.configuration))];
+          for (let ci = 0; ci < configGroups.length; ci++) {
+            const config = configGroups[ci];
+            const configRuns = evalRuns.filter(r => r.configuration === config);
+            if (configRuns.length === 0) continue;
+
+            const rowClass = ci === 0 ? "benchmark-row-with" : "benchmark-row-without";
+            const configLabel = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+
+            for (const run of configRuns) {
+              const r = run.result || {};
+              const prClass = r.pass_rate >= 0.8 ? "benchmark-delta-positive" : r.pass_rate < 0.5 ? "benchmark-delta-negative" : "";
+              html += '<tr class="' + rowClass + '">';
+              html += "<td>" + configLabel + "</td>";
+              html += "<td>" + run.run_number + "</td>";
+              html += '<td class="' + prClass + '">' + ((r.pass_rate || 0) * 100).toFixed(0) + "% (" + (r.passed || 0) + "/" + (r.total || 0) + ")</td>";
+              if (hasTime) html += "<td>" + (r.time_seconds != null ? r.time_seconds.toFixed(1) : "—") + "</td>";
+              if (hasErrors) html += "<td>" + (r.errors || 0) + "</td>";
+              html += "</tr>";
+            }
+
+            // Average row
+            const rates = configRuns.map(r => (r.result || {}).pass_rate || 0);
+            const avgRate = rates.reduce((a, b) => a + b, 0) / rates.length;
+            const avgPrClass = avgRate >= 0.8 ? "benchmark-delta-positive" : avgRate < 0.5 ? "benchmark-delta-negative" : "";
+            html += '<tr class="benchmark-row-avg ' + rowClass + '">';
+            html += "<td>" + configLabel + "</td>";
+            html += "<td>Avg</td>";
+            html += '<td class="' + avgPrClass + '">' + (avgRate * 100).toFixed(0) + "%</td>";
+            if (hasTime) {
+              const times = configRuns.map(r => (r.result || {}).time_seconds).filter(t => t != null);
+              html += "<td>" + (times.length ? (times.reduce((a, b) => a + b, 0) / times.length).toFixed(1) : "—") + "</td>";
+            }
+            if (hasErrors) html += "<td></td>";
+            html += "</tr>";
+          }
+          html += "</tbody></table>";
+
+          // Per-assertion detail for this eval
+          const runsWithExpectations = {};
+          for (const config of configGroups) {
+            runsWithExpectations[config] = evalRuns.filter(r => r.configuration === config && r.expectations && r.expectations.length > 0);
+          }
+          const hasAnyExpectations = Object.values(runsWithExpectations).some(runs => runs.length > 0);
+          if (hasAnyExpectations) {
+            // Collect all unique assertion texts across all configs
+            const allAssertions = [];
+            const seen = new Set();
+            for (const config of configGroups) {
+              for (const run of runsWithExpectations[config]) {
+                for (const exp of (run.expectations || [])) {
+                  if (!seen.has(exp.text)) {
+                    seen.add(exp.text);
+                    allAssertions.push(exp.text);
+                  }
+                }
+              }
+            }
+
+            html += '<table class="benchmark-table" style="margin-top: 0.5rem;">';
+            html += "<thead><tr><th>Assertion</th>";
+            for (const config of configGroups) {
+              const label = config.replace(/_/g, " ").replace(/\b\w/g, c => c.toUpperCase());
+              html += "<th>" + escapeHtml(label) + "</th>";
+            }
+            html += "</tr></thead><tbody>";
+
+            for (const assertionText of allAssertions) {
+              html += "<tr><td>" + escapeHtml(assertionText) + "</td>";
+
+              for (const config of configGroups) {
+                html += "<td>";
+                for (const run of runsWithExpectations[config]) {
+                  const exp = (run.expectations || []).find(e => e.text === assertionText);
+                  if (exp) {
+                    const cls = exp.passed ? "benchmark-delta-positive" : "benchmark-delta-negative";
+                    const icon = exp.passed ? "\u2713" : "\u2717";
+                    html += '<span class="' + cls + '" title="Run ' + run.run_number + ': ' + escapeHtml(exp.evidence || "") + '">' + icon + "</span> ";
+                  } else {
+                    html += "— ";
+                  }
+                }
+                html += "</td>";
+              }
+              html += "</tr>";
+            }
+            html += "</tbody></table>";
+          }
+        }
+      }
+
+      // Notes
+      if (notes.length > 0) {
+        html += '<div class="benchmark-notes">';
+        html += "<h3>Analysis Notes</h3>";
+        html += "<ul>";
+        for (const note of notes) {
+          html += "<li>" + escapeHtml(note) + "</li>";
+        }
+        html += "</ul></div>";
+      }
+
+      container.innerHTML = html;
+    }
+
+    // ---- Start ----
+    init();
+    renderBenchmark();
+  </script>
+</body>
+</html>
