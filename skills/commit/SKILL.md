@@ -1,5 +1,5 @@
 ---
-name: conventional-commit
+name: commit
 description: Create git commits following Angular conventional commit format by analyzing real diffs and generating messages with ≤100-char subject and ≤100-char body/footer lines. Use when the user asks to create a commit, commit changes, analyze git diff, or needs help writing commit messages.
 ---
 

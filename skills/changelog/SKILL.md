@@ -1,5 +1,5 @@
 ---
-name: pr-changelog
+name: changelog
 description: Generate PR changelogs by analyzing git diff between current branch and base branch, formatted with emojis in markdown. Use when user asks to create/write/generate a changelog, PR description, review changes for pull request, or mentions PR summary.
 ---
 
