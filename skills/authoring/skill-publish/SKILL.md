@@ -188,9 +188,9 @@ Repos can contain many skills. Standard layout:
 my-skills/
 ├── README.md
 └── skills/
-    ���── skill-one/
+    ├── skill-one/
     │   ├── SKILL.md
-    │   └─�� references/
+    │   └── references/
     ├── skill-two/
     │   ├── SKILL.md
     │   └── scripts/
