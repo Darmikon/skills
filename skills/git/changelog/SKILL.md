@@ -189,7 +189,6 @@ Use for new features, APIs, infrastructure, integrations, multi-environment chan
 npm run command:name    # Description of what it does
 npm run another:cmd     # Another description
 ```
-````
 
 ### 🎯 [Another Feature - e.g., New Client/API]
 
@@ -269,7 +268,7 @@ path/to/
 - Addresses [issue/feedback] about [problem]
 - Resolves [specific technical issue]
 
-```
+````
 
 ---
 
@@ -333,15 +332,3 @@ Here's the changelog for your PR:
 
 ```
 
----
-
-## Tips
-
-1. **Auto-detect complexity** - analyze the diff first, then choose format
-2. **Code examples are key** - for Technical PRs, always include usage examples
-3. **Be specific with commands** - exact commands users can copy-paste
-4. **Tables for options** - any time there are multiple choices, tabulate them
-5. **Show folder structure** - when architecture changes, visualize it
-6. **Migration matters** - always explain the upgrade path
-7. **Group by purpose** - not by file, but by what the change accomplishes
-```
