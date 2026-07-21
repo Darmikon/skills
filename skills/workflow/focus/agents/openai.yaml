@@ -1,0 +1,5 @@
+interface:
+  display_name: "Focus"
+  short_description: "Action-first, skimmable output"
+policy:
+  allow_implicit_invocation: false

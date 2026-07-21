@@ -1,0 +1,3 @@
+interface:
+  display_name: "Commit"
+  short_description: "Conventional commit messages from real diffs"

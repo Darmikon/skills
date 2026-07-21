@@ -1,0 +1,5 @@
+interface:
+  display_name: "Better Docs"
+  short_description: "Lean AGENTS.md, tidy repo docs"
+policy:
+  allow_implicit_invocation: false

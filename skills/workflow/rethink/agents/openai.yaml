@@ -1,0 +1,3 @@
+interface:
+  display_name: "Rethink"
+  short_description: "Step back after repeated failures"
