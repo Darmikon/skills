@@ -1,0 +1,18 @@
+{
+  "name": "darmikon-skills",
+  "version": "0.1.0",
+  "description": "Darmikon's agent skills — commit & changelog helpers, docs & skill authoring, and agent working-style modes.",
+  "author": { "name": "Darmikon", "url": "https://github.com/Darmikon" },
+  "homepage": "https://github.com/Darmikon/skills",
+  "repository": "https://github.com/Darmikon/skills",
+  "license": "MIT",
+  "keywords": ["skills", "git", "commit", "changelog", "documentation", "focus", "adhd"],
+  "skills": [
+    "./skills/git/commit",
+    "./skills/git/changelog",
+    "./skills/authoring/better-docs",
+    "./skills/authoring/skill-publish",
+    "./skills/workflow/focus",
+    "./skills/workflow/rethink"
+  ]
+}

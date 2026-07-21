@@ -1,0 +1,14 @@
+{
+  "name": "darmikon",
+  "owner": { "name": "Darmikon", "url": "https://github.com/Darmikon" },
+  "description": "Darmikon's agent skills as an installable Claude Code plugin.",
+  "plugins": [
+    {
+      "name": "darmikon-skills",
+      "source": "./",
+      "description": "Commit & changelog helpers, docs & skill authoring, and agent working-style modes.",
+      "category": "engineering",
+      "keywords": ["skills", "git", "documentation", "focus"]
+    }
+  ]
+}
