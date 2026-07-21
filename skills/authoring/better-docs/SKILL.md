@@ -9,6 +9,7 @@ description: >
   "organize my docs", "lean AGENTS.md", "better docs", "doc inventory", "docs restructure".
   Also trigger when the user says things like "my AGENTS.md is too long", "docs are a mess",
   "where should this doc go", or "make AGENTS.md smaller".
+disable-model-invocation: true
 ---
 
 # Better Docs

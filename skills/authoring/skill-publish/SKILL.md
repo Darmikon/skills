@@ -1,6 +1,7 @@
 ---
 name: skill-publish
 description: Create and publish agent skills to GitHub repositories. Use when the user wants to create a new skill, publish a skill to GitHub, add a skill to an existing skills repo, set up a new multi-skill repository, or says "create skill", "publish skill", "new skill", "add skill to repo". Also use when the user asks how to structure a skill, where to put a skill, or wants to package a skill for distribution via skills.sh / npx skills add.
+disable-model-invocation: true
 ---
 
 # Skill Publish
