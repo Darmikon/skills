@@ -1,5 +1,5 @@
 {
-  "name": "darmikon-skills",
+  "name": "skills",
   "version": "0.1.0",
   "description": "Darmikon's agent skills — commit & changelog helpers, docs & skill authoring, and agent working-style modes.",
   "author": { "name": "Darmikon", "url": "https://github.com/Darmikon" },

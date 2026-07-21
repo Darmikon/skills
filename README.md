@@ -20,7 +20,7 @@ npx skills add Darmikon/skills --skill better-docs --skill changelog --skill com
 
 ```
 /plugin marketplace add Darmikon/skills
-/plugin install darmikon-skills@darmikon
+/plugin install skills@darmikon
 ```
 
 ## Skills
