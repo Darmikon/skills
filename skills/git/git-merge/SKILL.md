@@ -29,6 +29,8 @@ If there's output, stop and ask the user to commit or stash first.
 ### Step 2: Identify current and default branch
 
 ```bash
+# Merge needs a real branch — bail out if HEAD is detached.
+git symbolic-ref -q HEAD >/dev/null || echo "STOP: detached HEAD — check out a branch first."
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
 DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
 [ -z "$DEFAULT" ] && DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')
@@ -40,18 +42,37 @@ DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null 
 If the user named a branch, use it. Otherwise infer the parent via the **fork point** — the branch whose divergence from `HEAD` is most recent (fewest commits between the common ancestor and `HEAD`):
 
 ```bash
-best=""; best_ahead=2147483647
-for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
-             | grep -vxE "$CURRENT|origin/$CURRENT|origin/HEAD"); do
-  mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
-  ahead=$(git rev-list --count "$mb"..HEAD)
-  [ "$ahead" -eq 0 ] && continue                      # ref contains HEAD → child, not parent
-  if [ "$ahead" -lt "$best_ahead" ]; then best_ahead=$ahead; best=$ref; fi
-done
-echo "Inferred parent: ${best:-<none found>}"
+# 0) Base ref for the default branch (prefer the fresh remote one).
+git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" || BASE="$DEFAULT"
+
+# 1) Strongest signal: the recorded creation point (often empty or "HEAD" — filter that).
+PARENT=$(git reflog show "$CURRENT" 2>/dev/null \
+         | sed -n 's/.*branch: Created from \(.*\)$/\1/p' | grep -vFx HEAD | head -1)
+
+# 2) Fallback: smallest "ahead" by merge-base, ties broken TOWARD the default branch so a
+#    sibling off the same base never wins.
+if [ -z "$PARENT" ]; then
+  best=""; best_ahead=2147483647
+  for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
+               | grep -vFx -e "$CURRENT" -e "origin/$CURRENT" -e "origin/HEAD"); do
+    mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
+    ahead=$(git rev-list --count "$mb"..HEAD)
+    [ "$ahead" -eq 0 ] && continue                     # ref contains HEAD → a descendant
+    if [ "$ahead" -lt "$best_ahead" ]; then
+      best=$ref; best_ahead=$ahead
+    elif [ "$ahead" -eq "$best_ahead" ] && { [ "$ref" = "$DEFAULT" ] || [ "$ref" = "origin/$DEFAULT" ]; }; then
+      best=$ref                                        # tie → prefer default over a sibling
+    fi
+  done
+  PARENT=$best
+fi
+
+# 3) Still nothing → the default branch.
+[ -z "$PARENT" ] && PARENT="$BASE"
+echo "Inferred parent: $PARENT"
 ```
 
-The smallest "ahead" count is the branch you left most recently — anything further upstream shares an older ancestor and a larger count. If nothing is found, fall back to `origin/$DEFAULT` and say so.
+Reflog is checked first (the branch you actually forked from); the merge-base heuristic is the fallback, with ties broken toward the default branch so a **sibling** off the same base never wins. It's still a **best guess** — which is why Step 4 previews what will merge and waits for your confirmation. Pass the branch explicitly when in doubt.
 
 ### Step 4: Fetch, then preview
 

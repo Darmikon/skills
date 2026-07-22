@@ -39,21 +39,21 @@ The current branch, the default branch, and `master`/`main` are never candidates
 ```bash
 git for-each-ref --format='%(refname:short) %(upstream:track)' refs/heads \
   | awk '$2=="[gone]"{print $1}' \
-  | grep -vxE "$CURRENT|$DEFAULT|main|master"
+  | grep -vFx -e "$CURRENT" -e "$DEFAULT" -e "main" -e "master"
 ```
 
 For each, note whether git also considers it merged — this decides safe vs. force delete later:
 
 ```bash
 # merged into default? (safe) — otherwise it was squash-merged and needs a force delete
-git branch --merged "$DEFAULT" --format='%(refname:short)'   # list of "safe" branches
+git branch --merged "origin/$DEFAULT" --format='%(refname:short)'   # list of "safe" branches
 ```
 
 ### Step 4: Find merged branches (not necessarily gone)
 
 ```bash
-git branch --merged "$DEFAULT" --format='%(refname:short)' \
-  | grep -vxE "$CURRENT|$DEFAULT|main|master"
+git branch --merged "origin/$DEFAULT" --format='%(refname:short)' \
+  | grep -vFx -e "$CURRENT" -e "$DEFAULT" -e "main" -e "master"
 ```
 
 ### Step 5: Preview, grouped and honest about risk

@@ -27,6 +27,8 @@ If there's output, stop and tell the user to commit or stash first. Offer `git s
 ### Step 2: Identify current branch and default branch
 
 ```bash
+# Rebase needs a real branch — bail out if HEAD is detached.
+git symbolic-ref -q HEAD >/dev/null || echo "STOP: detached HEAD — check out a branch first."
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
 DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
 [ -z "$DEFAULT" ] && DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')
@@ -40,21 +42,42 @@ If the user passed a branch, use it as `TARGET` and skip to Step 4.
 Otherwise infer the parent. Git has no native "parent branch", so use the **fork point**: among all other branches, the parent is the one whose divergence from `HEAD` is most recent — i.e. the fewest commits sit between their common ancestor and `HEAD`.
 
 ```bash
-CURRENT=$(git rev-parse --abbrev-ref HEAD)
-best=""; best_ahead=2147483647
-for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
-             | grep -vxE "$CURRENT|origin/$CURRENT|origin/HEAD"); do
-  mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
-  ahead=$(git rev-list --count "$mb"..HEAD)          # commits unique to HEAD vs this ref
-  [ "$ahead" -eq 0 ] && continue                      # ref contains HEAD → a child, not a parent
-  if [ "$ahead" -lt "$best_ahead" ]; then best_ahead=$ahead; best=$ref; fi
-done
-echo "Inferred parent: ${best:-<none found>}  (${best_ahead} commits ahead)"
+# 0) Base ref for the default branch (prefer the fresh remote one).
+git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" || BASE="$DEFAULT"
+# No commits of your own beyond that base → nothing to replay.
+[ "$(git rev-list --count "$BASE"..HEAD 2>/dev/null)" = "0" ] && echo "No commits unique to '$CURRENT' beyond $BASE — nothing to rebase; stop."
+
+# 1) Strongest signal: the recorded creation point (empty on fresh clones; often literally
+#    "HEAD", which is useless — filter that out).
+PARENT=$(git reflog show "$CURRENT" 2>/dev/null \
+         | sed -n 's/.*branch: Created from \(.*\)$/\1/p' | grep -vFx HEAD | head -1)
+
+# 2) Fallback: smallest "ahead" by merge-base, ties broken TOWARD the default branch so a
+#    sibling off the same base never wins.
+if [ -z "$PARENT" ]; then
+  best=""; best_ahead=2147483647
+  for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
+               | grep -vFx -e "$CURRENT" -e "origin/$CURRENT" -e "origin/HEAD"); do
+    mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
+    ahead=$(git rev-list --count "$mb"..HEAD)
+    [ "$ahead" -eq 0 ] && continue                     # ref contains HEAD → a descendant
+    if [ "$ahead" -lt "$best_ahead" ]; then
+      best=$ref; best_ahead=$ahead
+    elif [ "$ahead" -eq "$best_ahead" ] && { [ "$ref" = "$DEFAULT" ] || [ "$ref" = "origin/$DEFAULT" ]; }; then
+      best=$ref                                        # tie → prefer default over a sibling
+    fi
+  done
+  PARENT=$best
+fi
+
+# 3) Still nothing → the default branch.
+[ -z "$PARENT" ] && PARENT="$BASE"
+echo "Inferred parent: $PARENT"
 ```
 
-The smallest "ahead" count wins because the true parent is the branch you left *most recently* — anything further upstream (like `main` behind a stacked base) shares an older ancestor and therefore a larger count. As a cross-check, `git reflog show "$CURRENT" | tail` often shows the "Created from …" entry, but reflog is empty on fresh clones, so the merge-base method is the reliable default.
+Reflog is checked first because it records the branch you actually forked from. When it's empty (fresh clones) or only says "HEAD", the merge-base heuristic takes over: the smallest "ahead" count is the branch you left most recently. Ties are broken toward the default branch — two feature branches cut from the same base tie *exactly*, and you almost never mean to rebase onto a **sibling**.
 
-If nothing is found, fall back to `origin/$DEFAULT` and say so.
+Even so, treat the inferred parent as a **best guess** — it is exactly why Step 4 previews it and waits for your confirmation before anything runs. When in doubt, pass the branch explicitly.
 
 ### Step 4: Prefer the fresh remote ref, then preview
 

@@ -43,17 +43,27 @@ git fetch --all --prune
 
 ### Step 4: Find the user's branches with unique commits
 
-`--source` (`%S`) reports which branch ref each commit is reachable from, so a single log walk covers every branch — no per-branch looping. `--not origin/$DEFAULT` drops anything already on the default branch, leaving only unique work.
+`--source` (`%S`) reports which branch ref each commit is reachable from, so a single log walk covers every branch — no per-branch looping. `--branches --remotes` includes your **local unpushed** branches too, not just remote-tracking ones, so in-flight work you haven't pushed still shows up. The base exclusion drops anything already on the default branch; if the repo has no `origin` (local-only), it's skipped rather than erroring.
 
 ```bash
-git log --remotes --source --not "origin/$DEFAULT" \
-  --since="1 month ago" --author="$GIT_EMAIL" \
-  --format="%as %S" \
-  | awk '!seen[$2]++ {print}' \
-  | sort -r -k1
+# Resolve a base to exclude — prefer the fresh remote default, tolerate a local-only repo.
+git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" \
+  || { git rev-parse --verify --quiet "$DEFAULT" >/dev/null && BASE="$DEFAULT" || BASE=""; }
+
+# Keep the two forms separate: an optional "--not <base>" stuffed into a var would ride in as a
+# single un-split word under zsh (which doesn't word-split $variables) and break git.
+if [ -n "$BASE" ]; then
+  git log --branches --remotes --source --not "$BASE" \
+    --since="1 month ago" --author="$GIT_EMAIL" --format="%as %S" \
+    | awk '!seen[$2]++ {print}' | sort -r -k1
+else
+  git log --branches --remotes --source \
+    --since="1 month ago" --author="$GIT_EMAIL" --format="%as %S" \
+    | awk '!seen[$2]++ {print}' | sort -r -k1
+fi
 ```
 
-Each line is `YYYY-MM-DD origin/<branch>` — one row per branch, dated by its most recent commit, newest first.
+Each line is `YYYY-MM-DD <ref>` — `origin/<branch>` for pushed work, a plain `<branch>` for local-only — one row per branch, dated by its most recent commit, newest first.
 
 ### Step 5: Present a clean table
 
