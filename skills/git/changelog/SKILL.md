@@ -9,326 +9,128 @@ Generate professional, emoji-enhanced changelogs from git diffs for pull request
 
 ## Operating Mode
 
-### Inputs I Expect
+**Inputs:** the base branch (auto-detect if unknown). Complexity is auto-detected from the diff.
 
-- The base branch (if unknown, auto-detect)
-- PR complexity will be auto-detected based on diff analysis
+**Definition of done:**
 
-### Definition of Done
+- A PR changelog in markdown, printed to the user — no files created.
+- Only sections with real changes are included.
+- Summary is 1–2 sentences on user impact.
+- Bullets start with an imperative verb and cover WHAT + WHY.
+- Test Plan is actionable (commands and/or manual checks).
 
-- Output is a PR changelog in markdown (no files created)
-- Only include sections that have real changes
-- Summary is 1–2 sentences focused on user impact
-- Bullets start with an imperative verb and describe WHAT + WHY
-- Test Plan is actionable (commands and/or manual checks)
+**Non-goals:**
 
-### Non-goals
-
-- Do not claim tests were run unless you actually ran them
-- Do not include secrets, tokens, private URLs, or internal-only instructions
-- Do not list every file; group related changes
+- Don't claim tests were run unless you actually ran them.
+- Don't include secrets, tokens, or private URLs.
+- Don't list every file — group related changes by purpose.
 
 ## Workflow
 
-### Step 1: Identify Base Branch
-
-First, refresh remote refs and detect the default base branch.
+### Step 1: Identify the base branch
 
 ```bash
 git fetch --all --prune
-
-# Detect default branch for origin (e.g. refs/remotes/origin/HEAD -> origin/main)
-git symbolic-ref --short refs/remotes/origin/HEAD
-
-# Fallback: show remote info (includes "HEAD branch")
-git remote show origin
+git symbolic-ref --short refs/remotes/origin/HEAD   # e.g. origin/main
 ```
 
-If you already know the base branch (e.g. `main`, `master`, `develop`), use it.
+If you already know the base (`main`, `master`, `develop`), use it. For a fork (upstream + origin), check `git remote -v`.
 
-To compute the merge base:
+### Step 2: Analyze the diff
 
 ```bash
-# Replace <base> with the detected or user-provided base branch
-git merge-base HEAD origin/<base>
+git diff --name-status origin/<base>...HEAD          # what changed
+git diff --stat        origin/<base>...HEAD          # size overview
+git log origin/<base>..HEAD --pretty=format:"%s" --reverse   # commit subjects
+# git diff origin/<base>...HEAD                        # full diff, if unclear
 ```
 
-If the repo doesn't use `origin` (fork + upstream), detect remotes:
+Focus on: user-visible behavior vs refactors, file types (UI / tests / docs / config), and dependency changes.
 
-```bash
-git remote -v
-```
+### Step 3: Classify complexity
 
-### Step 2: Analyze the Diff
+- **Simple** — bug fixes, small UI tweaks, copy changes, single dep bumps, minor refactors → **Format A**.
+- **Technical** — new APIs/services, infra/CI, integrations, schema changes, new commands, architecture → **Format B**.
 
-Get the complete change set between base and the current branch.
+Rule of thumb: if a developer needs **code examples or commands** to use the change, it's Technical.
 
-```bash
-# Summary of changed files (add/modify/delete/rename)
-git diff --name-status origin/<base>...HEAD
+### Step 4: Categorize into emoji sections
 
-# Stats overview
-git diff --stat origin/<base>...HEAD
+Include only the sections that have real changes:
 
-# Commit subjects (helpful but not authoritative)
-git log origin/<base>..HEAD --pretty=format:"%s" --reverse
+| Emoji | Section | Matches |
+|---|---|---|
+| 🚀 | Features | user-visible new behavior |
+| 🔧 | Fixes | bug fixes |
+| ♻️ | Refactoring | code movement/renames, no behavior change |
+| 🎨 | UI/UX | `*.css`, `*.scss`, `*.stories.*`, components, design tokens |
+| 🧪 | Testing | `*.test.*`, `*.spec.*`, `__tests__/` |
+| 📚 | Documentation | `README*`, `docs/`, `*.md` |
+| ⚙️ | Config / CI | `.github/`, `*.config.*`, `tsconfig*`, build configs |
+| 📦 | Dependencies | `package.json`, lockfiles |
+| ⚡️ | Performance | speed / efficiency improvements |
+| 🔒 | Security | vulnerability fixes |
+| 🚨 | Breaking | breaking changes (call out in Migration Notes) |
 
-# Optional: full diff (use if categorization is unclear)
-git diff origin/<base>...HEAD
-```
+### Step 5: Generate using the format from Step 3.
 
-Focus on:
-
-- Paths and file types (UI, tests, docs, config)
-- User-visible behavior changes vs refactors
-- Dependency changes (package.json / lockfiles)
-
-### Step 3: Determine PR Complexity
-
-**CRITICAL STEP**: Before generating, classify the PR as **Simple** or **Technical**.
-
-#### Simple PR (use minimal format)
-
-- Bug fixes (1-3 files)
-- Small UI tweaks
-- Copy/text changes
-- Single dependency updates
-- Minor refactors
-
-#### Technical PR (use comprehensive format)
-
-- New APIs, clients, or services
-- Infrastructure changes (CI/CD, build, deploy)
-- New integrations (external APIs, libraries)
-- Schema changes (database, GraphQL, API contracts)
-- Multi-environment configurations
-- New CLI commands or scripts
-- Architecture changes
-- Anything with "how to use" instructions needed
-
-**Rule of thumb**: If a developer needs CODE EXAMPLES or COMMANDS to understand how to use the changes, it's a Technical PR.
-
-### Step 4: Categorize Changes (Heuristics)
-
-Use these heuristics to decide which sections to include:
-
-- 📦 **Dependencies**: `package.json`, lockfiles (`pnpm-lock.yaml`, `package-lock.json`, `yarn.lock`)
-- ⚙️ **Configuration / CI**: `.github/`, CI configs, build configs (`*.config.*`, `tsconfig*`, `vite*`, `webpack*`)
-- 📚 **Documentation**: `README*`, `docs/`, `*.md`
-- 🧪 **Testing**: `__tests__/`, `*.test.*`, `*.spec.*`
-- 🎨 **UI/UX**: `*.css`, `*.scss`, `*.less`, `*.stories.*`, `.storybook/`, design tokens, component folders
-- ♻️ **Refactoring**: mostly code movement/renames, type cleanup, internal restructuring without behavior change
-- 🚀 **Features** / 🔧 **Fixes**: user-visible behavior changes
-
-### Step 5: Generate Changelog
-
-Choose the appropriate format based on Step 3.
-
----
-
-## Format A: Simple PR
-
-Use for bug fixes, small changes, minor updates.
+## Format A — Simple PR
 
 ```markdown
 ## 📋 Summary
 
-[1-2 sentence overview of what this PR accomplishes]
+[1–2 sentences: what this PR does and its user impact]
 
 ## ✨ Changes
 
 ### 🔧 Fixes
-
-- Description of bug fix
+- [bug fixed]
 
 ### ♻️ Refactoring
-
-- Code improvements without behavior changes
+- [internal improvement]
 
 ## 🧪 Test Plan
-
-- [ ] Manual check: [specific action to verify]
-- [ ] Run: `npm test` (if applicable)
-
-## 📝 Notes
-
-[Any additional context if needed]
+- [ ] Manual: [action to verify]
+- [ ] Run: `npm test`
 ```
 
----
+## Format B — Technical PR
 
-## Format B: Technical PR
+Same emoji sections as Format A, plus room for commands, usage, and migration. Template (include only what applies):
 
-Use for new features, APIs, infrastructure, integrations, multi-environment changes.
-
-### Structure
-
-````markdown
-# 🚀 [Descriptive Title of the Change]
+```markdown
+# 🚀 [Title of the change]
 
 ## Summary
-
-[2-3 sentences explaining WHAT this PR does and WHY it matters]
+[2–3 sentences: what it does and why it matters]
 
 ## ✨ What's New
+### [Feature / component]
+[What it adds, with a short usage example when it helps]
 
-### 🔧 [Feature/Component Name]
+## 🔄 Changes
+**Added** — `path/new.ts` — purpose
+**Modified** — `path/file.ts` — what changed and why
+**Removed** — `path/old.ts` — why (e.g. replaced by X)
 
-[Brief description of what was added]
+## 🧪 Test Plan
+- [ ] Run `command` — expected outcome
+- [ ] Verify [scenario]
 
-[IF APPLICABLE - Comparison table for multi-environment/multi-option features:]
-| Option/Environment | Feature A | Feature B |
-|--------------------|-----------|-----------|
-| `option1` | ✅ | ❌ |
-| `option2` | ✅ | ✅ |
-
-[IF APPLICABLE - New commands/scripts:]
-**New commands:**
-
-```bash
-npm run command:name    # Description of what it does
-npm run another:cmd     # Another description
+## 🚨 Migration Notes
+[Only if breaking: what changed, does the old way still work, migration steps]
 ```
 
-### 🎯 [Another Feature - e.g., New Client/API]
+For "a short usage example," show a real, typed snippet rather than prose — e.g.:
 
-[Brief description]
-
-[IF APPLICABLE - Code usage example:]
-
-```typescript
-import { NewClient } from "@package/module";
-
-const client = new NewClient({
-  option: "value",
-});
-
-// Example usage with comments
+```ts
+import { NewClient } from "@pkg/module";
+const client = new NewClient({ option: "value" });
 const result = await client.method({ param: "value" });
 ```
 
-**Supported operations:**
-
-- Category: `method1()`, `method2()`, `method3()`
-- Another: `methodA()`, `methodB()`
-
-### 📁 New Folder Structure
-
-[IF APPLICABLE - When new directories/architecture is introduced:]
-
-```
-path/to/
-├── new-folder/
-│   ├── subfolder/
-│   │   └── file.ts
-│   └── another.ts
-├── new-file.ts        # NEW: Description
-└── index.ts           # Updated
-```
-
-### 📚 Documentation
-
-[IF APPLICABLE - When docs are added:]
-
-- Added documentation at `path/to/DOCS.md` with usage guide
-
-## 🔄 Changes
-
-### Added
-
-- `path/to/new-file.ts` - Description of purpose
-- New feature X for Y
-
-### Modified
-
-- `path/to/file.ts` - What was changed and why
-
-### Removed
-
-- `path/to/old-file.ts` - Why it was removed (e.g., "Replaced by X")
-
-## 🧪 Test Plan
-
-- [ ] Run `specific command` - expected outcome
-- [ ] Verify [specific functionality] works
-- [ ] Test [edge case or specific scenario]
-
-## 📋 Migration Notes
-
-[IF APPLICABLE - When there are breaking changes or migration steps:]
-
-- **No breaking changes** - Legacy `OldMethod()` still works
-- For new code, prefer using `NewMethod()` for [benefit]
-- [Any steps developers need to take]
-
-## 🔗 Related
-
-[IF APPLICABLE - Context about why this was done:]
-
-- Addresses [issue/feedback] about [problem]
-- Resolves [specific technical issue]
-
-````
-
----
-
-## Key Principles for Technical PRs
-
-### 1. Show, Don't Just Tell
-❌ Bad: "Add new API client"
-✅ Good: Show import statement + example usage with typed response
-
-### 2. Use Tables for Comparisons
-When there are multiple options, environments, or features - use a comparison table.
-
-### 3. Include Real Commands
-❌ Bad: "Run the generation script"
-✅ Good: `npm run graphql:generate:staging`
-
-### 4. Visualize Structure Changes
-When adding new folders/files, show the tree structure with annotations.
-
-### 5. List Supported Operations
-When adding a new client/service, list all available methods grouped by category.
-
-### 6. Explain Migration Path
-If there's an old way and new way, explain:
-- Does old way still work?
-- When to use new way?
-- Any steps to migrate?
-
----
-
-## Emoji Reference
-
-| Category | Emoji | When to Use |
-|----------|-------|-------------|
-| Features | 🚀 | New functionality, capabilities, or enhancements |
-| Fixes | 🔧 | Bug fixes, error corrections |
-| Documentation | 📚 | README, docs, comments, JSDoc |
-| Refactoring | ♻️ | Code restructuring without behavior change |
-| Testing | 🧪 | Test files, test coverage improvements |
-| UI/UX | 🎨 | Visual changes, styling, user experience |
-| Performance | ⚡️ | Speed, efficiency, optimization improvements |
-| Security | 🔒 | Security patches, vulnerability fixes |
-| Dependencies | 📦 | Package updates, new libraries |
-| Cleanup | 🗑️ | Removing dead code, deprecated features |
-| Breaking | 🚨 | Breaking changes (use in notes section) |
-| Configuration | ⚙️ | Config files, build scripts, CI/CD |
-
----
+Keep it concrete: real commands over descriptions, a comparison table when there are multiple options or environments, and group by purpose rather than by file.
 
 ## Output
 
-**CRITICAL**: Print the changelog directly to the user. DO NOT create any files.
-
-Present the changelog with a brief introduction:
-
-```
-
-Here's the changelog for your PR:
-
-[Generated changelog in markdown]
-
-```
-
+**Print the changelog directly to the user. Do NOT create any files.** Introduce it briefly ("Here's the changelog for your PR:") and paste the markdown.
