@@ -1,0 +1,5 @@
+interface:
+  display_name: "Git Rebase"
+  short_description: "Rebase onto parent or a named branch, with a preview and confirm"
+policy:
+  allow_implicit_invocation: false

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Git Cleanup"
+  short_description: "Prune stale, merged, and gone local branches after preview"
+policy:
+  allow_implicit_invocation: false
