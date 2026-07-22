@@ -77,7 +77,7 @@ The skill name must be:
 
 ## Step 3: Write the Skill
 
-Read the [Skill Writing Guide](references/skill-writing-guide.md) for the full reference.
+Author the skill's content with the **`skill-creator`** skill if it's installed — it walks through frontmatter, description, and body. If you don't have it, follow the bundled [Skill Writing Guide](references/skill-writing-guide.md), which covers the same ground.
 
 ### Directory Structure
 
@@ -94,40 +94,6 @@ skills/<skill-name>/
     └── <file>
 ```
 
-### Write SKILL.md
-
-**Frontmatter** — only `name` and `description` are required:
-
-```yaml
----
-name: <skill-name>
-description: <What the skill does + when to trigger it. Be specific and "pushy" — include trigger phrases, related concepts, and edge cases. This is the PRIMARY mechanism that determines whether the agent uses the skill.>
----
-```
-
-**Description writing rules:**
-- Include BOTH what the skill does AND when to use it
-- List explicit trigger phrases the user might say
-- Be "pushy" — err on the side of over-triggering rather than under-triggering
-- Cover adjacent use cases and synonyms
-- Keep under 1024 characters
-
-**Body** — write clear markdown instructions:
-- Explain the why, not just the what — agents are smart and respond to reasoning
-- Use imperative form ("Read the config", not "You should read the config")
-- Include examples with realistic input/output
-- Keep SKILL.md under 500 lines total
-- Move detailed reference material to `references/` directory
-- Reference files clearly: `See [Reference](references/topic.md)`
-
-### Progressive Disclosure
-
-Skills use a 3-level loading system:
-1. **Metadata** (~100 tokens): `name` + `description` — always in agent context
-2. **SKILL.md body** (< 5000 tokens): loaded when skill triggers
-3. **Bundled resources** (unlimited): loaded on demand from `references/`, `scripts/`, `assets/`
-
-If SKILL.md approaches 500 lines, split content into reference files.
 
 ---
 
