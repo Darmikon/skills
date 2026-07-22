@@ -30,6 +30,10 @@ CURRENT=$(git rev-parse --abbrev-ref HEAD)
 DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
 [ -z "$DEFAULT" ] && DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')
 [ -z "$DEFAULT" ] && DEFAULT=main
+# Ref to test "merged into default" against — fresh remote default if present, else local, else none.
+# (Without this, a no-origin repo hits `fatal: malformed object name origin/main`.)
+git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" \
+  || { git rev-parse --verify --quiet "$DEFAULT" >/dev/null && BASE="$DEFAULT" || BASE=""; }
 ```
 
 The current branch, the default branch, and `master`/`main` are never candidates — exclude them from every list below.
@@ -46,13 +50,13 @@ For each, note whether git also considers it merged — this decides safe vs. fo
 
 ```bash
 # merged into default? (safe) — otherwise it was squash-merged and needs a force delete
-git branch --merged "origin/$DEFAULT" --format='%(refname:short)'   # list of "safe" branches
+[ -n "$BASE" ] && git branch --merged "$BASE" --format='%(refname:short)'   # "safe" list (skipped if no default ref)
 ```
 
 ### Step 4: Find merged branches (not necessarily gone)
 
 ```bash
-git branch --merged "origin/$DEFAULT" --format='%(refname:short)' \
+[ -n "$BASE" ] && git branch --merged "$BASE" --format='%(refname:short)' \
   | grep -vFx -e "$CURRENT" -e "$DEFAULT" -e "main" -e "master"
 ```
 

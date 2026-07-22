@@ -44,34 +44,33 @@ Otherwise infer the parent. Git has no native "parent branch", so use the **fork
 ```bash
 # 0) Base ref for the default branch (prefer the fresh remote one).
 git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" || BASE="$DEFAULT"
-# No commits of your own beyond that base → nothing to replay.
-[ "$(git rev-list --count "$BASE"..HEAD 2>/dev/null)" = "0" ] && echo "No commits unique to '$CURRENT' beyond $BASE — nothing to rebase; stop."
 
-# 1) Strongest signal: the recorded creation point (empty on fresh clones; often literally
-#    "HEAD", which is useless — filter that out).
-PARENT=$(git reflog show "$CURRENT" 2>/dev/null \
-         | sed -n 's/.*branch: Created from \(.*\)$/\1/p' | grep -vFx HEAD | head -1)
-
-# 2) Fallback: smallest "ahead" by merge-base, ties broken TOWARD the default branch so a
-#    sibling off the same base never wins.
-if [ -z "$PARENT" ]; then
-  best=""; best_ahead=2147483647
-  for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
-               | grep -vFx -e "$CURRENT" -e "origin/$CURRENT" -e "origin/HEAD"); do
-    mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
-    ahead=$(git rev-list --count "$mb"..HEAD)
-    [ "$ahead" -eq 0 ] && continue                     # ref contains HEAD → a descendant
-    if [ "$ahead" -lt "$best_ahead" ]; then
-      best=$ref; best_ahead=$ahead
-    elif [ "$ahead" -eq "$best_ahead" ] && { [ "$ref" = "$DEFAULT" ] || [ "$ref" = "origin/$DEFAULT" ]; }; then
-      best=$ref                                        # tie → prefer default over a sibling
-    fi
-  done
-  PARENT=$best
+if [ "$(git rev-list --count "$BASE"..HEAD 2>/dev/null)" = "0" ]; then
+  # No commits of your own beyond the default → the default IS the base; a rebase is a no-op.
+  PARENT="$BASE"; echo "Note: '$CURRENT' has no commits beyond $BASE — nothing to rebase."
+else
+  # 1) Strongest signal: the recorded creation point (empty on fresh clones; often "HEAD" — skip that).
+  PARENT=$(git reflog show "$CURRENT" 2>/dev/null \
+           | sed -n 's/.*branch: Created from \(.*\)$/\1/p' | grep -vFx HEAD | head -1)
+  # 2) Fallback: smallest "ahead" by merge-base, ties broken TOWARD the default so a sibling never wins.
+  if [ -z "$PARENT" ]; then
+    best=""; best_ahead=2147483647
+    for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
+                 | grep -vFx -e "$CURRENT" -e "origin/$CURRENT" -e "origin/HEAD"); do
+      mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
+      ahead=$(git rev-list --count "$mb"..HEAD)
+      [ "$ahead" -eq 0 ] && continue                   # ref contains HEAD → a descendant
+      if [ "$ahead" -lt "$best_ahead" ]; then
+        best=$ref; best_ahead=$ahead
+      elif [ "$ahead" -eq "$best_ahead" ] && { [ "$ref" = "$DEFAULT" ] || [ "$ref" = "origin/$DEFAULT" ]; }; then
+        best=$ref                                      # tie → prefer default over a sibling
+      fi
+    done
+    PARENT=$best
+  fi
+  # Still nothing → the default branch.
+  [ -z "$PARENT" ] && PARENT="$BASE"
 fi
-
-# 3) Still nothing → the default branch.
-[ -z "$PARENT" ] && PARENT="$BASE"
 echo "Inferred parent: $PARENT"
 ```
 
