@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill better-docs --skill changelog --skill commit --skill focus --skill rethink --skill skill-publish
+npx skills add Darmikon/skills --skill better-docs --skill changelog --skill commit --skill focus --skill rethink
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -34,12 +34,11 @@ npx skills add Darmikon/skills --skill better-docs --skill changelog --skill com
 | commit | 🤖 | Angular conventional commit format | `npx skills add Darmikon/skills --skill commit` |
 | changelog | 🤖 | PR changelogs from git diffs | `npx skills add Darmikon/skills --skill changelog` |
 
-### authoring — docs & skill creation
+### authoring — documentation
 
 | Skill | | Description | Install |
 |-------|---|-------------|---------|
 | better-docs | 🧍 | Optimize repo docs, lean AGENTS.md | `npx skills add Darmikon/skills --skill better-docs` |
-| skill-publish | 🧍 | Create and publish skills to GitHub | `npx skills add Darmikon/skills --skill skill-publish` |
 
 ### workflow — how the agent responds & recovers
 

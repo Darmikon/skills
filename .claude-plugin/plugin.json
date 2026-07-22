@@ -11,7 +11,6 @@
     "./skills/git/commit",
     "./skills/git/changelog",
     "./skills/authoring/better-docs",
-    "./skills/authoring/skill-publish",
     "./skills/workflow/focus",
     "./skills/workflow/rethink"
   ]

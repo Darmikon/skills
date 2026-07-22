@@ -1,5 +1,0 @@
-interface:
-  display_name: "Skill Publish"
-  short_description: "Create and publish skills to GitHub"
-policy:
-  allow_implicit_invocation: false
