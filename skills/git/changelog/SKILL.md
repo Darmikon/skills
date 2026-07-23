@@ -1,6 +1,7 @@
 ---
 name: changelog
-description: Generate PR changelogs by analyzing git diff between current branch and base branch, formatted with emojis in markdown. Use when user asks to create/write/generate a changelog, PR description, review changes for pull request, or mentions PR summary.
+description: Refresh the current branch's pull request description — generate an emoji-sectioned changelog from the diff and write it into the open PR via the GitHub CLI. If no PR is open, offer to create one with the pr skill. Use when the user asks to update the PR description, write or refresh the changelog, or "run changelog". Invoke with /changelog.
+disable-model-invocation: true
 ---
 
 # PR Changelog Generator
@@ -131,6 +132,22 @@ const result = await client.method({ param: "value" });
 
 Keep it concrete: real commands over descriptions, a comparison table when there are multiple options or environments, and group by purpose rather than by file.
 
-## Output
+## Deliver: write it into the PR
 
-**Print the changelog directly to the user. Do NOT create any files.** Introduce it briefly ("Here's the changelog for your PR:") and paste the markdown.
+The changelog is the PR description, not a chat artifact — put it where it belongs.
+
+```bash
+gh auth status >/dev/null 2>&1 || echo "STOP: GitHub CLI not authenticated — run 'gh auth login'."
+CURRENT=$(git rev-parse --abbrev-ref HEAD)
+PR=$(gh pr view --json number,url,body 2>/dev/null)
+```
+
+- **An open PR exists** → update its description. Regenerate freely, but **carry over anything a person added** to the old body that isn't the mechanical change list — background/motivation, linked issues (`Closes #123`), migration notes, screenshots or demo links, reviewer checklists. Then overwrite:
+  ```bash
+  gh pr edit "$(gh pr view --json number -q .number)" --body "<the changelog, with the useful old parts merged back in>"
+  ```
+  Report the PR URL — don't paste the whole body back into chat.
+
+- **No open PR for this branch** → don't dump the changelog into the void. Tell the user there's no PR yet and **offer to run the `pr` skill** (`/pr`), which opens one with this changelog as its body. Only if they decline (or there's no GitHub remote) fall back to printing the changelog to chat so the work isn't lost.
+
+**Never** add AI attribution to the PR body — the description is the user's.

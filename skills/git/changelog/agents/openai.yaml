@@ -1,3 +1,5 @@
 interface:
   display_name: "Changelog"
-  short_description: "Emoji PR changelogs from git diffs"
+  short_description: "Write an emoji changelog into the current PR's description"
+policy:
+  allow_implicit_invocation: false

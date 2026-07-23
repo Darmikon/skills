@@ -53,9 +53,9 @@ Then guard against an empty PR:
 
 Push with the **push** skill: it sets the upstream on a first push and, if the remote moved on, rebases onto it and retries. The branch must be on the remote before a PR can point at it.
 
-## Step 4: Generate the body from the diff
+## Step 4: Build the body (create mode)
 
-Produce the PR description with the **changelog** skill, run against `origin/$DEFAULT...HEAD` (branch vs base) — the emoji-sectioned summary. Derive a concise, imperative PR **title** from the changelog's title line (Technical format) or its one-line summary (Simple); fall back to the latest commit subject. Keep it short.
+Generate the PR body in the **changelog** format — the emoji-sectioned summary from `origin/$DEFAULT...HEAD` (see the changelog skill for the format and sections). There's no PR yet, so just produce the text here; it goes into the PR at Step 5a. Derive a concise, imperative **title** from the summary's headline, falling back to the latest commit subject. Keep it short.
 
 ## Step 5a: Create the PR
 
@@ -67,15 +67,13 @@ Report the resulting PR URL.
 
 ## Step 5b: Update the existing PR
 
-Always refresh the description — **but don't discard human value.** Regenerate the changelog body from the current diff (Step 4), then **carry over anything a person added** to the old body that isn't the mechanical change list: background/motivation, linked issues (`Closes #123`), migration notes, screenshots or demo links, reviewer checklists. Merge those into the new body; drop only the stale auto-generated change list.
+Run the **changelog** skill. With a PR open, it does exactly this: regenerate the description from the current diff, carry over the useful human-added parts of the old body, and overwrite — no old-vs-new prompt. Nothing else to build here; `changelog` owns the update. Bump the PR **title** too only if the change set's headline actually shifted:
 
 ```bash
-NUM=$(gh pr view --json number -q .number)
-gh pr edit "$NUM" --body "<regenerated body, with the useful old parts merged back in>"
-# also --title "<new title>" only if the change set's headline actually shifted
+gh pr edit "$(gh pr view --json number -q .number)" --title "<new title>"
 ```
 
-Overwrite directly — the user does **not** want an old-vs-new diff prompt. Report the PR URL.
+Report the PR URL.
 
 ## Notes
 

@@ -32,7 +32,7 @@ npx skills add Darmikon/skills --skill better-docs --skill changelog --skill cle
 | Skill | | Description | Install |
 |-------|---|-------------|---------|
 | commit | 🤖 | Angular conventional commit format | `npx skills add Darmikon/skills --skill commit` |
-| changelog | 🤖 | PR changelogs from git diffs | `npx skills add Darmikon/skills --skill changelog` |
+| changelog | 🧍 | Write the changelog into the current PR | `npx skills add Darmikon/skills --skill changelog` |
 | show-my-branches | 🤖 | Your recent branches with unique commits | `npx skills add Darmikon/skills --skill show-my-branches` |
 | rebase | 🧍 | Rebase onto parent/named branch, with confirm | `npx skills add Darmikon/skills --skill rebase` |
 | merge | 🧍 | Merge parent/named branch into current | `npx skills add Darmikon/skills --skill merge` |
