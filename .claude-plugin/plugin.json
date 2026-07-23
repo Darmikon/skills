@@ -10,10 +10,11 @@
   "skills": [
     "./skills/git/commit",
     "./skills/git/changelog",
-    "./skills/git/git-rebase",
-    "./skills/git/git-merge",
-    "./skills/git/git-cleanup",
-    "./skills/git/git-show-my-branches",
+    "./skills/git/rebase",
+    "./skills/git/merge",
+    "./skills/git/cleanup",
+    "./skills/git/show-my-branches",
+    "./skills/git/push",
     "./skills/authoring/better-docs",
     "./skills/workflow/focus",
     "./skills/workflow/rethink"

@@ -1,6 +1,6 @@
 ---
-name: git-rebase
-description: Rebase the current branch onto its parent branch, or onto a branch you name, with a preview and a confirmation step before any history is rewritten. Use when the user asks to rebase, "rebase onto main", "rebase on parent", update/refresh/catch-up a feature branch, replay commits on top of another branch, or make history linear. With no branch argument it infers the parent via the fork point. Invoke with /git-rebase [branch].
+name: rebase
+description: Rebase the current branch onto its parent branch, or onto a branch you name, with a preview and a confirmation step before any history is rewritten. Use when the user asks to rebase, "rebase onto main", "rebase on parent", update/refresh/catch-up a feature branch, replay commits on top of another branch, or make history linear. With no branch argument it infers the parent via the fork point. Invoke with /rebase [branch].
 disable-model-invocation: true
 ---
 
@@ -9,7 +9,7 @@ disable-model-invocation: true
 Rebase the current branch onto a target and **replay** this branch's commits on top of it. Because rebasing rewrites history, this skill always shows what will happen and waits for a yes before touching anything.
 
 Target selection:
-- **Argument given** (`/git-rebase main`, `/git-rebase feature/base`) → rebase onto that branch.
+- **Argument given** (`/rebase main`, `/rebase feature/base`) → rebase onto that branch.
 - **No argument** → infer the *parent*: the branch this one most recently diverged from. This is what "rebase onto my parent" means when branches are stacked, not just branched off main.
 
 ## Workflow
@@ -76,7 +76,7 @@ else
   fi
   # Still nothing → the default branch, or bail if there isn't one.
   [ -z "$PARENT" ] && PARENT="$BASE"
-  [ -z "$PARENT" ] && echo "STOP: can't infer a parent — pass the target explicitly, e.g. /git-rebase main."
+  [ -z "$PARENT" ] && echo "STOP: can't infer a parent — pass the target explicitly, e.g. /rebase main."
 fi
 echo "Inferred parent: $PARENT"
 ```
@@ -127,7 +127,7 @@ git rebase "$TARGET_REF"
 ## Example
 
 ```
-User: /git-rebase
+User: /rebase
 Assistant: Working tree clean. Inferred parent: origin/feature/checkout-base (3 commits ahead).
            Rebasing your 3 commits onto origin/feature/checkout-base (fetched, 5 new commits underneath). Proceed?
 User: yes

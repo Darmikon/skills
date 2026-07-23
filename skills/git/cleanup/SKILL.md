@@ -1,6 +1,6 @@
 ---
-name: git-cleanup
-description: Delete stale local git branches — ones whose remote was deleted after a merged or squashed PR (upstream "[gone]"), ones already merged into the default branch — and prune stale remote-tracking refs. Use when the user asks to clean up branches, remove old/dead/merged branches, "prune gone branches", tidy up their local repo, or says their branch list is a mess. Always previews and asks before deleting; never touches the current or default branch. Invoke with /git-cleanup.
+name: cleanup
+description: Delete stale local git branches — ones whose remote was deleted after a merged or squashed PR (upstream "[gone]"), ones already merged into the default branch — and prune stale remote-tracking refs. Use when the user asks to clean up branches, remove old/dead/merged branches, "prune gone branches", tidy up their local repo, or says their branch list is a mess. Always previews and asks before deleting; never touches the current or default branch. Invoke with /cleanup.
 disable-model-invocation: true
 ---
 
@@ -101,7 +101,7 @@ List what was deleted and what was kept (and why anything was skipped — e.g. "
 ## Example
 
 ```
-User: /git-cleanup
+User: /cleanup
 Assistant: Pruned remotes. Found:
            Safe (merged into main): chore/bump-deps, docs/readme-tidy
            Gone/squash-merged (need force delete): feature/checkout-redesign

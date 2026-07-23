@@ -1,17 +1,17 @@
 ---
-name: git-merge
-description: Merge the parent branch, or a branch you name, INTO the current branch to bring it up to date — with a preview and a confirmation step. Use when the user asks to merge main/parent into their branch, "bring in upstream changes", "catch my branch up", "merge origin/main", or update a feature branch via a merge commit (rather than a rebase). With no branch argument it infers the parent via the fork point. Invoke with /git-merge [branch].
+name: merge
+description: Merge the parent branch, or a branch you name, INTO the current branch to bring it up to date — with a preview and a confirmation step. Use when the user asks to merge main/parent into their branch, "bring in upstream changes", "catch my branch up", "merge origin/main", or update a feature branch via a merge commit (rather than a rebase). With no branch argument it infers the parent via the fork point. Invoke with /merge [branch].
 disable-model-invocation: true
 ---
 
 # Git Merge (parent or a named branch, into the current branch)
 
-Bring another branch's changes **into** the current branch with a merge. This is the merge-commit alternative to `git-rebase`: same goal (get my branch current with its parent), different mechanic — history is preserved, not rewritten, so there's no force-push afterward.
+Bring another branch's changes **into** the current branch with a merge. This is the merge-commit alternative to `rebase`: same goal (get my branch current with its parent), different mechanic — history is preserved, not rewritten, so there's no force-push afterward.
 
 Direction is fixed and deliberate: the target is merged **into** the current branch. This updates *your* branch. It never merges your branch into main — that's what pull requests are for.
 
 Target selection:
-- **Argument given** (`/git-merge main`) → merge that branch in.
+- **Argument given** (`/merge main`) → merge that branch in.
 - **No argument** → infer the *parent*: the branch this one most recently diverged from.
 
 ## Workflow
@@ -76,7 +76,7 @@ else
   fi
   # Still nothing → the default branch, or bail if there isn't one.
   [ -z "$PARENT" ] && PARENT="$BASE"
-  [ -z "$PARENT" ] && echo "STOP: can't infer a parent — pass the target explicitly, e.g. /git-merge main."
+  [ -z "$PARENT" ] && echo "STOP: can't infer a parent — pass the target explicitly, e.g. /merge main."
 fi
 echo "Inferred parent: $PARENT"
 ```
@@ -125,7 +125,7 @@ git merge "$TARGET_REF"
 ## Example
 
 ```
-User: /git-merge main
+User: /merge main
 Assistant: Working tree clean. Merging origin/main INTO feature/checkout-redesign.
            Brings in 12 commits; creates a merge commit. Proceed?
 User: go

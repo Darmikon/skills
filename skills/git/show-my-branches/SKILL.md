@@ -1,5 +1,5 @@
 ---
-name: git-show-my-branches
+name: show-my-branches
 description: Show the git branches the current user has been working on — branches carrying their own unique commits (matched by git email) from the last month, not yet merged into the default branch, newest first, as a table. Use whenever the user asks to "show my branches", "list my branches", "what branches did I work on", "my recent branches", "what was I working on", "where did I leave off", or "which branches are mine" — in any repository.
 ---
 

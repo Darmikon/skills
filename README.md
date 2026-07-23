@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill better-docs --skill changelog --skill commit --skill focus --skill git-cleanup --skill git-merge --skill git-rebase --skill git-show-my-branches --skill rethink
+npx skills add Darmikon/skills --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill push --skill rebase --skill rethink --skill show-my-branches
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -33,10 +33,11 @@ npx skills add Darmikon/skills --skill better-docs --skill changelog --skill com
 |-------|---|-------------|---------|
 | commit | 🤖 | Angular conventional commit format | `npx skills add Darmikon/skills --skill commit` |
 | changelog | 🤖 | PR changelogs from git diffs | `npx skills add Darmikon/skills --skill changelog` |
-| git-show-my-branches | 🤖 | Your recent branches with unique commits | `npx skills add Darmikon/skills --skill git-show-my-branches` |
-| git-rebase | 🧍 | Rebase onto parent/named branch, with confirm | `npx skills add Darmikon/skills --skill git-rebase` |
-| git-merge | 🧍 | Merge parent/named branch into current | `npx skills add Darmikon/skills --skill git-merge` |
-| git-cleanup | 🧍 | Prune stale / merged / gone local branches | `npx skills add Darmikon/skills --skill git-cleanup` |
+| show-my-branches | 🤖 | Your recent branches with unique commits | `npx skills add Darmikon/skills --skill show-my-branches` |
+| rebase | 🧍 | Rebase onto parent/named branch, with confirm | `npx skills add Darmikon/skills --skill rebase` |
+| merge | 🧍 | Merge parent/named branch into current | `npx skills add Darmikon/skills --skill merge` |
+| cleanup | 🧍 | Prune stale / merged / gone local branches | `npx skills add Darmikon/skills --skill cleanup` |
+| push | 🧍 | Push; on reject, rebase onto remote and retry | `npx skills add Darmikon/skills --skill push` |
 
 ### authoring — documentation
 

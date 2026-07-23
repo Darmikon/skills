@@ -1,0 +1,5 @@
+interface:
+  display_name: "Push"
+  short_description: "Push; on reject, rebase onto the remote, resolve, and retry"
+policy:
+  allow_implicit_invocation: false
