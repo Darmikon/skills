@@ -28,7 +28,12 @@ git fetch --all --prune
 ```bash
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
 DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-[ -z "$DEFAULT" ] && DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')
+if [ -z "$DEFAULT" ]; then           # probe locally — `git remote show origin` would stall on an unreachable remote
+  for c in main master; do
+    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
+    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
+  done
+fi
 [ -z "$DEFAULT" ] && DEFAULT=main
 # Ref to test "merged into default" against — fresh remote default if present, else local, else none.
 # (Without this, a no-origin repo hits `fatal: malformed object name origin/main`.)
@@ -69,7 +74,7 @@ Safe to delete (merged into main):
   chore/bump-deps
   docs/readme-tidy
 
-Gone from remote — SQUASH-merged, not "merged" to git (needs force delete -D):
+Gone from remote — not merged into main (squash-merged, OR a PR closed unmerged; needs force delete -D):
   feature/checkout-redesign   ⚠ verify this really landed in the PR before deleting
   bugfix/null-price-crash     ⚠
 ```

@@ -28,7 +28,12 @@ Don't assume `main` — older repos use `master`, some use `develop`.
 
 ```bash
 DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-[ -z "$DEFAULT" ] && DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')
+if [ -z "$DEFAULT" ]; then           # probe locally — `git remote show origin` would stall on an unreachable remote
+  for c in main master; do
+    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
+    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
+  done
+fi
 [ -z "$DEFAULT" ] && DEFAULT=main
 echo "Default branch: $DEFAULT"
 ```

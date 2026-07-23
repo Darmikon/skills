@@ -33,7 +33,12 @@ If there's output, stop and ask the user to commit or stash first.
 git symbolic-ref -q HEAD >/dev/null || echo "STOP: detached HEAD — check out a branch first."
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
 DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-[ -z "$DEFAULT" ] && DEFAULT=$(git remote show origin 2>/dev/null | sed -n 's/.*HEAD branch: //p')
+if [ -z "$DEFAULT" ]; then           # probe locally — `git remote show origin` would stall on an unreachable remote
+  for c in main master; do
+    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
+    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
+  done
+fi
 [ -z "$DEFAULT" ] && DEFAULT=main
 ```
 
@@ -57,7 +62,7 @@ else
   if [ -z "$PARENT" ]; then
     best=""; best_ahead=2147483647
     for ref in $(git for-each-ref --format='%(refname:short)' refs/heads refs/remotes \
-                 | grep -vFx -e "$CURRENT" -e "origin/$CURRENT" -e "origin/HEAD"); do
+                 | grep -vFx -e "$CURRENT" -e "origin/$CURRENT" -e "origin/HEAD" -e "origin"); do
       mb=$(git merge-base "$ref" HEAD 2>/dev/null) || continue
       ahead=$(git rev-list --count "$mb"..HEAD)
       [ "$ahead" -eq 0 ] && continue                   # ref contains HEAD → a descendant
@@ -76,14 +81,20 @@ fi
 echo "Inferred parent: $PARENT"
 ```
 
-Reflog is checked first (the branch you actually forked from); the merge-base heuristic is the fallback, with ties broken toward the default branch so a **sibling** off the same base never wins. It's still a **best guess** — which is why Step 4 previews what will merge and waits for your confirmation. Pass the branch explicitly when in doubt.
+Reflog is checked first, but it only records a usable parent when the branch was created with an explicit start-point; the everyday `checkout -b x` / `switch -c x` record just "HEAD", so the merge-base heuristic usually runs. It breaks ties toward the default so a true **sibling** never wins, but it's a **best guess** and can mistake a *child* or *cousin* sharing part of your history for the parent — which is why Step 4 previews what will merge and waits for confirmation. Pass the branch explicitly when in doubt.
 
 ### Step 4: Fetch, then preview
 
 ```bash
 git fetch --quiet --all --prune
-TARGET=<the branch from Step 3>
-git rev-parse --verify --quiet "origin/$TARGET" >/dev/null && TARGET_REF="origin/$TARGET" || TARGET_REF="$TARGET"
+TARGET="$PARENT"   # or the branch the user passed in Step 3
+# Freshest ref: the remote is source of truth for the DEFAULT branch, but a local (stacked)
+# parent can carry unpushed commits the remote lacks — keep the local ref in that case.
+if [ "$TARGET" = "$DEFAULT" ] && git rev-parse --verify --quiet "origin/$TARGET" >/dev/null; then
+  TARGET_REF="origin/$TARGET"
+else
+  TARGET_REF="$TARGET"
+fi
 
 echo "About to merge '$TARGET_REF' INTO '$CURRENT'."
 echo "Commits it will bring in:"
@@ -109,7 +120,7 @@ git merge "$TARGET_REF"
 ### Step 6: Handle the outcome
 
 - **Success**: report what came in (fast-forward or merge commit). No force-push needed — merging only adds history.
-- **Conflict**: the merge stops with conflicts. Do **not** `git merge --abort`. Hand off to the **resolving-merge-conflicts** skill to resolve hunk by hunk, then finish with `git commit` to complete the merge.
+- **Conflict**: the merge stops with conflicts. Do **not** `git merge --abort`. Hand off to the **resolving-merge-conflicts** skill if it's installed; otherwise resolve each hunk by the intent of both sides, `git add` the files, and `git commit` to complete the merge.
 
 ## Example
 
