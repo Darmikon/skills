@@ -42,10 +42,11 @@ If the user passed a branch, use it as `TARGET` and skip to Step 4.
 Otherwise infer the parent. Git has no native "parent branch", so use the **fork point**: among all other branches, the parent is the one whose divergence from `HEAD` is most recent — i.e. the fewest commits sit between their common ancestor and `HEAD`.
 
 ```bash
-# 0) Base ref for the default branch (prefer the fresh remote one).
-git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" || BASE="$DEFAULT"
+# 0) Base ref for the default branch — fresh remote if present, else local, else none.
+git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" \
+  || { git rev-parse --verify --quiet "$DEFAULT" >/dev/null && BASE="$DEFAULT" || BASE=""; }
 
-if [ "$(git rev-list --count "$BASE"..HEAD 2>/dev/null)" = "0" ]; then
+if [ -n "$BASE" ] && [ "$(git rev-list --count "$BASE"..HEAD 2>/dev/null)" = "0" ]; then
   # No commits of your own beyond the default → the default IS the base; a rebase is a no-op.
   PARENT="$BASE"; echo "Note: '$CURRENT' has no commits beyond $BASE — nothing to rebase."
 else
@@ -68,8 +69,9 @@ else
     done
     PARENT=$best
   fi
-  # Still nothing → the default branch.
+  # Still nothing → the default branch, or bail if there isn't one.
   [ -z "$PARENT" ] && PARENT="$BASE"
+  [ -z "$PARENT" ] && echo "STOP: can't infer a parent — pass the target explicitly, e.g. /git-rebase main."
 fi
 echo "Inferred parent: $PARENT"
 ```
