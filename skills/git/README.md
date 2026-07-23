@@ -18,3 +18,4 @@ Reachable only when you type them (`disable-model-invocation: true`; Codex: `pol
 - **[merge](./merge/SKILL.md)** — Merge the parent or a named branch *into* the current branch to bring it up to date. Previews and confirms first.
 - **[cleanup](./cleanup/SKILL.md)** — Delete stale local branches (gone-from-remote, squash-merged, merged) and prune remote-tracking refs. Previews and confirms first.
 - **[push](./push/SKILL.md)** — Push the current branch; if rejected because the remote moved on, rebase onto it, resolve conflicts, and retry until it lands.
+- **[pr](./pr/SKILL.md)** — Open a pull request (commit → push → generate the body), or update an existing one's description.

@@ -15,6 +15,7 @@
     "./skills/git/cleanup",
     "./skills/git/show-my-branches",
     "./skills/git/push",
+    "./skills/git/pr",
     "./skills/authoring/better-docs",
     "./skills/workflow/focus",
     "./skills/workflow/rethink"

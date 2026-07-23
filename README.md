@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill push --skill rebase --skill rethink --skill show-my-branches
+npx skills add Darmikon/skills --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill pr --skill push --skill rebase --skill rethink --skill show-my-branches
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -38,6 +38,7 @@ npx skills add Darmikon/skills --skill better-docs --skill changelog --skill cle
 | merge | 🧍 | Merge parent/named branch into current | `npx skills add Darmikon/skills --skill merge` |
 | cleanup | 🧍 | Prune stale / merged / gone local branches | `npx skills add Darmikon/skills --skill cleanup` |
 | push | 🧍 | Push; on reject, rebase onto remote and retry | `npx skills add Darmikon/skills --skill push` |
+| pr | 🧍 | Open/update a PR: commit + push + generated body | `npx skills add Darmikon/skills --skill pr` |
 
 ### authoring — documentation
 
