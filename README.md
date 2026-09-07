@@ -29,10 +29,12 @@ Output styles replace Claude's system prompt persona — role, tone, answer form
 
 | Style | Description |
 |-------|-------------|
-| ELI5 | Short words, short sentences, what you did and what to do next |
+| ELI5 | "keep it simple pls" — short words, short sentences, for a long day |
 | Focus | Action-first and skimmable: next step first, numbered work, state restated every turn (ADHD-shaped) |
 | Caveman | Ultra-compressed: articles, filler and narration dropped, technical substance and code untouched |
 | Baby | Plain words only, no jargon, three to five sentences — for a fried brain |
+
+`Focus` overlaps with the [focus](./skills/workflow/focus/SKILL.md) skill on purpose: the skill is a toggle you invoke per session, the style is always on until you switch away.
 
 Installed with `npx skills add` instead? That CLI copies only skill directories, and neither it nor Claude Code has an install-time hook, so link the styles once:
 
@@ -41,7 +43,7 @@ git clone https://github.com/Darmikon/skills && cd skills
 ./scripts/install-output-styles.sh
 ```
 
-Symlinks by default — edit a file in `output-styles/` and the live style changes with it. Flags: `--copy`, `--dry-run`, `--force`, `--dest DIR`.
+Symlinks by default — edit a file in `output-styles/` and the live style changes with it. Flags: `--copy`, `--dry-run`, `--force`, `--dest DIR`; `CLAUDE_OUTPUT_STYLES_DIR` moves the default destination. `scripts/test-output-styles.sh` smoke-tests the whole thing under both bash and zsh.
 
 Switch between styles with `/output-style`; write a new one with `/output-style-add`, which authors it back into this repo and installs it. A style takes effect after `/clear` or in a new session.
 

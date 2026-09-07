@@ -17,7 +17,8 @@ Three facts shape everything below:
 ## A name was given → one command, then stop
 
 ```bash
-"<skill dir>/set-style.sh" ELI5      # case-insensitive; "Default" clears the custom style
+"<skill dir>/set-style.sh" ELI5              # case-insensitive; "Default" clears the style
+"<skill dir>/set-style.sh" "Diagrams first"  # quote a name with spaces (unquoted also works)
 ```
 
 That is the whole job. The script validates the name against every available style, writes the setting, and prints what happened. Do not run any other step, do not open a picker, do not "verify" by re-reading the file — the script already reported.
@@ -31,7 +32,7 @@ Unknown name → the script exits `2` and prints the available styles on stderr.
 ### Step 1 — Inventory
 
 ```bash
-"<skill dir>/set-style.sh" --list      # name<TAB>level<TAB>description, built-ins first
+"<skill dir>/set-style.sh" --list      # name<TAB>level<TAB>description, custom first
 "<skill dir>/set-style.sh" --active    # active name<TAB>file it came from
 ```
 
@@ -41,10 +42,12 @@ Where those come from:
 |-------|----------|
 | built-in | `Default`, `Proactive`, `Explanatory`, `Learning` — in the binary, no files |
 | user | `~/.claude/output-styles/*.md` |
-| project | every `.claude/output-styles/` between the repo root and the working directory; closest wins |
+| project | every `.claude/output-styles/` between the repo root and the working directory |
 | plugin | `output-styles/` inside an installed plugin |
 
-A style's name is its frontmatter `name:`, or the file name without `.md`.
+A style's name is its frontmatter `name:`, or the file name without `.md` — a file with no frontmatter at all is still a style, named after its file.
+
+The list is deduplicated by name, first occurrence winning, and custom styles come before the built-ins: a file named `Explanatory` is a real file Claude Code will load, so it takes the name.
 
 ### Step 2 — The picker
 
@@ -55,7 +58,7 @@ Ask with **AskUserQuestion**. It caps a question at 4 options, so:
 - Use each style's own description; for one without a description, say where its file lives.
 - **More than 4 styles**: offer 3 plus a fourth option `Ещё стили →`, and repeat with the next 3. The auto-added "Other" choice also lets the user type a name — accept it and pass it to the script, which validates it.
 
-Only `Default` exists and nothing is active → skip the picker. Say there are no styles yet and point at `/output-style-add`.
+No custom styles at all (`--list` returns only the four built-ins) → say so and point at `/output-style-add` before showing the built-ins.
 
 ### Step 3 — Apply the pick
 

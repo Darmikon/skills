@@ -141,25 +141,31 @@ Skip this step entirely when Step 3 wrote straight to `~/.claude/output-styles/`
 `add-lpm-button.sh`, bundled next to this file, puts the new style into the LPM footer **style** button so it is one click away:
 
 ```bash
-"<skill dir>/add-lpm-button.sh" "Diagrams first" 🎨      # name, then an optional emoji
+"<skill dir>/add-lpm-button.sh" "Diagrams first" 🎨              # name, then an optional emoji
+"<skill dir>/add-lpm-button.sh" "Diagrams first" 🎨 --dry-run    # print the candidate, change nothing
 ```
 
 It reads the global config with `lpm config get`, inserts the entry just above the group's `pick` item with a position halfway between them, and applies with the revision it read — it never edits `global.yml` directly. It exits 0 doing nothing when lpm is absent, the app is unreachable, the `output-style` group does not exist, or the style is already listed, so it can never block finishing a style.
 
-Pass its output through as-is. If it says the button was NOT added, show the error rather than hiding it — the usual cause is that some other project's config is invalid, which blocks every write to the global layer.
+It validates its candidate with `lpm config validate` before applying, so a failure names the actual problem. Pass its output through as-is rather than hiding it. A failure usually means either the generated entry is bad or some *other* project's config is invalid — the global layer validates every project, so one broken project blocks every write to it.
 
 ## Step 8 — Offer to switch to it
 
 Ask first; a new style should not hijack the session silently.
 
+Use the sibling skill's script — it validates the name, handles a missing `jq`, and warns when a project file outranks the user setting:
+
 ```bash
-S="$HOME/.claude/settings.json"
-[ -f "$S" ] || echo '{}' > "$S"
+"<skill dir>/../output-style/set-style.sh" "Diagrams first"
+```
+
+Only if that script is not installed, do the write by hand — `cat` back through the path, never `mv`, which would replace the file and break symlinks pointing at it (multi-account setups share one settings file that way):
+
+```bash
+S="$HOME/.claude/settings.json"; [ -f "$S" ] || echo '{}' > "$S"
 tmp=$(mktemp)
 jq --arg s "Diagrams first" '.outputStyle = $s' "$S" > "$tmp" && cat "$tmp" > "$S" && rm -f "$tmp"
 ```
-
-Write back with `cat "$tmp" > "$S"`, never `mv` — `mv` replaces the file and breaks symlinks pointing at that path, which is how multi-account setups share one settings file.
 
 Then, exactly:
 
