@@ -90,6 +90,16 @@ if command -v lpm >/dev/null 2>&1 && lpm config get --layer global --json >/dev/
   case "$out" in *"
       :"*) bad "no empty YAML key emitted" "bare colon in output" ;; *) ok "no empty YAML key emitted" ;; esac
   check "name with # and : is quoted" "'/output-style Foo: #bar'" "$("$ADD_BUTTON" "Foo: #bar" 🧪 --dry-run 2>&1)"
+
+  # A new style must land above the built-ins, i.e. take the "Default" item's slot.
+  cand=$("$ADD_BUTTON" "Пират" 🏴 --dry-run 2>&1)
+  newpos=$(printf '%s\n' "$cand" | awk '/^      style-/ { f = 1 } f && /position:/ { print $2; exit }')
+  defpos=$(printf '%s\n' "$cand" | awk '/output-style Default/ { f = 1 } f && /position:/ { print $2; exit }')
+  if [ -n "$newpos" ] && [ -n "$defpos" ] && [ "$(printf '%s < %s\n' "$newpos" "$defpos" | bc)" = 1 ]; then
+    ok "new style sorts above the built-ins"
+  else
+    bad "new style sorts above the built-ins" "new=$newpos default=$defpos"
+  fi
 else
   echo "  skip (lpm not available)"
 fi

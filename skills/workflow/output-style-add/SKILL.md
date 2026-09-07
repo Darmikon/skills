@@ -147,7 +147,7 @@ Skip this step entirely when Step 3 wrote straight to `~/.claude/output-styles/`
 
 It reads the global config with `lpm config get`, inserts the entry just above the group's `pick` item with a position halfway between them, and applies with the revision it read — it never edits `global.yml` directly. It exits 0 doing nothing when lpm is absent, the app is unreachable, the `output-style` group does not exist, or the style is already listed, so it can never block finishing a style.
 
-It validates its candidate with `lpm config validate` before applying, so a failure names the actual problem. Pass its output through as-is rather than hiding it. A failure usually means either the generated entry is bad or some *other* project's config is invalid — the global layer validates every project, so one broken project blocks every write to it.
+Pass its output through as-is rather than hiding it. A failure usually means either the generated entry is bad or some *other* project's config is invalid — the global layer validates every project, so one broken project blocks every write to it.
 
 ## Step 8 — Offer to switch to it
 

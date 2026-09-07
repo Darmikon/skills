@@ -4,9 +4,8 @@
 #
 # Silently no-ops (exit 0) when lpm is not installed, jq is missing, the app is not
 # reachable, the button group does not exist, or the entry is already there — this is a
-# convenience, never a reason to fail creating a style. Goes through `lpm config get`,
-# `lpm config validate` and `lpm config apply` with the revision it read; it never edits
-# global.yml directly.
+# convenience, never a reason to fail creating a style. Goes through `lpm config get` and
+# `lpm config apply` with the revision it read; it never edits global.yml directly.
 
 set -uo pipefail
 
@@ -55,13 +54,18 @@ KEY=$(printf '%s' "$NAME" | tr 'A-Z' 'a-z' | tr -cs 'a-z0-9' '-' | sed 's/^-*//;
 [ -n "$KEY" ] || KEY="style-$(printf '%s' "$NAME" | shasum | cut -c1-8)"
 grep -q "^      $KEY:\$" "$TMP/g.yml" && { echo "lpm button already lists $NAME"; exit 0; }
 
+# Anchor: the entry that switches to Default, so custom styles stay grouped above the
+# built-ins. Falls back to "pick" when the group has no Default item.
 POS=$(awk '
   /^  output-style:/ { ing = 1; next }
   ing && /^  [a-zA-Z]/ { ing = 0 }
-  ing && /^      [A-Za-z0-9_-]+:/ { key = $1 }
-  ing && /^        position:/ && key == "pick:" { print $2; exit }
+  ing && /^      [A-Za-z0-9_-]+:/ { key = $1; anchor = 0 }
+  ing && /cmd:.*\/output-style Default/ { anchor = 1 }
+  ing && /^        position:/ && anchor { print $2; found = 1; exit }
+  ing && /^        position:/ && key == "pick:" { pick = $2 }
+  END { if (!found && pick != "") print pick }
 ' "$TMP/g.yml")
-[ -n "$POS" ] || { echo "group has no 'pick' entry to anchor against — skipping the button"; exit 0; }
+[ -n "$POS" ] || { echo "group has no anchor entry (Default or pick) — skipping the button"; exit 0; }
 
 # Single-quoted YAML, apostrophes doubled: a name may hold ':', '#' or an emoji, and an
 # unquoted '#' would swallow the rest of the line as a comment.
@@ -97,9 +101,10 @@ if [ "$DRY" = 1 ]; then
   exit 0
 fi
 
-if ! VAL=$(lpm config validate "$TMP/cand.yml" 2>&1); then
-  echo "lpm button NOT added — candidate config is invalid: $VAL" >&2; exit 1
-fi
+# No `lpm config validate` pre-check: given a bare YAML file it assumes a *project*
+# config and rejects any global one with "set either root or ssh". `apply` validates
+# the candidate itself and refuses to write when it is bad, which is the guarantee
+# that matters — a failed apply never changes the destination.
 
 OUT=$(lpm config apply --layer global --if-revision "$REV" --file "$TMP/cand.yml" --json 2>&1)
 if printf '%s' "$OUT" | jq -e '.applied == true' >/dev/null 2>&1; then
