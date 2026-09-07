@@ -6,6 +6,7 @@ How the agent responds and recovers: output styles, response shape, and stepping
 
 - **[focus](./focus/SKILL.md)** — Shape output to be action-first and skimmable (ADHD-friendly). Toggle on with `/focus`, off with "stop focus mode".
 - **[output-style](./output-style/SKILL.md)** — `/output-style ELI5` switches in one command, no picker; bare `/output-style` lists every style reachable from here (built-in, user, project, plugin) and asks. Brings back the standalone command Claude Code removed in v2.1.91.
+- **[baby](./baby/SKILL.md)** — Say the last answer again in plain, non-technical words, then keep every reply that way. Works in the session you are already in, unlike the `Baby` output style.
 - **[output-style-add](./output-style-add/SKILL.md)** — Turn a description into a real output style: brainstorm the role, tone and format, write `~/.claude/output-styles/<name>.md`, offer to switch to it.
 
 ## Model-invoked

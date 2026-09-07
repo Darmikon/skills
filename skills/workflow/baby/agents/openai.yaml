@@ -1,0 +1,5 @@
+interface:
+  display_name: "Baby"
+  short_description: "Re-explain the last answer in plain words, and keep it that way"
+policy:
+  allow_implicit_invocation: false

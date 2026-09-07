@@ -20,6 +20,7 @@
     "./skills/workflow/focus",
     "./skills/workflow/rethink",
     "./skills/workflow/output-style",
-    "./skills/workflow/output-style-add"
+    "./skills/workflow/output-style-add",
+    "./skills/workflow/baby"
   ]
 }

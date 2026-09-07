@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill show-my-branches
+npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill show-my-branches
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -34,7 +34,7 @@ Output styles replace Claude's system prompt persona — role, tone, answer form
 | Caveman | Ultra-compressed: articles, filler and narration dropped, technical substance and code untouched |
 | Baby | Plain words only, no jargon, three to five sentences — for a fried brain |
 
-`Focus` overlaps with the [focus](./skills/workflow/focus/SKILL.md) skill on purpose: the skill is a toggle you invoke per session, the style is always on until you switch away.
+`Focus` and `Baby` each also exist as a skill ([focus](./skills/workflow/focus/SKILL.md), [baby](./skills/workflow/baby/SKILL.md)), on purpose: a style is set once and survives across sessions but only applies after `/clear`, while the skill takes effect in the conversation you are already in — and `/baby` also re-explains the answer you just read.
 
 Installed with `npx skills add` instead? That CLI copies only skill directories, and neither it nor Claude Code has an install-time hook, so link the styles once:
 
@@ -74,6 +74,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 
 | Skill | | Description | Install |
 |-------|---|-------------|---------|
+| baby | 🧍 | Re-explain the last answer in plain words, and keep going that way |
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
