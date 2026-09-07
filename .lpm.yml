@@ -1,0 +1,28 @@
+actions:
+  new-skill:
+    label: New skill
+    emoji: "✨"
+    display: header
+    type: terminal
+    cmd: >-
+      claude "I want to create a new agent skill in this repository (the skills
+      repo at the current working directory). Proposed skill name (may be empty; if
+      empty, choose a clear kebab-case name yourself): {{name}}. What the skill should
+      do: {{prompt}}. Step 1: invoke the brainstorming skill and work through intent,
+      requirements, and design with me. Step 2: once the design is settled, invoke the
+      skill-creator skill to actually build the skill. The finished skill must be
+      created inside this skills repository under the skills/ directory (choose the
+      right category subfolder — authoring, git, or workflow — or propose a new one).
+      Do not create it anywhere else."
+    inputs:
+      name:
+        label: Skill name (optional)
+        placeholder: my-new-skill
+        required: false
+        position: 1
+      prompt:
+        label: What should the skill do?
+        placeholder: Describe the skill's purpose and behavior
+        required: true
+        position: 2
+

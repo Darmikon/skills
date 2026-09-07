@@ -1,0 +1,5 @@
+interface:
+  display_name: "Output Style: Add"
+  short_description: "Design and create a new custom output style"
+policy:
+  allow_implicit_invocation: false

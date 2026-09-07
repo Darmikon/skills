@@ -6,7 +6,7 @@
   "homepage": "https://github.com/Darmikon/skills",
   "repository": "https://github.com/Darmikon/skills",
   "license": "MIT",
-  "keywords": ["skills", "git", "commit", "changelog", "documentation", "focus", "adhd"],
+  "keywords": ["skills", "git", "commit", "changelog", "documentation", "focus", "adhd", "output-style"],
   "skills": [
     "./skills/git/commit",
     "./skills/git/changelog",
@@ -18,6 +18,8 @@
     "./skills/git/pr",
     "./skills/authoring/better-docs",
     "./skills/workflow/focus",
-    "./skills/workflow/rethink"
+    "./skills/workflow/rethink",
+    "./skills/workflow/output-style",
+    "./skills/workflow/output-style-add"
   ]
 }

@@ -1,0 +1,5 @@
+interface:
+  display_name: "Output Style"
+  short_description: "Pick an output style from a list and switch to it"
+policy:
+  allow_implicit_invocation: false
