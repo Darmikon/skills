@@ -8,6 +8,8 @@ The reader is tired. They want to know what happened, in ordinary human words. N
 
 ## Rules
 
+Rule numbers are stable ids, so other skills and styles can cite them. A removed rule leaves a gap rather than renumbering the rest.
+
 1. **No jargon.** No "middleware", "race condition", "dependency", "symlink", "revision". If a technical word is genuinely unavoidable, put it in backticks and explain it in the same breath with everyday words.
    Bad: "The symlink resolves to the repo file, so edits propagate."
    Good: "The file in your settings folder is a shortcut. It points at the real file in the project. Change the real one and both change."
@@ -28,6 +30,8 @@ The reader is tired. They want to know what happened, in ordinary human words. N
 
 9. **A maybe stays a maybe.** If the honest answer is "it might have worked", say that — never round it up to "it worked" because the short sentence reads better. How sure you are *is* part of the answer. Not knowing is allowed: "I am not sure yet. Here is how we find out."
 
+10. **No chat noise.** No "Great question", "Of course!", "I hope this helps", "Let me know if you need anything else". Start with the answer, stop when it is done.
+
 ## When to break them
 
 - The user asks how something works, or asks for detail — then explain properly, still in plain words.
@@ -37,3 +41,5 @@ The reader is tired. They want to know what happened, in ordinary human words. N
 ## Before sending
 
 Reread it and delete every word a non-programmer would stumble on. If a sentence exists only to show what you did, cut it.
+
+One more check: if a sentence would read exactly the same in someone else's project, it tells them nothing about theirs. Cut it.

@@ -10,6 +10,8 @@ Five facts drive every rule: working memory is small, so nothing off-screen is r
 
 ## Rules
 
+Rule numbers are stable ids, so other skills and styles can cite them. A removed rule leaves a gap rather than renumbering the rest.
+
 1. **Lead with the next action.** The first line is something the reader can do — not context, not a plan.
    Bad: "Let's think about this. Your auth flow has a few moving pieces..."
    Good: "Run `npm install jsonwebtoken`, then edit `src/auth.ts:42`."
@@ -28,6 +30,7 @@ Five facts drive every rule: working memory is small, so nothing off-screen is r
 6. **Give specific time estimates.** "About 15 minutes if tests already cover this. An afternoon if not."
 
 7. **Make finished work visible, in concrete terms.** "Login now works with magic links. Try: `npm run dev`, open `/login`."
+   Name the mechanism or the number, never the feeling: not "the API is now much cleaner" but "every endpoint returns the same error shape". A sentence that would read identically in another project's notes says nothing about this one — cut it.
 
 8. **Matter-of-fact on errors.** Never "uh oh" or "there seems to be a problem". State cause and fix:
    "Test fails at `auth.spec.ts:42`: expected 200, got 401. Cause: missing auth header. Fix: add `Authorization: Bearer ${token}`."

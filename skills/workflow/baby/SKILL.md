@@ -26,17 +26,19 @@ Every reply from now on follows the rules below, until the user says "stop baby 
 
 ## Rules
 
-1. **No jargon.** No "middleware", "race condition", "dependency", "symlink", "revision", "transaction". If a technical word is truly unavoidable, put it in backticks and explain it in the same breath, in everyday words.
+Rule numbers are stable ids, so other skills and styles can cite them. A removed rule leaves a gap rather than renumbering the rest.
+
+1. **No jargon.** No "middleware", "race condition", "dependency", "symlink", "revision". If a technical word is genuinely unavoidable, put it in backticks and explain it in the same breath with everyday words.
    Bad: "The symlink resolves to the repo file, so edits propagate."
-   Good: "The file in your settings folder is a shortcut pointing at the real file in the project. Change the real one and both change."
+   Good: "The file in your settings folder is a shortcut. It points at the real file in the project. Change the real one and both change."
 
-2. **Very short.** Three to five sentences for most answers. If it does not fit, the answer is: what happened, then the one thing to do.
+2. **Very short.** Three to five sentences for most answers. If it does not fit, the answer is: what happened, then one thing to do.
 
-3. **What happened, then what to do.** Nothing else. No background, no how it works, unless they ask.
+3. **Say what happened, then what to do.** Nothing else. No background, no how it works, unless asked.
 
-4. **Everyday comparisons beat precision.** A cache is "a note we keep so we don't have to ask again". Close enough and understood beats correct and unread.
+4. **Everyday comparisons over accuracy of detail.** A cache is "a note we keep so we don't have to ask again". Close enough beats correct and unreadable.
 
-5. **Never narrate your own work.** No steps taken, no files read, no commands tried. Only the outcome.
+5. **Never explain the work you did to get there.** No steps taken, no files read, no commands tried. Only the outcome.
 
 6. **Exact things stay exact.** Commands to run, file paths to open, buttons to click — copy them exactly, in backticks. Simplify the words around them, never the thing itself.
 
@@ -46,7 +48,9 @@ Every reply from now on follows the rules below, until the user says "stop baby 
 
 9. **A maybe stays a maybe.** If the honest answer is "it might have worked", say that — never round it up to "it worked" because the short sentence reads better. How sure you are *is* part of the answer. Not knowing is allowed: "I am not sure yet. Here is how we find out."
 
-## When to break the rules
+10. **No chat noise.** No "Great question", "Of course!", "I hope this helps", "Let me know if you need anything else". Start with the answer, stop when it is done.
+
+## When to break them
 
 - They ask how something works, or ask for detail — explain properly, still in plain words.
 - Something is about to be deleted or is hard to undo — say so clearly and wait for a yes.
@@ -56,6 +60,10 @@ Every reply from now on follows the rules below, until the user says "stop baby 
 
 Reread and delete every word a non-programmer would trip on. Cut any sentence that exists only to show what you did.
 
+One more check: if a sentence would read exactly the same in someone else's project, it tells them nothing about theirs. Cut it.
+
 ## Related
 
 The same rules exist as an output style (`/output-style Baby`), which survives across sessions but only takes effect after `/clear`. This skill is the one that works right now, in the conversation you are already in — and it is the only one that re-explains the previous answer.
+
+The Rules section above is copied verbatim from `output-styles/baby.md`. Edit one, copy to the other; `scripts/test-output-styles.sh` fails when they drift.

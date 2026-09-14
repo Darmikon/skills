@@ -83,6 +83,15 @@ for sh in bash zsh; do
     && ok "fallback writes valid JSON" || bad "fallback writes valid JSON" "$(cat "$S")"
 done
 
+echo "== baby style and baby skill agree =="
+rules() { awk '/^## Rules$/ { f = 1; next } /^## When to break them$/ { f = 0 } f' "$1"; }
+if [ "$(rules "$ROOT/output-styles/baby.md")" = "$(rules "$ROOT/skills/workflow/baby/SKILL.md")" ]; then
+  ok "Baby rules are identical in the style and the skill"
+else
+  bad "Baby rules are identical in the style and the skill" \
+      "$(diff <(rules "$ROOT/output-styles/baby.md") <(rules "$ROOT/skills/workflow/baby/SKILL.md") | head -5)"
+fi
+
 echo "== lpm button (dry-run only) =="
 if command -v lpm >/dev/null 2>&1 && lpm config get --layer global --json >/dev/null 2>&1; then
   out=$("$ADD_BUTTON" "Пират" 🏴 --dry-run 2>&1)
