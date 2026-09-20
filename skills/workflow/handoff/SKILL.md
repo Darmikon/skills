@@ -2,7 +2,6 @@
 name: handoff
 description: 'Compact the current conversation into a handoff document for another agent to pick up.'
 argument-hint: "What will the next session be used for?"
-disable-model-invocation: true
 ---
 
 # handoff
@@ -27,4 +26,4 @@ Finish with a short reply to the user: the full path of the file, and one line t
 
 ## Related
 
-`handoff-lpm` writes the same document and then opens a new Claude session on it in a new lpm tab. Its "The document" section is copied verbatim from this file. Edit one, copy to the other; `scripts/test-output-styles.sh` fails when they drift.
+`handoff-lpm` calls this skill for the document, then opens a new Claude session on it in a new lpm tab.

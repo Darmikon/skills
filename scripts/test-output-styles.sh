@@ -92,19 +92,6 @@ else
       "$(diff <(rules "$ROOT/output-styles/baby.md") <(rules "$ROOT/skills/workflow/baby/SKILL.md") | head -5)"
 fi
 
-echo "== handoff and handoff-lpm agree =="
-doc() { awk '/^## The document$/ { f = 1; next } /^## / && f { f = 0 } f' "$1"; }
-A=$(doc "$ROOT/skills/workflow/handoff/SKILL.md")
-B=$(doc "$ROOT/skills/workflow/handoff-lpm/SKILL.md")
-if [ -z "$(printf '%s' "$A" | tr -d '[:space:]')" ]; then
-  bad "handoff has a 'The document' section" "section missing or empty"
-elif [ "$A" = "$B" ]; then
-  ok "The document section is identical in handoff and handoff-lpm"
-else
-  bad "The document section is identical in handoff and handoff-lpm" \
-      "$(diff <(doc "$ROOT/skills/workflow/handoff/SKILL.md") <(doc "$ROOT/skills/workflow/handoff-lpm/SKILL.md") | head -5)"
-fi
-
 echo "== lpm button (dry-run only) =="
 if command -v lpm >/dev/null 2>&1 && lpm config get --layer global --json >/dev/null 2>&1; then
   out=$("$ADD_BUTTON" "Пират" 🏴 --dry-run 2>&1)

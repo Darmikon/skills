@@ -76,7 +76,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 |-------|---|-------------|---------|
 | baby | 🧍 | Re-explain the last answer in plain words, and keep going that way | `npx skills add Darmikon/skills --skill baby` |
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |
-| handoff | 🧍 | Compact the conversation into a handoff document for the next agent | `npx skills add Darmikon/skills --skill handoff` |
+| handoff | 🧍🤖 | Compact the conversation into a handoff document for the next agent | `npx skills add Darmikon/skills --skill handoff` |
 | handoff-lpm | 🧍 | Hand over to a fresh Claude session in a new lpm tab | `npx skills add Darmikon/skills --skill handoff-lpm` |
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |

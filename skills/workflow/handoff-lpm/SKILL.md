@@ -13,17 +13,9 @@ Run this only when the user asks for it. Never start it by yourself, and never a
 
 ## The document
 
-Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
+Call the Skill tool for `handoff`. Pass on whatever the user typed after the command, as the description of what the next session is for. It writes the document and reports its path.
 
-Include a "suggested skills" section in the document, naming which skills the next agent should call the Skill tool for.
-
-Do not duplicate content already captured in other artifacts (specs, plans, ADRs, issues, commits, diffs). Reference them by path or URL instead.
-
-Redact any sensitive information, such as API keys, passwords, or personally identifiable information.
-
-If the user passed arguments, treat them as a description of what the next session will focus on and tailor the doc accordingly.
-
-The next agent will trust this document and cannot ask you anything. Say as a fact only what was checked in this session. Mark everything else as not verified.
+Do not write the document yourself. `handoff` owns what goes in it.
 
 ## Open the new session
 
@@ -62,4 +54,4 @@ Stay in this session afterwards. Do not keep working on the task here: the new s
 
 ## Related
 
-`handoff` writes the same document and stops there, for when the next session is not an lpm tab. The "The document" section above is copied verbatim from `handoff`. Edit one, copy to the other; `scripts/test-output-styles.sh` fails when they drift.
+`handoff` writes the document and stops there, for when the next session is not an lpm tab.
