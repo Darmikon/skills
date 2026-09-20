@@ -22,6 +22,7 @@
     "./skills/workflow/output-style",
     "./skills/workflow/output-style-add",
     "./skills/workflow/baby",
-    "./skills/workflow/wtf"
+    "./skills/workflow/wtf",
+    "./skills/workflow/handoff"
   ]
 }
