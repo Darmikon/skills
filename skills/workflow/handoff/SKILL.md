@@ -7,6 +7,8 @@ disable-model-invocation: true
 
 # handoff
 
+## The document
+
 Write a handoff document summarising the current conversation so a fresh agent can continue the work. Save to the temporary directory of the user's OS - not the current workspace.
 
 Include a "suggested skills" section in the document, naming which skills the next agent should call the Skill tool for.
@@ -19,4 +21,10 @@ If the user passed arguments, treat them as a description of what the next sessi
 
 The next agent will trust this document and cannot ask you anything. Say as a fact only what was checked in this session. Mark everything else as not verified.
 
+## The reply
+
 Finish with a short reply to the user: the full path of the file, and one line that they can paste into the next session to point the agent at it.
+
+## Related
+
+`handoff-lpm` writes the same document and then opens a new Claude session on it in a new lpm tab. Its "The document" section is copied verbatim from this file. Edit one, copy to the other; `scripts/test-output-styles.sh` fails when they drift.

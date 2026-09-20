@@ -1,0 +1,5 @@
+interface:
+  display_name: "Handoff to a new lpm tab"
+  short_description: "Write the handoff document, then start a new Claude session on it in a new lpm tab"
+policy:
+  allow_implicit_invocation: false
