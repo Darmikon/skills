@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill show-my-branches
+npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill focus --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill show-my-branches --skill wtf
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -74,8 +74,9 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 
 | Skill | | Description | Install |
 |-------|---|-------------|---------|
-| baby | 🧍 | Re-explain the last answer in plain words, and keep going that way |
+| baby | 🧍 | Re-explain the last answer in plain words, and keep going that way | `npx skills add Darmikon/skills --skill baby` |
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
 | rethink | 🤖 | Step back after 3+ failed attempts | `npx skills add Darmikon/skills --skill rethink` |
+| wtf | 🧍 | Re-pitch the last message so that it lands this time | `npx skills add Darmikon/skills --skill wtf` |

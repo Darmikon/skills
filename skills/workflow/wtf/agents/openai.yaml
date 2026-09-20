@@ -1,0 +1,5 @@
+interface:
+  display_name: "WTF"
+  short_description: "Re-pitch the last message so that it lands this time"
+policy:
+  allow_implicit_invocation: false
