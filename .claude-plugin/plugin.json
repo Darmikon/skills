@@ -17,6 +17,7 @@
     "./skills/git/push",
     "./skills/git/pr",
     "./skills/authoring/better-docs",
+    "./skills/workflow/explore",
     "./skills/workflow/focus",
     "./skills/workflow/rethink",
     "./skills/workflow/output-style",

@@ -4,6 +4,7 @@ How the agent responds and recovers: output styles, response shape, and stepping
 
 ## User-invoked
 
+- **[explore](./explore/SKILL.md)** — `/explore [topic]` turns the agent into a thinking partner: it reads the code, runs only what looks, draws plain-character diagrams and weighs options, but writes no code and no file (a file only on a separate yes for that one file). It stays on until you say "хватит" / "stop", then gives a three-to-five-line summary — decided, open, next step — and asks before starting that step. Borrowed from OpenSpec's explore, without the `openspec` CLI.
 - **[focus](./focus/SKILL.md)** — Shape output to be action-first and skimmable (ADHD-friendly). Toggle on with `/focus`, off with "stop focus mode".
 - **[output-style](./output-style/SKILL.md)** — `/output-style ELI5` switches in one command, no picker; bare `/output-style` lists every style reachable from here (built-in, user, project, plugin) and asks. Brings back the standalone command Claude Code removed in v2.1.91.
 - **[baby](./baby/SKILL.md)** — Say the last answer again in plain, non-technical words, then keep every reply that way. Works in the session you are already in, unlike the `Baby` output style.
