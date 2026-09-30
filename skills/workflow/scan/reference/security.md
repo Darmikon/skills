@@ -38,7 +38,19 @@ semgrep scan --config p/default --metrics=off --json --quiet --output "${TMPDIR:
 
 It downloads the rules from `semgrep.dev` on every run; that needs the network. It writes nothing into the project. With a folder after `/scan security`, pass that folder instead of `.`.
 
-If the exit code is 2 or higher, or the output file is missing, this part did not run. The usual cause is no network: Claude Code's sandbox may block `semgrep.dev`. Do not retry around the sandbox. Say on the page and in the chat that semgrep did not run and why, and that allowing `semgrep.dev` in the sandbox network settings fixes it. Go on with the other parts.
+If the exit code is 2 or higher, or the output file is missing, this part did not run. The usual cause is no network: Claude Code's sandbox may block `semgrep.dev`. Do not retry around the sandbox, and do not change any settings yourself. Say on the page that semgrep did not run and why, go on with the other parts, and at the end of the chat reply show the fix once:
+
+1. The setting, for the user to add by hand to their Claude Code settings (user level is the usual place; a project's `.claude/settings.local.json` works too), merged into what is there:
+
+   ```json
+   { "sandbox": { "network": { "allowedDomains": ["semgrep.dev"] } } }
+   ```
+
+2. A ready line they can paste into the chat instead, so that Claude adds it (Claude Code asks them before it writes the settings):
+
+   `Add "semgrep.dev" to sandbox.network.allowedDomains in my Claude Code user settings, keeping everything that is already there.`
+
+Then `/scan security` again runs semgrep too.
 
 Each result has `path`, `start.line`, `check_id`, `extra.message` and `extra.severity` (`ERROR`, `WARNING`, `INFO`).
 
