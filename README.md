@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill wtf
+npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -79,6 +79,8 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |
 | handoff | 🧍🤖 | Compact the conversation into a handoff document for the next agent | `npx skills add Darmikon/skills --skill handoff` |
 | handoff-lpm | 🧍 | Hand over to a fresh Claude session in a new lpm tab | `npx skills add Darmikon/skills --skill handoff-lpm` |
+| how | 🧍 | How one part of the code works: who uses it, the flow, where things live, gotchas; `/how to <task>` also says where the new thing goes | `npx skills add Darmikon/skills --skill how` |
+| how-to | 🧍 | Shortcut for `/how to <task>`; install with `how` | `npx skills add Darmikon/skills --skill how --skill how-to` |
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
 | rethink | 🤖 | Step back after 3+ failed attempts | `npx skills add Darmikon/skills --skill rethink` |
@@ -86,3 +88,4 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | update-plans | 🧍 | The plan changed mid-work: bring the superpowers spec and plan in line, no code touched | `npx skills add Darmikon/skills --skill update-plans` |
 | verify | 🧍 | Check the code against the ticket, spec or plan item by item, each proven by a test that ran; the project is not changed | `npx skills add Darmikon/skills --skill verify` |
 | wtf | 🧍 | Re-pitch the last message so that it lands this time | `npx skills add Darmikon/skills --skill wtf` |
+| zoom-out | 🧍 | Lost in the details: step back one level and map the parts around it and who calls it | `npx skills add Darmikon/skills --skill zoom-out` |
