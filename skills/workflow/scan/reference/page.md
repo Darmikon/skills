@@ -23,7 +23,7 @@ One self-contained HTML file. The scan fills the body; this file sets everything
     <script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
     <script>addEventListener("DOMContentLoaded", () => hljs.highlightAll());</script>
     <style>
-      /* file path tile: <a class="path" href="cursor://file/ABS:LINE"><span class="dir">src/app/<wbr></span><span class="file">server.ts</span><span class="ln">L39–49</span></a> */
+      /* file path tile: <a class="path" href="cursor://file/Users/me/project/src/app/server.ts:39"><span class="dir">src/app/<wbr></span><span class="file">server.ts</span><span class="ln">L39–49</span></a> */
       .path { display: inline-flex; flex-wrap: wrap; align-items: baseline; gap: 0 .15rem; padding: .05rem .4rem; border-radius: .375rem;
               font: 500 .85em ui-monospace, SFMono-Regular, Menlo, monospace; text-decoration: none;
               background: #eef2ff; border: 1px solid #c7d2fe; color: #1e293b; }
@@ -74,8 +74,8 @@ Whatever the scan says: sections or cards. A card is one `<article class="rounde
 Nothing from the code goes on the page as plain text or a bare `<code>`. Each piece gets the markup of its kind.
 
 - **A file or folder** is a path tile that opens in Cursor at that line:
-  `<a class="path" href="cursor://file/<absolute path>:<line>"><span class="dir">src/app/<wbr>routes/<wbr></span><span class="file">server.routes.ts</span><span class="ln">L27–43</span></a>`
-  The absolute path is the project root (`git rev-parse --show-toplevel`) plus the path. For a range, the link opens the first line. `<wbr>` after every `/` lets a long path wrap only there. No line: leave out the `.ln` span and `:<line>`. A folder: the whole path goes in `.dir`, the last name in `.file`, ending with `/`.
+  `<a class="path" href="cursor://file<absolute path>:<line>"><span class="dir">src/app/<wbr>routes/<wbr></span><span class="file">server.routes.ts</span><span class="ln">L27–43</span></a>`
+  The absolute path is the project root (`git rev-parse --show-toplevel`) plus the path; it starts with `/`, so the link reads `cursor://file/Users/…`, with one slash. For a range, the link opens the first line. `<wbr>` after every `/` lets a long path wrap only there. No line: leave out the `.ln` span and `:<line>`. A folder: the whole path goes in `.dir`, the last name in `.file`, ending with `/`.
 - **A function, class, type or method**: `<code class="sym">getRequestDb</code>`.
 - **A constant, env variable, binding or config key**: `<code class="const">FILE_PARSER</code>`.
 - **A literal value**, such as a route, a host or an event name: `<code class="lit">/v1/auth*</code>`.

@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be). With no argument it suggests which scan fits.'
-argument-hint: '[what-is-it · architecture · pin <command> · unpin <command>] [folder or area]'
+description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip). With no argument it suggests which scan fits.'
+argument-hint: '[what-is-it · architecture · unused · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -15,6 +15,7 @@ Each scan looks at a project, changes nothing in it, and shows what it found on 
 |---|---|---|
 | `what-is-it [folder]` | First look at an unfamiliar project: what it is, its parts, main paths, where things are, how to run it, surprises | [reference/what-is-it.md](reference/what-is-it.md) |
 | `architecture [area]` | Where the existing code is harder to understand and test than it needs to be, with before/after pictures | [reference/architecture.md](reference/architecture.md) |
+| `unused [folder]` | Files, code, types and packages nothing uses, and packages used but not listed, found with knip and checked once more; JavaScript and TypeScript projects with installed packages | [reference/unused.md](reference/unused.md) |
 
 Routing:
 
@@ -29,6 +30,7 @@ When `/scan` comes with no argument, look quickly, then suggest. Look only at wh
 
 - The conversation shows the user does not know this project yet, or it has no notes of its own → `what-is-it`.
 - Recent history keeps coming back to the same files → `architecture`, scoped to that area, naming it.
+- A `package.json` and a `node_modules/` at the root → `unused` is on offer too.
 - Otherwise → `what-is-it` for the whole project, or `architecture` without a scope.
 
 Lead with one or two picks, each with a one-line reason and the exact command to type (`/scan architecture src/app/modules/billing`). Then the full list from the table. Stop there.
@@ -57,7 +59,7 @@ Read [reference/page.md](reference/page.md) for the layout and style. The comman
 
 1. In the chat, one line per item, in the form the command's reference names. Then the top pick, when the command has one.
 2. Ask the closing question that the reference names. One question.
-3. When the user picks an item, give them the ready command for the next skill, one line to copy, with the item as the topic: `/<skill> <what it is, the files, the evidence>`. The next skill is one the user starts: you cannot call it yourself.
+3. Unless the reference says otherwise: when the user picks an item, give them the ready command for the next skill, one line to copy, with the item as the topic: `/<skill> <what it is, the files, the evidence>`. The next skill is one the user starts: you cannot call it yourself.
 
 Nothing starts before the user picks. No code.
 

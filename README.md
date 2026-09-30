@@ -82,7 +82,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
 | rethink | 🤖 | Step back after 3+ failed attempts | `npx skills add Darmikon/skills --skill rethink` |
-| scan | 🧍 | Look at a whole project without changing it, on one page: `what-is-it` (first look at an unfamiliar project), `architecture` (where the code is harder to understand and test than it needs to be); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
+| scan | 🧍 | Look at a whole project without changing it, on one page: `what-is-it` (first look at an unfamiliar project), `architecture` (where the code is harder to understand and test than it needs to be), `unused` (dead files, code and packages, via knip); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
 | update-plans | 🧍 | The plan changed mid-work: bring the superpowers spec and plan in line, no code touched | `npx skills add Darmikon/skills --skill update-plans` |
 | verify | 🧍 | Check the code against the ticket, spec or plan item by item, each proven by a test that ran; the project is not changed | `npx skills add Darmikon/skills --skill verify` |
 | wtf | 🧍 | Re-pitch the last message so that it lands this time | `npx skills add Darmikon/skills --skill wtf` |
