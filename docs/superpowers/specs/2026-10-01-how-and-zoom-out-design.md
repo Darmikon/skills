@@ -33,4 +33,8 @@ Adapted from Matt Pocock's `zoom-out` (MIT), which he removed from his repo. A s
 
 - The three skills go into `plugin.json`, both READMEs and the install-all command.
 - They are linked into `~/.claude/skills/` like the other skills. The Cursor `how` is deleted after ours is in place, and its entry is removed from `~/.agents/.skill-lock.json`.
-- The Cursor `why` stays for now; it is decided separately.
+- The Cursor `why` is replaced too; see below.
+
+## why
+
+Replaces Cursor's `pstack` `why`, which has the same Cursor-only parts as its `how` and starts up to eight subagents for any question. Ours climbs from cheap to expensive and stops once the question is answered: git history, PRs and written decisions; the connected ticket tracker; docs and chat; error tracking only for defensive code. Outside sources may go to parallel `general-purpose` subagents. Kept from the original idea: every claim is marked found, converging, guess or unknown, and the code is never evidence of its own motive. Answer in the chat; before a change it adds what to keep, change, avoid and risk.

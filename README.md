@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -87,5 +87,6 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | scan | 🧍 | Look at a whole project without changing it, on one page: `what-is-it` (first look at an unfamiliar project), `architecture` (where the code is harder to understand and test than it needs to be), `unused` (dead files, code and packages, via knip), `security` (secrets, dangerous code, holes in packages, via gitleaks, semgrep and audit), `performance` (slow-looking code, measured only after you approve the plan); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
 | update-plans | 🧍 | The plan changed mid-work: bring the superpowers spec and plan in line, no code touched | `npx skills add Darmikon/skills --skill update-plans` |
 | verify | 🧍 | Check the code against the ticket, spec or plan item by item, each proven by a test that ran; the project is not changed | `npx skills add Darmikon/skills --skill verify` |
+| why | 🧍 | Why the code is the way it is: history, PRs, tickets, then docs and chat if needed; every claim marked found / converging / guess / unknown | `npx skills add Darmikon/skills --skill why` |
 | wtf | 🧍 | Re-pitch the last message so that it lands this time | `npx skills add Darmikon/skills --skill wtf` |
 | zoom-out | 🧍 | Lost in the details: step back one level and map the parts around it and who calls it | `npx skills add Darmikon/skills --skill zoom-out` |
