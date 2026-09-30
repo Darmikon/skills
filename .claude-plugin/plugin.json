@@ -20,6 +20,7 @@
     "./skills/workflow/explore",
     "./skills/workflow/scan-common",
     "./skills/workflow/scan-architecture",
+    "./skills/workflow/scan-what-is-it",
     "./skills/workflow/focus",
     "./skills/workflow/rethink",
     "./skills/workflow/output-style",
