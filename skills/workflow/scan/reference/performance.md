@@ -69,7 +69,7 @@ Body:
    - **What it needs:** the project running locally, a local database, test data, keys.
    - **What it leaves on the machine while it runs:** processes started, temp files, rows added to the local database, and how each is cleaned up.
 
-Top pick: the suspect to look at first.
+Top pick: the suspect to look at first: a `Likely` one on the hottest path, and among those the one that grows fastest with data.
 
 ### The ending of step 1
 
