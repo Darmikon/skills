@@ -5,6 +5,7 @@ How the agent responds and recovers: output styles, response shape, and stepping
 ## User-invoked
 
 - **[explore](./explore/SKILL.md)** — `/explore [topic]` turns the agent into a thinking partner: it reads the code, runs only what looks, draws plain-character diagrams and weighs options, but writes no code and no file (a file only on a separate yes for that one file). It stays on until you say "хватит" / "stop", then gives a three-to-five-line summary — decided, open, next step — and asks before starting that step. Borrowed from OpenSpec's explore, without the `openspec` CLI.
+- **[scan-architecture](./scan-architecture/SKILL.md)** — `/scan-architecture [area]` criticises the code that exists. It looks where the history shows the most change (or where you point), checks for shallow modules, scattered knowledge, leaks and parts that cannot be tested through their interface, and shows one page: a card per candidate with a before/after picture, a strength badge and a top pick. Nothing in the project changes. The candidate you pick goes to `explore`. Adapted from Matt Pocock's `improve-codebase-architecture` (MIT).
 - **[focus](./focus/SKILL.md)** — Shape output to be action-first and skimmable (ADHD-friendly). Toggle on with `/focus`, off with "stop focus mode".
 - **[output-style](./output-style/SKILL.md)** — `/output-style ELI5` switches in one command, no picker; bare `/output-style` lists every style reachable from here (built-in, user, project, plugin) and asks. Brings back the standalone command Claude Code removed in v2.1.91.
 - **[baby](./baby/SKILL.md)** — Say the last answer again in plain, non-technical words, then keep every reply that way. Works in the session you are already in, unlike the `Baby` output style.
@@ -17,4 +18,5 @@ How the agent responds and recovers: output styles, response shape, and stepping
 
 ## Model-invoked
 
+- **[scan-common](./scan-common/SKILL.md)** — The rules every `scan-*` skill shares: change nothing in the project, one HTML page in the OS temp directory, proof for every finding, the same ending. Hidden from the `/` menu (`user-invocable: false`); each scan loads it first.
 - **[rethink](./rethink/SKILL.md)** — Step back and rethink systematically after 3+ failed attempts at any task.

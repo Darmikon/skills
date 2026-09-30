@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill show-my-branches --skill update-plans --skill verify --skill wtf
+npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan-architecture --skill scan-common --skill show-my-branches --skill update-plans --skill verify --skill wtf
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -82,6 +82,8 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
 | rethink | 🤖 | Step back after 3+ failed attempts | `npx skills add Darmikon/skills --skill rethink` |
+| scan-architecture | 🧍 | Find where the existing code is harder to understand and test than it needs to be; one page with before/after pictures, nothing changed | `npx skills add Darmikon/skills --skill scan-architecture` |
+| scan-common | 🤖 | Shared rules of the scan-* skills; hidden from the menu, loaded by each scan | `npx skills add Darmikon/skills --skill scan-common` |
 | update-plans | 🧍 | The plan changed mid-work: bring the superpowers spec and plan in line, no code touched | `npx skills add Darmikon/skills --skill update-plans` |
 | verify | 🧍 | Check the code against the ticket, spec or plan item by item, each proven by a test that ran; the project is not changed | `npx skills add Darmikon/skills --skill verify` |
 | wtf | 🧍 | Re-pitch the last message so that it lands this time | `npx skills add Darmikon/skills --skill wtf` |
