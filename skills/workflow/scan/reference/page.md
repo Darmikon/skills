@@ -47,7 +47,29 @@ One self-contained HTML file. The scan fills the body; this file sets everything
         code.lit { color: #5eead4; background: #042f2e; }
         code.cmd { background: #020617; border: 1px solid #1e293b; }
       }
+      /* copy button: <button class="copy" data-copy="ID" title="Copy">(copy icon svg)</button> next to <template id="ID">prompt text</template>, as the first child of its block */
+      :has(> .copy) { position: relative; padding-right: 2.75rem; }
+      .copy { position: absolute; top: .5rem; right: .5rem; width: 2rem; height: 2rem; display: grid; place-items: center;
+              border-radius: .5rem; line-height: 1; cursor: pointer; color: #475569;
+              border: 1px solid #cbd5e1; background: #fff; }
+      .copy:hover { border-color: #6366f1; color: #4338ca; }
+      .copy.done { border-color: #10b981; color: #059669; }
+      @media (prefers-color-scheme: dark) {
+        .copy { background: #0f172a; border-color: #334155; color: #94a3b8; }
+        .copy:hover { border-color: #818cf8; color: #c7d2fe; }
+        .copy.done { color: #6ee7b7; }
+      }
     </style>
+    <script>
+      addEventListener("click", async (e) => {
+        const b = e.target.closest(".copy"); if (!b) return;
+        const t = document.getElementById(b.dataset.copy).content.textContent.trim();
+        try { await navigator.clipboard.writeText(t); }
+        catch { const a = document.createElement("textarea"); a.value = t; document.body.append(a); a.select(); document.execCommand("copy"); a.remove(); }
+        const was = b.innerHTML; b.innerHTML = '<svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>'; b.classList.add("done");
+        setTimeout(() => { b.innerHTML = was; b.classList.remove("done"); }, 1500);
+      });
+    </script>
   </head>
   <body class="bg-stone-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 font-sans">
     <main class="max-w-5xl mx-auto px-4 sm:px-6 py-12 space-y-12">
@@ -59,7 +81,7 @@ One self-contained HTML file. The scan fills the body; this file sets everything
 </html>
 ```
 
-Leave out the Mermaid script when the page has no Mermaid picture, the highlight.js lines when the page has no code block, and the top-pick section when the scan has no top pick. No other scripts, no app code, no interactivity. Copy the `<style>` block as it is.
+Leave out the Mermaid script when the page has no Mermaid picture, the highlight.js lines when the page has no code block, and the top-pick section when the scan has no top pick. No other scripts, no app code, no interactivity beyond the copy buttons. Copy the `<style>` block and the copy `<script>` as they are.
 
 ## Header
 
@@ -81,6 +103,31 @@ Nothing from the code goes on the page as plain text or a bare `<code>`. Each pi
 - **A literal value**, such as a route, a host or an event name: `<code class="lit">/v1/auth*</code>`.
 - **A command**: `<code class="cmd">yarn format</code>`. The `$ ` is added by the style.
 - **A code block** of more than one line: `<pre><code class="language-ts">…</code></pre>`, coloured by highlight.js. Keep it short: the lines that prove the point, not the whole function. Escape `<`, `>` and `&`.
+
+## Copy buttons
+
+Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button; single lines inside a block get none. The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
+
+Markup: the button, and right after it a `<template>` with the prompt as plain text (escape `<`, `>` and `&`; no HTML inside):
+
+```html
+<button class="copy" data-copy="f3" title="Copy"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg></button>
+<template id="f3">…the prompt…</template>
+```
+
+The ids are unique on the page (`f1`, `f2`, …). The button is always the first child of its block (the `<article>` or the `<section>`): the style pins it to that block's top right corner and keeps the text clear of it.
+
+The prompt, in the page's language, in this order:
+
+1. `Project: <absolute project root>` and `Found by: /scan <command>`.
+2. The title.
+3. `Where:` each place as `<path relative to the root>:<line>`, one per line.
+4. What was seen, with the badges as words ("Likely", "High, not reached", "safe to remove: drop export").
+5. Why it matters, and the direction, when the card has them.
+6. For a section of `what-is-it`: the section's content as plain lines instead of 3–5. For a section of `unused`: every finding in it, one per line with its place and action, the "safe to remove" ones first, then the "check first" ones with where the search found them.
+7. The last line is the ask. For a finding: "Check this against the code first. If it holds, propose a fix and wait for my yes before you change anything." For an `unused` section: "Check each of these against the code. Propose removing the safe ones and say what you found for the others; wait for my yes before you change anything." For a `what-is-it` section: "Use this as context. Explain this part in more depth."
+
+No secret goes into a prompt, the same as on the page.
 
 ## Top pick
 

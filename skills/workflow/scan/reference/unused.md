@@ -59,7 +59,7 @@ The body has one section per kind, in this order, and leaves out a kind with no 
 
 At the top of the body, one row of counts for the kinds that have findings, split into "safe to remove" and "check first" where the kind has that split, and one short line naming the kinds with nothing found.
 
-In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in the class that [page.md](page.md) gives its kind (`sym`, `const`, or `lit` for a package), the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are.
+In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in the class that [page.md](page.md) gives its kind (`sym`, `const`, or `lit` for a package), the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are. Each section has one copy button for the whole section (see [page.md](page.md)), with every finding in its prompt, not only the 30 shown.
 
 No pictures and no top pick.
 
