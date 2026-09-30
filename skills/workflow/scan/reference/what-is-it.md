@@ -1,25 +1,18 @@
----
-name: scan-what-is-it
-description: 'First look at an unfamiliar project: what it is, its parts, its main paths, where things are, how to run it, and the surprises, on one page. Changes nothing in the project.'
-argument-hint: '[a folder to look at]'
-disable-model-invocation: true
----
-
-# scan-what-is-it
+# scan what-is-it
 
 Someone opens a project they do not know. Give them the picture they would otherwise spend a day putting together, on one page.
 
-**First:** call the Skill tool with `scan-common` and follow its rules: change nothing, the page, proof, the ending, language. This file adds only the first-look part.
+This file adds the first-look part to the rules in [../SKILL.md](../SKILL.md).
 
 ## Where to look
 
-- If the user named a folder after `/scan-what-is-it`, look only there, and say on the page that the rest was not looked at.
+- If the user named a folder after `/scan what-is-it`, look only there, and say on the page that the rest was not looked at.
 - Otherwise the whole project. Start with what the project says about itself: `README*`, `CLAUDE.md`, `AGENTS.md`, `.claude/` (its `CLAUDE.md` and any notes), `docs/`, the root `package.json` (or `pyproject.toml`, `go.mod`, `Cargo.toml`), workspace files, `docker-compose*`, `Makefile`, CI files under `.github/workflows/`.
 - Then the code: the entry points (the files that start a server, an app, a worker, a CLI) and the folders they pull in. For a large project, start an `Explore` subagent per part with the questions below, and put its answers together yourself.
 
 ## The page
 
-The body is six sections, in this order. Each statement follows the proof rule of `scan-common`.
+The body is six sections, in this order. Each statement follows the proof rule in [../SKILL.md](../SKILL.md).
 
 1. **What is it.** Two or three sentences: what the project does and for whom, from the README and the code. If the docs and the code disagree, say it under Surprises.
 2. **The parts.** A Mermaid picture of the pieces and how they connect: apps, packages, services, databases, queues, outside services. Under it, one line per part: its name, its folder, its job.

@@ -1,17 +1,10 @@
----
-name: scan-architecture
-description: 'Look through the code that exists for places that are harder to understand and test than they need to be, and show them on one page with before/after pictures. Changes nothing in the project.'
-argument-hint: '[an area, a module or a pain point]'
-disable-model-invocation: true
----
-
-# scan-architecture
+# scan architecture
 
 Find the places in the existing code where the design costs more than it gives, and show them as candidates on one page. The one the user picks is thought through in `explore`.
 
 This scan criticises code that is already written. It does not judge a plan that is not yet code: for that, use `explore`.
 
-**First:** call the Skill tool with `scan-common` and follow its rules: change nothing, the page, proof, the ending, language. This file adds only the architecture part.
+This file adds the architecture part to the rules in [../SKILL.md](../SKILL.md).
 
 ## Words to use
 
@@ -41,7 +34,7 @@ Do not swap them for "component", "service", "layer", "wrapper", "API" or "bound
 
 ### 1. Choose where to look
 
-- If the user named an area after `/scan-architecture`, look there and skip the rest of this step.
+- If the user named an area after `/scan architecture`, look there and skip the rest of this step.
 - Otherwise read the recent history: `git log --oneline -60 --name-only`. The files that change most often are where a better design pays back first. If the changes are spread out with no clear hot spot, look wider.
 
 Then read what the project already decided: `CLAUDE.md`, `AGENTS.md`, and the design notes under `docs/` in the area. Take the project's own names for things from there. Do not suggest what a written decision already rejected, unless the pain is real enough to reopen it, and then say so on the card.
