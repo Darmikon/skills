@@ -24,15 +24,15 @@ The rules every `scan-*` skill shares. The scan that loaded this file adds its o
 
 ## The page
 
-Write one self-contained HTML file to `${TMPDIR:-/tmp}/<scan-name>-<timestamp>.html`, with the timestamp from `date +%Y%m%d-%H%M%S`. Open it with `open <path>` on macOS or `xdg-open <path>` on Linux, and give the full path in the chat.
+Write one self-contained HTML file to `${TMPDIR:-/tmp}/<scan-name>-<timestamp>.html`, with the timestamp from `date +%Y%m%d-%H%M%S`. Open it with `open <path>` on macOS or `xdg-open <path>` on Linux, and give it in the chat as a `file://` link.
 
-Layout and style: [PAGE.md](PAGE.md). The scan says what goes in the body.
+Read [PAGE.md](PAGE.md) next to this file for the layout and style. The scan says what goes in the body.
 
 ## The ending
 
-1. In the chat, one line per item: its title, and its strength when the scan has one. Then the top pick, when the scan has one.
+1. In the chat, one line per item, in the form the scan names. Then the top pick, when the scan has one.
 2. Ask the closing question that the scan names. One question.
-3. When the user picks an item, call the skill the scan names, with the item as the topic: what it is, the files, the evidence.
+3. When the user picks an item, give them the ready command for the next skill, one line to copy, with the item as the topic: `/<skill> <what it is, the files, the evidence>`. The next skill is one the user starts: you cannot call it yourself.
 
 Nothing starts before the user picks. No code.
 

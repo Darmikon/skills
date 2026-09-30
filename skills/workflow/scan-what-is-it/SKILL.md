@@ -14,14 +14,14 @@ Someone opens a project they do not know. Give them the picture they would other
 ## Where to look
 
 - If the user named a folder after `/scan-what-is-it`, look only there, and say on the page that the rest was not looked at.
-- Otherwise the whole project. Start with what the project says about itself: `README*`, `CLAUDE.md`, `AGENTS.md`, `docs/`, the root `package.json` (or `pyproject.toml`, `go.mod`, `Cargo.toml`), workspace files, `docker-compose*`, `Makefile`, CI files under `.github/workflows/`.
+- Otherwise the whole project. Start with what the project says about itself: `README*`, `CLAUDE.md`, `AGENTS.md`, `.claude/` (its `CLAUDE.md` and any notes), `docs/`, the root `package.json` (or `pyproject.toml`, `go.mod`, `Cargo.toml`), workspace files, `docker-compose*`, `Makefile`, CI files under `.github/workflows/`.
 - Then the code: the entry points (the files that start a server, an app, a worker, a CLI) and the folders they pull in. For a large project, start an `Explore` subagent per part with the questions below, and put its answers together yourself.
 
 ## The page
 
 The body is six sections, in this order. Each statement follows the proof rule of `scan-common`.
 
-1. **What is it.** Two or three sentences: what the project does and for whom, from the README and the code. If the two disagree, say so.
+1. **What is it.** Two or three sentences: what the project does and for whom, from the README and the code. If the docs and the code disagree, say it under Surprises.
 2. **The parts.** A Mermaid picture of the pieces and how they connect: apps, packages, services, databases, queues, outside services. Under it, one line per part: its name, its folder, its job.
 3. **The main paths.** One or two typical paths from start to end: a request, a message, a job. A Mermaid sequence or flow picture, then the files along the way in order.
 4. **Where things are.** A short table of the folders: what lives there, and what a newcomer can skip (generated code, vendored code, build output, fixtures).
@@ -32,4 +32,4 @@ The header legend names the shapes used in the pictures. There is no top pick: t
 
 ## The ending
 
-In the chat, one line per part from section 2. Closing question: "Which part should we dig into?" The chosen part goes to `how`.
+Chat line per part from section 2: its name, its folder, its job. Closing question: "Which part should we dig into?" The next skill is `how`: `/how <the part>`.

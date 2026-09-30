@@ -29,7 +29,7 @@ One self-contained HTML file. The scan fills the body; this file sets everything
 </html>
 ```
 
-Leave out the Mermaid script when the page has no Mermaid picture. No other scripts, no app code, no interactivity.
+Leave out the Mermaid script when the page has no Mermaid picture, and the top-pick section when the scan has no top pick. No other scripts, no app code, no interactivity.
 
 ## Header
 
@@ -47,7 +47,7 @@ Only when the scan has findings: one larger card at the end, with the item's tit
 
 - **Mermaid** for things shaped like a graph: what calls what, how parts connect, a sequence of calls.
 - **Hand-built** `<div>`s and inline SVG when the weight matters: one thick box against many thin ones, layers stacked as bands.
-- About 320px tall. Side by side on a wide screen, stacked on a phone.
+- About 320px tall. Side by side on a wide screen, stacked on a phone. A picture too wide for the screen scrolls inside its own box (`overflow-x-auto`); the page itself never scrolls sideways.
 - Colour sparingly: one accent (emerald or indigo), red for a problem, amber for a warning.
 
 ## Tone

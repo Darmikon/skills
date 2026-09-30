@@ -77,6 +77,6 @@ The top pick is the candidate to start with.
 
 ### 4. The ending
 
-Closing question: "Which one should we think through?" The chosen candidate goes to `explore`.
+Chat line per candidate: its title and its strength. Closing question: "Which one should we think through?" The next skill is `explore`: `/explore <the candidate>`.
 
 Adapted from `improve-codebase-architecture` and `codebase-design` in [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), without the glossary and ADR writing and without the grilling step.
