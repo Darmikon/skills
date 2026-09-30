@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run). With no argument it suggests which scan fits.'
-argument-hint: '[what-is-it · architecture · unused · security · pin <command> · unpin <command>] [folder or area]'
+description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it). With no argument it suggests which scan fits.'
+argument-hint: '[what-is-it · architecture · unused · security · performance · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -17,6 +17,7 @@ Each scan looks at a project, changes nothing in it, and shows what it found on 
 | `architecture [area]` | Where the existing code is harder to understand and test than it needs to be, with before/after pictures | [reference/architecture.md](reference/architecture.md) |
 | `unused [folder]` | Files, code, types and packages nothing uses, and packages used but not listed, found with knip and checked once more; JavaScript and TypeScript projects with installed packages | [reference/unused.md](reference/unused.md) |
 | `security [folder]` | Secrets in the code and its history, dangerous code, packages with known holes, and logic mistakes, sorted by how serious; gitleaks and semgrep are installed on the machine on first run | [reference/security.md](reference/security.md) |
+| `performance [area]` | Code that looks slow (queries in loops, no limit, no index, waiting in turn, heavy work on the request path), with a first summary; when a suspicion needs numbers, a measurement plan, measured on this machine only after the user approves it | [reference/performance.md](reference/performance.md) |
 
 Routing:
 
@@ -33,6 +34,7 @@ When `/scan` comes with no argument, look quickly, then suggest. Look only at wh
 - Recent history keeps coming back to the same files → `architecture`, scoped to that area, naming it.
 - A `package.json` and a `node_modules/` at the root → `unused` is on offer too.
 - The project takes logins, payments, uploads or webhooks → `security` is on offer too.
+- The project has a database or list endpoints → `performance` is on offer too.
 - Otherwise → `what-is-it` for the whole project, or `architecture` without a scope.
 
 Lead with one or two picks, each with a one-line reason and the exact command to type (`/scan architecture src/app/modules/billing`). Then the full list from the table. Stop there.
@@ -43,6 +45,7 @@ Lead with one or two picks, each with a one-line reason and the exact command to
 - No commit, no push, no branch switch, no install into the project.
 - Run only commands that look: read files, search, `git log`, list the scripts. A tool run through `npx` that leaves the project as it was is allowed, and so is a tool installed on the machine when a reference says so. If you are not sure that a command only looks, do not run it: ask.
 - The one file you write is the page, and it goes outside the project.
+- The one exception is step 2 of `performance`: it runs the project to measure, only after the user approves its plan, and under the rules in its reference.
 
 ## Proof
 
