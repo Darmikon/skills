@@ -15,7 +15,7 @@ One line per test file to create or change, grouped by kind, `High` first:
 - **No tests:** a new test file (or new cases in an existing one) for the part. The line names what each case checks, in plain words: "rejects a request with no session", "charges once when the job retries". Behaviour that matters, through the part's public interface; no checks of private details.
 - **Checks nothing:** the checks to add to the existing test: what result it will look at. If the test mocks the very thing it claims to test, the line says what to stop mocking.
 - **By chance:** the cause and the cure: a fixed clock (`vi.useFakeTimers()` / `vi.setSystemTime()`, `jest.useFakeTimers()`), a fixed seed, state reset between tests (`beforeEach`), a free port per test, a fake for the network call.
-- **Switched off:** not in the plan by default. List each with its age and what it tests, and ask per test: switch it back on (if it passes), or delete it. A test left with `.only` is always a plan line: remove the `.only`.
+- **Switched off:** listed after the plan, each with its age and what it tests, with the question: switch it back on (if it passes) or delete it. The user's answer to it comes with their answer to the plan, and each test they decide on becomes a plan line under the same yes. A test left with `.only` is always a plan line: remove the `.only`.
 
 ## Doing it
 

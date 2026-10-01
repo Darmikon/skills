@@ -39,7 +39,7 @@ List the main parts of the code: routes and handlers, services with business rul
 
 A test that depends on: the clock (`Date.now()`, `new Date()` without a fixed time), randomness without a seed, the network or an outside service, the order tests run in (shared state, a variable set in one test and read in another), timers and `setTimeout` with real waits, a port or a file that two tests share.
 
-Words for the findings file: `kind` is `no tests`, `checks nothing`, `switched off` or `by chance`; `rank` is `High`, `Medium` or `Low` (for `by chance`: `confirmed` when a run failed, `suspected` when all passed). Add `runs` ("3 of 5 passed") to a finding whose test ran, and a top-level `coverage` (the total, or null) to the file.
+Words for the findings file: `kind` is `no tests`, `checks nothing`, `switched off` or `by chance`; `rank` is `High`, `Medium` or `Low` for every kind, by what the test guards (for `by chance` add `group`: `confirmed` when a run failed, `suspected` when all passed). Add `runs` ("3 of 5 passed") to a finding whose test ran, and a top-level `coverage` (the total, or null) to the file.
 
 ## 3. Run the doubtful ones
 

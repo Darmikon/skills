@@ -6,7 +6,7 @@ This file adds the docs part to the rules in [../SKILL.md](../SKILL.md).
 
 ## Scope first
 
-Before the plan, ask once: "The whole pass (correct, clean up, sort into `docs/`, slim `AGENTS.md`), or only correct the false claims?" Wait. A folder after `/fix docs` limits every part to that folder.
+Ask this first, before looking for a scan: "The whole pass (correct, clean up, sort into `docs/`, slim `AGENTS.md`), or only correct the false claims?" Wait. A folder after `/fix docs` limits every part to that folder.
 
 The core idea of the whole pass: `AGENTS.md` is read by agents on every task. It should be a short routing table, not a dump of everything. Details live in `docs/`, pulled in with `@path/to/file.md` pointers.
 
@@ -117,7 +117,7 @@ One plan line per section that moves out, with where it goes. Show the target le
 
 ## Checks
 
-The checks in SKILL.md are for code; documents get these instead, after the changes:
+The checks in SKILL.md are for code; documents get these instead, after the changes. With "only correct the false claims", only the last two apply:
 
 - `AGENTS.md` (or `CLAUDE.md`) is under about 150 lines, not counting template comments.
 - Every file in `docs/` is reachable: from the routing table or from another document.

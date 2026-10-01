@@ -31,7 +31,7 @@ Routing:
 
 ## 1. The findings: reuse a fresh scan, or scan first
 
-Look for the newest `scan-<command>-*.json` in `<tmp>` (`<tmp>` is `${TMPDIR:-/tmp}` without its trailing slash). It is fresh when all of these hold:
+Look in `<tmp>` (`${TMPDIR:-/tmp}` without its trailing slash) at the files named `scan-<command>-<timestamp>.json` (a timestamp of digits and a dash; not tool outputs like `knip-…`), keep those whose `project` is this project's root, and take the newest of them. It is fresh when all of these hold:
 
 - its `project` is this project's root (`git rev-parse --show-toplevel`);
 - its `head` is the current `git rev-parse HEAD`;
@@ -67,7 +67,7 @@ In the chat:
 
 1. One line per approved line: done, rolled back (with why), or skipped (with why).
 2. The checks that ran, and their result.
-3. `git status --short` and `git diff --stat`, so the user sees what changed.
+3. `git status --short` (it shows new files as `??`) and `git diff --stat`, so the user sees what changed, new files included.
 4. "The changes are not committed."
 
 ## Shortcuts

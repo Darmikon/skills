@@ -1,6 +1,6 @@
 # scan comments
 
-Check the comments in the code: the ones that lie about the code, stale TODOs, code that was commented out and left, and comments that only repeat the code. A comment that lies misleads the next reader, and an AI reads comments as truth. Show the result on one page; fixing is for `better-comments` or ordinary work.
+Check the comments in the code: the ones that lie about the code, stale TODOs, code that was commented out and left, and comments that only repeat the code. A comment that lies misleads the next reader, and an AI reads comments as truth. Show the result on one page; fixing is for `/fix comments`.
 
 This file adds the comments part to the rules in [../SKILL.md](../SKILL.md).
 
@@ -55,6 +55,8 @@ Blocks of two or more comment lines that are code: they end in `;` or `{`, call 
 
 `// increment i` above `i++`, `// constructor` above a constructor, `/** Gets the user. */` above `getUser()`. Only the clear cases; do not list every short comment. These are the lowest priority: give the count from the comments you checked (say it is from a sample) and at most ten examples.
 
+Words for the findings file: `kind` is `lie`, `todo`, `commented-out` or `repeat`; `group` for a TODO is `done`, `gone`, `old` or `open`; `action` is `correct`, `delete` or `ask` (the code may be the one that is wrong).
+
 ## 3. The page
 
 Header: the project, the date, the folder when there is one, how many comment lines were found and how many were checked.
@@ -75,4 +77,4 @@ Top pick: the lie that would mislead a reader the most.
 
 Chat lines: the counts by kind, then the top pick. Closing question: "What do we fix?"
 
-The fixing is a separate step after the user's yes. When a `better-comments` skill is installed, give its ready command for the TODO, dead-code and repeat sections; otherwise the copy buttons give the prompts.
+The next skill is `fix`: `/fix comments` (or `/fix todo` for the TODOs alone).

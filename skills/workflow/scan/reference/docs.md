@@ -1,6 +1,6 @@
 # scan docs
 
-Check whether the project's documents tell the truth: what each one is for, whether it is stale or repeats another, and whether the paths, commands, settings, numbers and names in it match the code. Show the result on one page. Fixing is for `better-docs` or ordinary work.
+Check whether the project's documents tell the truth: what each one is for, whether it is stale or repeats another, and whether the paths, commands, settings, numbers and names in it match the code. Show the result on one page. Fixing is for `/fix docs`.
 
 This file adds the docs part to the rules in [../SKILL.md](../SKILL.md). Code comments are not part of this scan.
 
@@ -26,7 +26,7 @@ Read every document, do not only list it. For each one:
 - **Last change:** the date of the last commit that changed its content (`git log -1 --format=%as -- <file>`), and how many commits the code it describes has had since then (`git rev-list --count --since=<date> HEAD -- <code paths>`). A document untouched for months while its code moved a lot is a suspect.
 - **Stale:** it names removed features, finished migrations, old dates, or says "will" about something long done.
 - **Repeats:** another document covers the same topic. Name it, and say which one is the fuller.
-- **Plan done:** it is a plan whose work is already in the code. Say so: `better-docs` turns it into a decision record and removes it.
+- **Plan done:** it is a plan whose work is already in the code. Say so: `/fix docs` turns it into a decision record and removes it.
 
 ## 2. The check against the code
 
@@ -47,6 +47,8 @@ Say only what you checked. A claim you could not check (it needs a running syste
 
 Look at the project's main parts (the apps and packages, the main routes, the background jobs, the database, how to run and deploy). Name the ones no document describes. Only the main ones: three to six lines, not a wish list.
 
+Words for the findings file: `kind` is `false claim`, `stale`, `repeat`, `plan done` or `gap`; `action` is `correct`, `rewrite`, `merge into <path>`, `harvest and delete` or `write`.
+
 ## 4. The page
 
 Header: the project, the date, the folder when there is one, and how many documents were read.
@@ -55,7 +57,7 @@ The body:
 
 1. **Summary:** one row of counts: documents read, false claims, stale, repeats, plans done, gaps.
 2. **False claims:** one card per document that has any, the worst first (a wrong command or path before a wrong count). At most 12 cards; the other documents with false claims go in one line each under the cards, with their count, and stay in the table. Each claim in the card: what the document says (short, as a quote) with its path tile and line, what the code says with its path tile and line (a path outside the project goes in `<code class="lit">`, not a tile), and the fix direction in a few words. Each claim line has its own copy button, and the card has one for all its claims.
-3. **Stale, repeats, plans done:** one line per document with its path tile, the reason, and what `better-docs` would do with it (rewrite, merge into X, turn into a decision record).
+3. **Stale, repeats, plans done:** one line per document with its path tile, the reason, and what `/fix docs` would do with it (rewrite, merge into X, turn into a decision record).
 4. **Gaps:** one line per missing topic, with the code it would describe.
 5. **The list of documents:** a folded `<details>` table with every document read: path, purpose, last change, and a mark for each finding.
 
@@ -63,6 +65,6 @@ Top pick: the false claim that would cost a newcomer the most, usually a wrong s
 
 ## 5. The ending
 
-Chat lines: the counts by kind, then the top pick. Closing question: "What do we fix?" When three or more documents are stale, repeats or plans done, add that `/better-docs` does that work, with the ready command. A false claim has no next skill: its copy button gives the prompt.
+Chat lines: the counts by kind, then the top pick. Closing question: "What do we fix?" The next skill is `fix`: `/fix docs` (it asks whether to correct only the false claims or do the whole tidy-up).
 
 This scan does not change any document. The user's answer starts the fixing in a separate step, after their yes.
