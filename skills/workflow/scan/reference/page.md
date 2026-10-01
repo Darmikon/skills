@@ -59,6 +59,8 @@ One self-contained HTML file. The scan fills the body; this file sets everything
         .copy:hover { border-color: #818cf8; color: #c7d2fe; }
         .copy.done { color: #6ee7b7; }
       }
+      li > .copy { top: 0; width: 1.6rem; height: 1.6rem; }
+      li > .copy svg { width: 14px; height: 14px; }
     </style>
     <script>
       addEventListener("click", async (e) => {
@@ -106,7 +108,7 @@ Nothing from the code goes on the page as plain text or a bare `<code>`. Each pi
 
 ## Copy buttons
 
-Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button; single lines inside a block get none. The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
+Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button. Lines inside a block get none, except in `unused`, where each finding line has its own too, so a finding can be handled alone (the button is the first child of the `<li>`). The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
 
 Markup: the button, and right after it a `<template>` with the prompt as plain text (escape `<`, `>` and `&`; no HTML inside):
 
@@ -115,7 +117,7 @@ Markup: the button, and right after it a `<template>` with the prompt as plain t
 <template id="f3">…the prompt…</template>
 ```
 
-The ids are unique on the page (`f1`, `f2`, …). The button is always the first child of its block (the `<article>` or the `<section>`): the style pins it to that block's top right corner and keeps the text clear of it.
+The ids are unique on the page (`f1`, `f2`, …). The button is always the first child of its block (the `<article>`, the `<section>`, or in `unused` the `<li>`): the style pins it to that block's top right corner and keeps the text clear of it.
 
 The prompt, in the page's language, in this order:
 
