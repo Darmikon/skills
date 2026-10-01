@@ -60,7 +60,7 @@ Lead with one or two picks, each with a one-line reason and the exact command to
 
 ## The page
 
-Write one self-contained HTML file to `${TMPDIR:-/tmp}/scan-<command>-<timestamp>.html`, with the timestamp from `date +%Y%m%d-%H%M%S`. Open it with `open <path>` on macOS or `xdg-open <path>` on Linux, and give it in the chat as a `file://` link.
+Write one self-contained HTML file to `<tmp>/scan-<command>-<timestamp>.html`, where `<tmp>` is `${TMPDIR:-/tmp}` without its trailing slash (`t="${TMPDIR:-/tmp}"; t="${t%/}"`; on macOS `$TMPDIR` ends in `/`), with the timestamp from `date +%Y%m%d-%H%M%S`. Open it with `open <path>` on macOS or `xdg-open <path>` on Linux, and give it in the chat as a `file://` link.
 
 Read [reference/page.md](reference/page.md) for the layout and style. The command's reference says what goes in the body.
 

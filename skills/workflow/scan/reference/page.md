@@ -6,7 +6,7 @@ One self-contained HTML file. The scan fills the body; this file sets everything
 
 ```html
 <!doctype html>
-<html lang="en">
+<html lang="{{page language, e.g. ru}}">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -127,7 +127,7 @@ The prompt, in the page's language, in this order:
 4. What was seen, with the badges as words ("Likely", "High, not reached", "safe to remove: drop export").
 5. Why it matters, and the direction, when the card has them.
 6. For a section of `what-is-it`: the section's content as plain lines instead of 3–5. For a section of `unused`: every finding in it, one per line with its place and action, the "safe to remove" ones first, then the "check first" ones with where the search found them.
-7. The last line is the ask. For a finding: "Check this against the code first. If it holds, propose a fix and wait for my yes before you change anything." For an `unused` section: "Check each of these against the code. Propose removing the safe ones and say what you found for the others; wait for my yes before you change anything." For a `what-is-it` section: "Use this as context. Explain this part in more depth."
+7. The last line is the ask. For a finding: "Check this against the code first. If it holds, propose a fix and wait for my yes before you change anything." For an `unused` section: "Check each of these against the code. Propose removing the safe ones and say what you found for the others; wait for my yes before you change anything." For any other section of findings: "Check each of these against the code first. Propose the fixes as one numbered list and wait for my yes before you change anything." For a `what-is-it` section: "Use this as context. Explain this part in more depth."
 
 No secret goes into a prompt, the same as on the page.
 
