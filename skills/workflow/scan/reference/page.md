@@ -108,7 +108,7 @@ Nothing from the code goes on the page as plain text or a bare `<code>`. Each pi
 
 ## Copy buttons
 
-Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button. Lines inside a block get none, except in `unused`, where each finding line has its own too, so a finding can be handled alone (the button is the first child of the `<li>`). The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
+Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button. Lines inside a block get none, except where a reference asks for them (`unused` per finding, `docs` per false claim), so a finding can be handled alone (the button is the first child of the `<li>`). The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
 
 Markup: the button, and right after it a `<template>` with the prompt as plain text (escape `<`, `>` and `&`; no HTML inside):
 
