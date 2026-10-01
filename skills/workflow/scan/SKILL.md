@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code). With no argument it suggests which scan fits.'
-argument-hint: '[what-is-it · architecture · unused · security · performance · docs · comments · pin <command> · unpin <command>] [folder or area]'
+description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code), todo (only the TODO part of comments). With no argument it suggests which scan fits.'
+argument-hint: '[what-is-it · architecture · unused · security · performance · docs · comments · todo · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -20,6 +20,7 @@ Each scan looks at a project, changes nothing in it, and shows what it found on 
 | `performance [area]` | Code that looks slow (queries in loops, no limit, no index, waiting in turn, heavy work on the request path), with a first summary; when a suspicion needs numbers, a measurement plan, measured on this machine only after the user approves it | [reference/performance.md](reference/performance.md) |
 | `docs [folder]` | Whether the documents tell the truth: what each is for, stale, repeated, finished plans, and paths, commands, settings, numbers and names that do not match the code; plus the main parts no document describes. Fixing is for `better-docs` | [reference/docs.md](reference/docs.md) |
 | `comments [folder]` | Comments that lie about the code, stale TODOs (done, gone, old), code left commented out, and comments that only repeat the code | [reference/comments.md](reference/comments.md) |
+| `todo [folder]` | Only the TODO part of `comments`: every `TODO`, `FIXME`, `HACK`, `XXX` and `@deprecated` with its age and author, marked done, gone, old or open | [reference/comments.md](reference/comments.md), the "Stale TODOs" kind only |
 
 Routing:
 

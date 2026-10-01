@@ -2,7 +2,9 @@
 
 Check the comments in the code: the ones that lie about the code, stale TODOs, code that was commented out and left, and comments that only repeat the code. A comment that lies misleads the next reader, and an AI reads comments as truth. Show the result on one page; fixing is for `better-comments` or ordinary work.
 
-This file adds the comments part to the rules in [../SKILL.md](../SKILL.md). Documents (`README`, `docs/`, `CLAUDE.md`) are not part of this scan: that is `scan docs`.
+This file adds the comments part to the rules in [../SKILL.md](../SKILL.md).
+
+`/scan todo` runs this file with only the "Stale TODOs" kind: no lies, no commented-out code, no repeats. The page, the findings file (`scan-todo-…`) and the ending cover the TODOs alone, and the summary row splits them into done, gone, old and open. Documents (`README`, `docs/`, `CLAUDE.md`) are not part of this scan: that is `scan docs`.
 
 ## Which code
 
