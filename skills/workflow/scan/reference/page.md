@@ -108,7 +108,7 @@ Nothing from the code goes on the page as plain text or a bare `<code>`. Each pi
 
 ## Copy buttons
 
-A section with nothing in it is left out, button and all; the summary row says "none" for it.
+A section with nothing in it is left out, button and all; the summary row says "none" for it. A section with a single finding gets no section button: the finding's own button is enough, and two buttons that copy the same thing only confuse. A section button appears only when the section has two or more findings.
 
 Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button. Lines inside a block get none, except where a reference asks for them (`unused` per finding, `docs` per false claim), so a finding can be handled alone (the button is the first child of the `<li>`). The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
 
