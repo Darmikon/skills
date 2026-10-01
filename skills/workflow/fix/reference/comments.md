@@ -4,6 +4,8 @@ Correct what `scan comments` found: comments that lie, TODOs that are done or wh
 
 This file adds the comments part to the rules in [../SKILL.md](../SKILL.md).
 
+`/fix todo` runs this file with the TODOs only, from a `scan todo` or `scan comments` findings file (a fresh `scan comments` result covers it).
+
 ## What goes in the plan
 
 By kind:

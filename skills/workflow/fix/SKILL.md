@@ -1,7 +1,7 @@
 ---
 name: fix
-description: 'Fix what a /scan found, after the user approves a numbered plan. docs (tidy and correct the documents; what better-docs did), comments (correct lying comments, remove stale TODOs, dead code and repeats), unused (remove what nothing uses) change files and leave the changes uncommitted. security, performance, architecture hand the findings to brainstorming. Reuses a fresh scan, or runs it first.'
-argument-hint: '[docs · comments · unused · security · performance · architecture · pin <command> · unpin <command>] [folder or area]'
+description: 'Fix what a /scan found, after the user approves a numbered plan. docs (tidy and correct the documents; what better-docs did), comments (correct lying comments, remove stale TODOs, dead code and repeats), todo (only the TODO part of comments), unused (remove what nothing uses), tests (write missing tests, strengthen weak ones, steady flaky ones; test files only) change files and leave the changes uncommitted. security, performance, architecture hand the findings to brainstorming. Reuses a fresh scan, or runs it first.'
+argument-hint: '[docs · comments · todo · unused · tests · security · performance · architecture · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -15,7 +15,9 @@ disable-model-invocation: true
 |---|---|---|
 | `docs [folder]` | False claims in the documents; stale documents, repeats and finished plans; `AGENTS.md` made a lean routing file and the details moved into `docs/` | [reference/docs.md](reference/docs.md) |
 | `comments [folder]` | Comments that lie about the code; TODOs that are done or whose subject is gone; code left commented out; comments that only repeat the code | [reference/comments.md](reference/comments.md) |
+| `todo [folder]` | Only the TODO part of `comments`: deletes the TODOs that are done or whose subject is gone | [reference/comments.md](reference/comments.md), TODOs only |
 | `unused [folder]` | Files, code, types and packages nothing uses; packages used but not listed | [reference/unused.md](reference/unused.md) |
+| `tests [folder]` | Writes the missing tests, makes weak tests check something, steadies tests that pass by chance; changes only test files, and stops on a test that shows a bug | [reference/tests.md](reference/tests.md) |
 | `security [folder]` | Hands the findings of `scan security` to `brainstorming` | [reference/handoff.md](reference/handoff.md) |
 | `performance [area]` | Hands the findings of `scan performance` to `brainstorming` | [reference/handoff.md](reference/handoff.md) |
 | `architecture [area]` | Hands the findings of `scan architecture` to `brainstorming` | [reference/handoff.md](reference/handoff.md) |
