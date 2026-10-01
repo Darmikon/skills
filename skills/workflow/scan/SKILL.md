@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code), todo (only the TODO part of comments). With no argument it suggests which scan fits.'
-argument-hint: '[what-is-it · architecture · unused · security · performance · docs · comments · todo · pin <command> · unpin <command>] [folder or area]'
+description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code), todo (only the TODO part of comments), tests (parts with no tests, tests that check nothing, switched off, or pass by chance; runs only the doubtful ones). With no argument it suggests which scan fits.'
+argument-hint: '[what-is-it · architecture · unused · security · performance · docs · comments · todo · tests · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -21,6 +21,7 @@ Each scan looks at a project, changes nothing in it, and shows what it found on 
 | `docs [folder]` | Whether the documents tell the truth: what each is for, stale, repeated, finished plans, and paths, commands, settings, numbers and names that do not match the code; plus the main parts no document describes. Fixing is for `better-docs` | [reference/docs.md](reference/docs.md) |
 | `comments [folder]` | Comments that lie about the code, stale TODOs (done, gone, old), code left commented out, and comments that only repeat the code | [reference/comments.md](reference/comments.md) |
 | `todo [folder]` | Only the TODO part of `comments`: every `TODO`, `FIXME`, `HACK`, `XXX` and `@deprecated` with its age and author, marked done, gone, old or open | [reference/comments.md](reference/comments.md), the "Stale TODOs" kind only |
+| `tests [folder]` | Important parts with no tests, tests that check nothing, tests switched off, tests that pass or fail by chance; runs only the doubtful tests, and coverage when the project can measure it, with reports in the temp dir | [reference/tests.md](reference/tests.md) |
 
 Routing:
 
@@ -39,18 +40,23 @@ When `/scan` comes with no argument, look quickly, then suggest. Look only at wh
 - The project takes logins, payments, uploads or webhooks → `security` is on offer too.
 - The project has a database or list endpoints → `performance` is on offer too.
 - The project has a `docs/` folder, or a `README`, `CLAUDE.md` or `AGENTS.md` longer than a page → `docs` is on offer too.
+- A test runner in the project → `tests` is on offer too.
 - Many `TODO` or `FIXME` notes (`git grep -c -E 'TODO|FIXME'`) → `comments` is on offer too.
 - Otherwise → `what-is-it` for the whole project, or `architecture` without a scope.
 
 Lead with one or two picks, each with a one-line reason and the exact command to type (`/scan architecture src/app/modules/billing`). Then the full list from the table. Stop there.
 
-## Change nothing in the project
+## Observe, never change
 
-- Do not create, change or delete any file in the project.
-- No commit, no push, no branch switch, no install into the project.
-- Run only commands that look: read files, search, `git log`, list the scripts. A tool run through `npx` that leaves the project as it was is allowed, and so is a tool installed on the machine when a reference says so. If you are not sure that a command only looks, do not run it: ask.
-- The one file you write is the page, and it goes outside the project.
-- The one exception is step 2 of `performance`: it runs the project to measure, only after the user approves its plan, and under the rules in its reference.
+A scan observes and recommends. `fix` does the work.
+
+- **Never write code**, and never create, change or delete a file in the project.
+- **Never change anything else the project owns:** no rows added to or removed from its database, no settings, no commit, no push, no branch switch, no install into the project.
+- **Running things to observe is allowed** when a reference says how: tools that only read the code (`knip`, `gitleaks`, `semgrep`, an audit), the project's tests (`tests`), timing a route or reading the database's plan for a query on the data that is already there (`performance`). Each run must leave the project as it was: no flag that rewrites files (snapshot updates, `--fix`, code generation), reports and temp files in `<tmp>`, every started process stopped. Check `git status` before and after.
+- **When observing would need a change** (test data in the database, a new test, a build that writes tracked files), do not do it: say what it would take, and leave it to `/fix <command>`.
+- A tool installed on the machine (not in the project) is allowed when a reference says so.
+- If you are not sure that a command leaves everything as it was, do not run it: ask.
+- The files you write are the page and the findings file, and they go to `<tmp>`.
 
 ## Proof
 

@@ -10,6 +10,10 @@ Show the findings from the scan as a short numbered list (title and rank), the s
 
 For `performance`, a finding the scan measured as "not confirmed" is left out unless the user names it.
 
+## 1a. Performance: the measurements the scan could not make
+
+When a chosen `performance` finding is marked "needs test data", measure it here before the hand-over, as a numbered plan the user approves (what data, how much, how it is removed). Rules: only the local database, never a shared or production one; test data marked with a name prefix like `fix-perf-` or inside a transaction that is rolled back; every row added is removed and every process started is stopped afterwards; scripts in `<tmp>/fix-performance/`. Measure the way `scan`'s performance reference says, and add the numbers to the findings you hand over.
+
 ## 2. Hand over
 
 Write the chosen findings to `<tmp>/fix-<command>-<timestamp>.json`, in the same shape as the scan's findings file, with only the chosen ones.

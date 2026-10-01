@@ -2,7 +2,7 @@
 
 Find the places in the code that look slow, and show them with a first summary. Only when a suspicion is strong enough that reading cannot settle it, add a plan of measurements, and measure after the user approves the plan.
 
-This file adds the performance part to the rules in [../SKILL.md](../SKILL.md). Step 1 follows those rules as they are. Step 2 is the one place where a scan runs the project, and only after the user's yes.
+This file adds the performance part to the rules in [../SKILL.md](../SKILL.md). Step 1 only reads. Step 2 observes, after the user's yes: it times and reads query plans, but adds no data and changes nothing. A measurement that needs test data belongs to `/fix performance`.
 
 ## Step 1: find the suspects (always)
 
@@ -67,7 +67,8 @@ Body:
    - **What to measure:** "the time of `GET /v1/knowledge-bases/:id/documents` with 10, 100, 1000 documents", "the database's plan for the query at `documents.repo.ts` L40".
    - **How:** the tool and the command (see "Ways to measure").
    - **What it needs:** the project running locally, a local database, test data, keys.
-   - **What it leaves on the machine while it runs:** processes started, temp files, rows added to the local database, and how each is cleaned up.
+   - **What it leaves on the machine while it runs:** processes started and temp files, and how each is cleaned up.
+   - **Can it run without a change?** A measurement that needs test data in the database, or more data than is there, is marked "needs test data: `/fix performance`" and is not part of this scan's step 2.
 
 Top pick: the suspect to look at first: a `Likely` one on the hottest path, and among those the one that grows fastest with data.
 
@@ -86,14 +87,14 @@ Measure only the items the user approved. Before the first command, say in one l
 
 - **Only on this machine.** Never against a production or shared server, never with production keys. If the plan needs a database that is not local, stop and ask.
 - **No change to the project's files.** Measuring scripts go in `${TMPDIR:-/tmp}/scan-performance/`, not in the project. A folder that git ignores (build output such as `.next/` or `dist/`, a local database's data folder) may appear only if the plan named it.
-- **Test data only where the plan said:** in the local database, marked so it can be found (a name prefix like `scan-perf-`), or inside a transaction that is rolled back.
-- **Clean up:** stop every process you started, delete the test data you added, delete the temp folder. Check that `git status` in the project is the same as before step 2.
+- **No test data.** Measure on the data that is already in the local database. If there is too little to show anything, say so: that item goes to `/fix performance`.
+- **Clean up:** stop every process you started, delete the temp folder. Check that `git status` in the project is the same as before step 2.
 - If a measurement cannot run (the project does not start, no database), say so for that item and go on with the others.
 
 ### Ways to measure
 
 - **A route:** start the project with its own dev command (or use it if already running), then `npx -y autocannon -c 10 -d 10 <url>`, or a timed `curl` loop for a slow route. Note p50 and p95, at more than one data size when the suspect grows with data.
-- **A query:** the database's own plan on the local database: `EXPLAIN ANALYZE` in Postgres (inside `BEGIN; … ROLLBACK;` for anything that writes). Note the time, the rows read, and whether an index is used.
+- **A query:** the database's own plan on the local database: `EXPLAIN ANALYZE` in Postgres for a read query only; for a query that writes, plain `EXPLAIN` (it does not run the query). Note the time, the rows read, and whether an index is used.
 - **A function:** a temp script in `${TMPDIR:-/tmp}/scan-performance/` that imports it (`npx -y tsx script.ts`) and times it with `performance.now()` at growing sizes. For where the time goes: `node --cpu-prof --cpu-prof-dir "${TMPDIR:-/tmp}/scan-performance"`.
 - **The web app:** the size of what a page loads, from the project's own build report if the plan named a build.
 
@@ -103,6 +104,4 @@ Write the page again, at a new path. Each measured card gets its numbers (p50/p9
 
 ### The ending of step 2
 
-Chat line per measured item: its title, its badge and its main number. Closing question: "What do we fix first?"
-
-This scan does not hand over to another skill. The user's answer starts ordinary work in a separate step, after their yes.
+Chat line per measured item: its title, its badge and its main number, and one line naming the items that need test data. Closing question: "What do we fix first?" The next skill is `fix`: `/fix performance`.
