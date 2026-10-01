@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code). With no argument it suggests which scan fits.'
-argument-hint: '[what-is-it · architecture · unused · security · performance · docs · pin <command> · unpin <command>] [folder or area]'
+description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code). With no argument it suggests which scan fits.'
+argument-hint: '[what-is-it · architecture · unused · security · performance · docs · comments · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -19,11 +19,12 @@ Each scan looks at a project, changes nothing in it, and shows what it found on 
 | `security [folder]` | Secrets in the code and its history, dangerous code, packages with known holes, and logic mistakes, sorted by how serious; gitleaks and semgrep are installed on the machine on first run | [reference/security.md](reference/security.md) |
 | `performance [area]` | Code that looks slow (queries in loops, no limit, no index, waiting in turn, heavy work on the request path), with a first summary; when a suspicion needs numbers, a measurement plan, measured on this machine only after the user approves it | [reference/performance.md](reference/performance.md) |
 | `docs [folder]` | Whether the documents tell the truth: what each is for, stale, repeated, finished plans, and paths, commands, settings, numbers and names that do not match the code; plus the main parts no document describes. Fixing is for `better-docs` | [reference/docs.md](reference/docs.md) |
+| `comments [folder]` | Comments that lie about the code, stale TODOs (done, gone, old), code left commented out, and comments that only repeat the code | [reference/comments.md](reference/comments.md) |
 
 Routing:
 
 - **No argument:** show the menu (below). Never start a scan on your own.
-- **A command name first:** read its reference and follow it together with the rules in this file. The rest of the argument is the folder or area.
+- **A command name first** (`doc` for `docs` and `comment` for `comments` work too): read its reference and follow it together with the rules in this file. The rest of the argument is the folder or area.
 - **Something else** ("is this secure?", "what is this project"): if one command clearly fits, name it and ask once before running it. If none fits, say so and show the menu.
 - **`pin` / `unpin`:** see "Shortcuts" below.
 
@@ -37,6 +38,7 @@ When `/scan` comes with no argument, look quickly, then suggest. Look only at wh
 - The project takes logins, payments, uploads or webhooks → `security` is on offer too.
 - The project has a database or list endpoints → `performance` is on offer too.
 - The project has a `docs/` folder, or a `README`, `CLAUDE.md` or `AGENTS.md` longer than a page → `docs` is on offer too.
+- Many `TODO` or `FIXME` notes (`git grep -c -E 'TODO|FIXME'`) → `comments` is on offer too.
 - Otherwise → `what-is-it` for the whole project, or `architecture` without a scope.
 
 Lead with one or two picks, each with a one-line reason and the exact command to type (`/scan architecture src/app/modules/billing`). Then the full list from the table. Stop there.
