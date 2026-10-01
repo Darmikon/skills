@@ -59,7 +59,9 @@ The body has one section per kind, in this order, and leaves out a kind with no 
 
 At the top of the body, one row of counts for the kinds that have findings, split into "safe to remove" and "check first" where the kind has that split, and one short line naming the kinds with nothing found.
 
-In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in the class that [page.md](page.md) gives its kind (`sym`, `const`, or `lit` for a package), the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are. Each section has one copy button for the whole section (see [page.md](page.md)), with every finding in its prompt, not only the 30 shown.
+In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in the class that [page.md](page.md) gives its kind (`sym`, `const`, or `lit` for a package), the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are.
+
+Copy buttons ([page.md](page.md)): every finding line gets its own, so each one can be dealt with on its own, and every section gets one too, at the section's top right. A line's prompt is that one finding: path, line, name, action, and for "check first" the places the search found. A section's prompt is the whole group as one task: "In this project, these N findings are <kind>:" then one line per finding with its path, line, name and action, the "check first" ones marked with their places, then the usual ask. Each section has one copy button for the whole section (see [page.md](page.md)), with every finding in its prompt, not only the 30 shown.
 
 No pictures and no top pick.
 
