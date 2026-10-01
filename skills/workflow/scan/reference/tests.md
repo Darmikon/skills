@@ -15,11 +15,13 @@ Read, do not run yet:
 
 With a folder after `/scan tests`, everything below is limited to that folder.
 
+In a monorepo the runner config often lives in each package, not at the root: run a test from the folder of the package that owns it. When tests import a sibling package's build (`dist/`), do not build it: run against the build that is there, and say on the page how old it is next to its sources.
+
 ## 2. Read for the four kinds
 
 ### No tests
 
-List the main parts of the code: routes and handlers, services with business rules, background jobs, data access, shared helpers that many files use. For each, look for a test that imports it or calls its route. Name the important ones with none. Rank by what breaks if they break: money, access rights, data loss first.
+List the main parts of the code: routes and handlers, services with business rules, background jobs, data access, shared helpers that many files use. For each, look for a test that imports it or calls its route. Name the important ones with none. Rank by what breaks if they break: `High` for money, access rights and data loss; `Medium` for a main feature that would stop working; `Low` for the rest.
 
 ### Tests that check nothing
 
@@ -36,6 +38,8 @@ List the main parts of the code: routes and handlers, services with business rul
 ### Pass or fail by chance
 
 A test that depends on: the clock (`Date.now()`, `new Date()` without a fixed time), randomness without a seed, the network or an outside service, the order tests run in (shared state, a variable set in one test and read in another), timers and `setTimeout` with real waits, a port or a file that two tests share.
+
+Words for the findings file: `kind` is `no tests`, `checks nothing`, `switched off` or `by chance`; `rank` is `High`, `Medium` or `Low` (for `by chance`: `confirmed` when a run failed, `suspected` when all passed). Add `runs` ("3 of 5 passed") to a finding whose test ran, and a top-level `coverage` (the total, or null) to the file.
 
 ## 3. Run the doubtful ones
 

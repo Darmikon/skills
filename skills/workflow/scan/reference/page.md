@@ -99,7 +99,7 @@ Nothing from the code goes on the page as plain text or a bare `<code>`. Each pi
 
 - **A file or folder** is a path tile that opens in Cursor at that line:
   `<a class="path" href="cursor://file<absolute path>:<line>"><span class="dir">src/app/<wbr>routes/<wbr></span><span class="file">server.routes.ts</span><span class="ln">L27–43</span></a>`
-  The absolute path is the project root (`git rev-parse --show-toplevel`) plus the path; it starts with `/`, so the link reads `cursor://file/Users/…`, with one slash. For a range, the link opens the first line. `<wbr>` after every `/` lets a long path wrap only there. No line: leave out the `.ln` span and `:<line>`. A folder: the whole path goes in `.dir`, the last name in `.file`, ending with `/`.
+  The absolute path is the project root (`git rev-parse --show-toplevel`) plus the path; it starts with `/`, so the link reads `cursor://file/Users/…`, with one slash. For a range, the link opens the first line. `<wbr>` after every `/` lets a long path wrap only there. No line: leave out the `.ln` span and `:<line>`. A folder: its parent path goes in `.dir`, its own name in `.file`, ending with `/` (`src/app/` + `modules/`).
 - **A function, class, type or method**: `<code class="sym">getRequestDb</code>`.
 - **A constant, env variable, binding or config key**: `<code class="const">FILE_PARSER</code>`.
 - **A literal value**, such as a route, a host or an event name: `<code class="lit">/v1/auth*</code>`.
@@ -107,6 +107,8 @@ Nothing from the code goes on the page as plain text or a bare `<code>`. Each pi
 - **A code block** of more than one line: `<pre><code class="language-ts">…</code></pre>`, coloured by highlight.js. Keep it short: the lines that prove the point, not the whole function. Escape `<`, `>` and `&`.
 
 ## Copy buttons
+
+A section with nothing in it is left out, button and all; the summary row says "none" for it.
 
 Every finding can go straight into an AI chat as a prompt. One block is one prompt: each card, and each section where a scan lists findings as lines (`unused`) or explains a part (`what-is-it`), gets one copy button. Lines inside a block get none, except where a reference asks for them (`unused` per finding, `docs` per false claim), so a finding can be handled alone (the button is the first child of the `<li>`). The button is the usual copy icon (two overlapping squares, the SVG below) in the top right corner of its block, turning into a check mark for a moment after a click, with `title` "Copy" in the page's language. It copies a prompt that stands alone: whoever reads it has not seen the page.
 

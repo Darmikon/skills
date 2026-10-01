@@ -52,7 +52,7 @@ A scan observes and recommends. `fix` does the work.
 
 - **Never write code**, and never create, change or delete a file in the project.
 - **Never change anything else the project owns:** no rows added to or removed from its database, no settings, no commit, no push, no branch switch, no install into the project.
-- **Running things to observe is allowed** when a reference says how: tools that only read the code (`knip`, `gitleaks`, `semgrep`, an audit), the project's tests (`tests`), timing a route or reading the database's plan for a query on the data that is already there (`performance`). Each run must leave the project as it was: no flag that rewrites files (snapshot updates, `--fix`, code generation), reports and temp files in `<tmp>`, every started process stopped. Check `git status` before and after.
+- **Running things to observe is allowed** when a reference says how: tools that only read the code (`knip`, `gitleaks`, `semgrep`, an audit), the project's tests (`tests`), timing a route or reading the database's plan for a query on the data that is already there (`performance`). Each run must leave the project as it was: no flag that rewrites files (snapshot updates, `--fix`, code generation), reports and temp files in `<tmp>`, every started process stopped. Check `git status` before and after. Caches a tool writes into folders git ignores, such as `node_modules/.vite-temp` or `node_modules/.cache`, are fine; nothing else may appear.
 - **When observing would need a change** (test data in the database, a new test, a build that writes tracked files), do not do it: say what it would take, and leave it to `/fix <command>`.
 - A tool installed on the machine (not in the project) is allowed when a reference says so.
 - If you are not sure that a command leaves everything as it was, do not run it: ask.
@@ -106,7 +106,7 @@ Next to the page, write the same findings for a machine to read: `<tmp>/scan-<co
 
 ## The ending
 
-1. In the chat, one line per item, in the form the command's reference names. Then the top pick, when the command has one.
+1. In the chat, one line per item, or counts by kind when the reference says so, in the form the command's reference names. Then the top pick, when the command has one.
 2. Ask the closing question that the reference names. One question.
 3. Unless the reference says otherwise: when the user picks an item, give them the ready command for the next skill, one line to copy, with the item as the topic: `/<skill> <what it is, the files, the evidence>`. The next skill is one the user starts: you cannot call it yourself.
 
