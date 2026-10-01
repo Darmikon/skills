@@ -64,6 +64,37 @@ Write one self-contained HTML file to `<tmp>/scan-<command>-<timestamp>.html`, w
 
 Read [reference/page.md](reference/page.md) for the layout and style. The command's reference says what goes in the body.
 
+## The findings file
+
+Next to the page, write the same findings for a machine to read: `<tmp>/scan-<command>-<timestamp>.json`. The `fix` skill reads it, so that a scan just done is not done again. Give its path in the chat under the page link.
+
+```json
+{
+  "command": "docs",
+  "project": "/absolute/project/root",
+  "folder": null,
+  "created": "2026-10-01T13:25:02+04:00",
+  "head": "<git rev-parse HEAD>",
+  "dirty": "<git status --porcelain | shasum, or null when clean>",
+  "page": "<absolute path of the page>",
+  "findings": [
+    {
+      "id": "f1",
+      "kind": "lie",
+      "title": "…",
+      "rank": "High",
+      "places": [{ "path": "src/app/x.ts", "line": 76 }],
+      "seen": "what was seen, with the evidence",
+      "direction": "the fix direction",
+      "action": "delete | drop export | rewrite | merge into … | add to … | …",
+      "group": "safe to remove | check first | real | not reached | likely false alarm | …"
+    }
+  ]
+}
+```
+
+`kind`, `rank`, `action` and `group` take the words the command's reference uses; leave out a field the command does not have. Paths are relative to the project root. Every finding goes in, not only the ones shown on the page. No secret goes in, the same as on the page.
+
 ## The ending
 
 1. In the chat, one line per item, in the form the command's reference names. Then the top pick, when the command has one.

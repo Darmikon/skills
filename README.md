@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill fix --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -68,7 +68,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 
 | Skill | | Description | Install |
 |-------|---|-------------|---------|
-| better-docs | 🧍 | Optimize repo docs, lean AGENTS.md | `npx skills add Darmikon/skills --skill better-docs` |
+| better-docs | 🧍 | Shortcut for `/fix docs`: correct and tidy the docs, lean AGENTS.md | `npx skills add Darmikon/skills --skill better-docs` |
 
 ### workflow — how the agent responds & recovers
 
@@ -76,6 +76,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 |-------|---|-------------|---------|
 | baby | 🧍 | Re-explain the last answer in plain words, and keep going that way | `npx skills add Darmikon/skills --skill baby` |
 | explore | 🧍 | Think together before building: read, draw, compare — no code, no files, until you say stop | `npx skills add Darmikon/skills --skill explore` |
+| fix | 🧍 | Fix what `/scan` found after you approve a numbered plan: `docs`, `comments`, `unused` change files and leave them uncommitted; `security`, `performance`, `architecture` go to brainstorming | `npx skills add Darmikon/skills --skill fix` |
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |
 | handoff | 🧍🤖 | Compact the conversation into a handoff document for the next agent | `npx skills add Darmikon/skills --skill handoff` |
 | handoff-lpm | 🧍 | Hand over to a fresh Claude session in a new lpm tab | `npx skills add Darmikon/skills --skill handoff-lpm` |

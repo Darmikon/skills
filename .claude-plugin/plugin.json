@@ -23,6 +23,7 @@
     "./skills/workflow/zoom-out",
     "./skills/workflow/why",
     "./skills/workflow/scan",
+    "./skills/workflow/fix",
     "./skills/workflow/focus",
     "./skills/workflow/rethink",
     "./skills/workflow/output-style",
