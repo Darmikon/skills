@@ -75,13 +75,15 @@ Next to the page, write the same findings for a machine to read: `<tmp>/scan-<co
   "folder": null,
   "created": "2026-10-01T13:25:02+04:00",
   "head": "<git rev-parse HEAD>",
-  "dirty": "<git status --porcelain | shasum, or null when clean>",
+  "dirty": "<git status --porcelain | shasum | cut -c1-40, or null when the output is empty>",
   "page": "<absolute path of the page>",
   "findings": [
     {
       "id": "f1",
       "kind": "lie",
       "title": "…",
+      "name": "the code name or package name, when the finding is about one",
+      "version": "for a package: the version the lock file resolves",
       "rank": "High",
       "places": [{ "path": "src/app/x.ts", "line": 76 }],
       "seen": "what was seen, with the evidence",

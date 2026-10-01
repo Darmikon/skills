@@ -33,16 +33,16 @@ Look for the newest `scan-<command>-*.json` in `<tmp>` (`<tmp>` is `${TMPDIR:-/t
 
 - its `project` is this project's root (`git rev-parse --show-toplevel`);
 - its `head` is the current `git rev-parse HEAD`;
-- its `dirty` matches the current `git status --porcelain | shasum` (or both are clean);
+- its `dirty` matches the current `git status --porcelain | shasum | cut -c1-40`; when `git status --porcelain` prints nothing the tree is clean, and a clean tree matches `dirty: null`;
 - its `folder` is the same as the one asked for, or covers it.
 
-Fresh: say in one line which scan you use (its time and page link) and go on. Not fresh or none: say so, then run the scan: read the `scan` skill's `SKILL.md` in the same skills folder as this skill and its reference for the command (the skills folder is this skill's base directory with its last name cut off as text, `/…/skills/fix` → `/…/skills`; do not write `../scan`, since the base directory may be a link and `..` follows it elsewhere), and follow them, with the page and the findings file, but stop before the scan's own ending. Then go on here.
+Fresh: say in one line which scan you use (its time and page link) and go on. Not fresh or none: say so, then run the scan: read the `scan` skill's `SKILL.md` in the same skills folder as this skill and its reference for the command (the skills folder is this skill's base directory with its last name cut off as text, `/…/skills/fix` → `/…/skills`; do not write `../scan`, since the base directory may be a link and `..` follows it elsewhere), and follow them: write the page and the findings file and open the page, but skip the scan's chat summary and closing question. Then go on here. If `<skills folder>/scan/SKILL.md` does not exist, stop and say so, with the install command `npx skills add Darmikon/skills --skill scan`.
 
 Never trust a findings file that is not fresh: the code it points at may have moved.
 
 ## 2. The plan
 
-Show the plan in the chat as one numbered list, one line per change: the file (and line), what changes, and why in a few words. Group the lines under short headings when there are many. Mark every line that deletes a file. Say which findings you leave out and why (a "check first" finding with a real use, a lie you could not confirm).
+Show the plan in the chat as one numbered list, one line per change: the file (and line: for a `package.json` change, the line of the section it goes in), what changes, and why in a few words. Group the lines under short headings when there are many. Mark every line that deletes a file. Say which findings you leave out and why (a "check first" finding with a real use, a lie you could not confirm).
 
 End with: "Do I go ahead? You can answer yes, or yes except some numbers." Wait. Change nothing before the yes. A "yes except 3, 7" means everything but those lines.
 

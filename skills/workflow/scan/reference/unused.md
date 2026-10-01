@@ -9,14 +9,14 @@ This file adds the unused part to the rules in [../SKILL.md](../SKILL.md).
 Stop, with no page, when one of these is true, and say why in one or two sentences:
 
 - **Not a JavaScript or TypeScript project:** there is no `package.json` at the project root.
-- **The packages are not installed:** there is no `node_modules/` at the project root, or, in a workspace project, a workspace folder with a `package.json` has no `node_modules/` while the root does (pnpm keeps one per workspace). Without them knip cannot read the project's settings and calls almost everything unused. Name the command that installs them, from the `packageManager` field of the root `package.json`, or else from the lock file: `yarn.lock` → `yarn install`, `pnpm-lock.yaml` → `pnpm install`, `bun.lock` or `bun.lockb` → `bun install`, `package-lock.json` → `npm install`. Do not run it: installing is the user's call.
+- **The packages are not installed:** there is no `node_modules/` at the project root, or, in a workspace project, a workspace folder whose `package.json` declares dependencies has no `node_modules/` while the root does (pnpm keeps one per workspace; a workspace with no dependencies has none, and that is fine). Without them knip cannot read the project's settings and calls almost everything unused. Name the command that installs them, from the `packageManager` field of the root `package.json`, or else from the lock file: `yarn.lock` → `yarn install`, `pnpm-lock.yaml` → `pnpm install`, `bun.lock` or `bun.lockb` → `bun install`, `package-lock.json` → `npm install`. Do not run it: installing is the user's call.
 
 ## 2. Run knip
 
 From the project root:
 
 ```bash
-npx -y knip --reporter json --no-progress > "${TMPDIR:-/tmp}/scan-unused-knip.json" 2> "${TMPDIR:-/tmp}/scan-unused-knip.err"
+npx -y knip --reporter json --no-progress > "<tmp>/knip-<timestamp>.json" 2> "<tmp>/knip-<timestamp>.err"
 ```
 
 - Never add `--fix`, `--allow-remove-files` or `--cache`: they write into the project.
