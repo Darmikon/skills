@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill fix --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill fix --skill focus --skill handoff --skill handoff-lpm --skill ask --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -74,20 +74,21 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 
 | Skill | | Description | Install |
 |-------|---|-------------|---------|
+| ask | 🧍 | Understand code without changing it: `what-is-it` (a whole project, on a page), `how`, `how to`, `why`, `zoom-out`; `/ask` alone suggests which | `npx skills add Darmikon/skills --skill ask` |
 | baby | 🧍 | Re-explain the last answer in plain words, and keep going that way | `npx skills add Darmikon/skills --skill baby` |
 | explore | 🧍 | Think together before building: read, draw, compare — no code, no files, until you say stop | `npx skills add Darmikon/skills --skill explore` |
 | fix | 🧍 | Fix what `/scan` found after you approve a numbered plan: `docs`, `comments`, `unused` change files and leave them uncommitted; `security`, `performance`, `architecture` go to brainstorming | `npx skills add Darmikon/skills --skill fix` |
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |
 | handoff | 🧍🤖 | Compact the conversation into a handoff document for the next agent | `npx skills add Darmikon/skills --skill handoff` |
 | handoff-lpm | 🧍 | Hand over to a fresh Claude session in a new lpm tab | `npx skills add Darmikon/skills --skill handoff-lpm` |
-| how | 🧍 | How one part of the code works: who uses it, the flow, where things live, gotchas; `/how to <task>` also says where the new thing goes | `npx skills add Darmikon/skills --skill how` |
-| how-to | 🧍 | Shortcut for `/how to <task>`; install with `how` | `npx skills add Darmikon/skills --skill how --skill how-to` |
+| how | 🧍 | Shortcut for `/ask how`: how one part works; `/how to <task>` also says where the new thing goes | `npx skills add Darmikon/skills --skill how` |
+| how-to | 🧍 | Shortcut for `/ask how to <task>` | `npx skills add Darmikon/skills --skill ask --skill how --skill how-to` |
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
 | rethink | 🤖 | Step back after 3+ failed attempts | `npx skills add Darmikon/skills --skill rethink` |
-| scan | 🧍 | Look at a whole project without changing it, on one page: `what-is-it` (first look at an unfamiliar project), `architecture` (where the code is harder to understand and test than it needs to be), `unused` (dead files, code and packages, via knip), `security` (secrets, dangerous code, holes in packages, via gitleaks, semgrep and audit), `performance` (slow-looking code, measured only after you approve the plan), `docs` (whether the documents tell the truth), `comments` (lying comments, stale TODOs, dead code), `todo`, `tests` (untested parts, empty and flaky tests); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
+| scan | 🧍 | Look for problems in a whole project without changing it, on one page: `architecture` (where the code is harder to understand and test than it needs to be), `unused` (dead files, code and packages, via knip), `security` (secrets, dangerous code, holes in packages, via gitleaks, semgrep and audit), `performance` (slow-looking code, measured only after you approve the plan), `docs` (whether the documents tell the truth), `comments` (lying comments, stale TODOs, dead code), `todo`, `tests` (untested parts, empty and flaky tests); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
 | update-plans | 🧍 | The plan changed mid-work: bring the superpowers spec and plan in line, no code touched | `npx skills add Darmikon/skills --skill update-plans` |
 | verify | 🧍 | Check the code against the ticket, spec or plan item by item, each proven by a test that ran; the project is not changed | `npx skills add Darmikon/skills --skill verify` |
-| why | 🧍 | Why the code is the way it is: history, PRs, tickets, then docs and chat if needed; every claim marked found / converging / guess / unknown | `npx skills add Darmikon/skills --skill why` |
+| why | 🧍 | Shortcut for `/ask why`: what led to the code's shape, every claim marked | `npx skills add Darmikon/skills --skill why` |
 | wtf | 🧍 | Re-pitch the last message so that it lands this time | `npx skills add Darmikon/skills --skill wtf` |
-| zoom-out | 🧍 | Lost in the details: step back one level and map the parts around it and who calls it | `npx skills add Darmikon/skills --skill zoom-out` |
+| zoom-out | 🧍 | Shortcut for `/ask zoom-out`: the map of the parts around a place | `npx skills add Darmikon/skills --skill zoom-out` |

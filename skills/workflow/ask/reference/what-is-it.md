@@ -1,12 +1,12 @@
-# scan what-is-it
+# ask what-is-it
 
 Someone opens a project they do not know. Give them the picture they would otherwise spend a day putting together, on one page.
 
-This file adds the first-look part to the rules in [../SKILL.md](../SKILL.md).
+This file adds the first-look part to the rules in [../SKILL.md](../SKILL.md). It is the one `ask` command that answers on a page: see "The page" there.
 
 ## Where to look
 
-- If the user named a folder after `/scan what-is-it`, look only there, and say on the page that the rest was not looked at.
+- If the user named a folder after `/ask what-is-it`, look only there, and say on the page that the rest was not looked at.
 - Otherwise the whole project. Start with what the project says about itself: `README*`, `CLAUDE.md`, `AGENTS.md`, `.claude/` (its `CLAUDE.md` and any notes), `docs/`, the root `package.json` (or `pyproject.toml`, `go.mod`, `Cargo.toml`), workspace files, `docker-compose*`, `Makefile`, CI files under `.github/workflows/`.
 - Then the code: the entry points (the files that start a server, an app, a worker, a CLI) and the folders they pull in. For a large project, start an `Explore` subagent per part with the questions below, and put its answers together yourself.
 
@@ -25,4 +25,4 @@ The header legend names the shapes used in the pictures. There is no top pick: t
 
 ## The ending
 
-Chat line per part from section 2: its name, its folder, its job. Closing question: "Which part should we dig into?" The next skill is `how`: `/how <the part>`.
+Chat line per part from section 2: its name, its folder, its job. Closing question: "Which part should we dig into?" The next step is `/ask how <the part>`.

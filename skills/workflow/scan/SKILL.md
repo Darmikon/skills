@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: what-is-it (first look at an unfamiliar project), architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code), todo (only the TODO part of comments), tests (parts with no tests, tests that check nothing, switched off, or pass by chance; runs only the doubtful ones). With no argument it suggests which scan fits.'
-argument-hint: '[what-is-it · architecture · unused · security · performance · docs · comments · todo · tests · pin <command> · unpin <command>] [folder or area]'
+description: 'Look at a whole project without changing it, and show what was found on one HTML page. Sub-commands: architecture (where the existing code is harder to understand and test than it needs to be), unused (files, code and packages nothing uses, found with knip), security (secrets, dangerous code, packages with holes, logic mistakes; gitleaks, semgrep and the package audit, installed on first run), performance (code that looks slow, with a measurement plan run only after the user approves it), docs (whether the documents tell the truth: stale, repeated, and claims that do not match the code), comments (comments that lie about the code, stale TODOs, commented-out code, comments that repeat the code), todo (only the TODO part of comments), tests (parts with no tests, tests that check nothing, switched off, or pass by chance; runs only the doubtful ones). With no argument it suggests which scan fits.'
+argument-hint: '[architecture · unused · security · performance · docs · comments · todo · tests · pin <command> · unpin <command>] [folder or area]'
 disable-model-invocation: true
 ---
 
@@ -13,7 +13,6 @@ Each scan looks at a project, changes nothing in it, and shows what it found on 
 
 | Command | What it shows | Reference |
 |---|---|---|
-| `what-is-it [folder]` | First look at an unfamiliar project: what it is, its parts, main paths, where things are, how to run it, surprises | [reference/what-is-it.md](reference/what-is-it.md) |
 | `architecture [area]` | Where the existing code is harder to understand and test than it needs to be, with before/after pictures | [reference/architecture.md](reference/architecture.md) |
 | `unused [folder]` | Files, code, types and packages nothing uses, and packages used but not listed, found with knip and checked once more; JavaScript and TypeScript projects with installed packages | [reference/unused.md](reference/unused.md) |
 | `security [folder]` | Secrets in the code and its history, dangerous code, packages with known holes, and logic mistakes, sorted by how serious; gitleaks and semgrep are installed on the machine on first run | [reference/security.md](reference/security.md) |
@@ -34,7 +33,7 @@ Routing:
 
 When `/scan` comes with no argument, look quickly, then suggest. Look only at what is cheap: `git log --oneline -30 --name-only`, whether a `README*` or `CLAUDE.md` exists, the root manifest (`package.json`, `pyproject.toml`, …).
 
-- The conversation shows the user does not know this project yet, or it has no notes of its own → `what-is-it`.
+- The conversation shows the user does not know this project yet, or it has no notes of its own → say that `/ask what-is-it` gives the first look (it is not a scan), then go on with the picks.
 - Recent history keeps coming back to the same files → `architecture`, scoped to that area, naming it.
 - A `package.json` and a `node_modules/` at the root → `unused` is on offer too.
 - The project takes logins, payments, uploads or webhooks → `security` is on offer too.
@@ -42,7 +41,7 @@ When `/scan` comes with no argument, look quickly, then suggest. Look only at wh
 - The project has a `docs/` folder, or a `README`, `CLAUDE.md` or `AGENTS.md` longer than a page → `docs` is on offer too.
 - A test runner in the project → `tests` is on offer too.
 - Many `TODO` or `FIXME` notes (`git grep -c -E 'TODO|FIXME'`) → `comments` is on offer too.
-- Otherwise → `what-is-it` for the whole project, or `architecture` without a scope.
+- Otherwise → `architecture` without a scope.
 
 Lead with one or two picks, each with a one-line reason and the exact command to type (`/scan architecture src/app/modules/billing`). Then the full list from the table. Stop there.
 

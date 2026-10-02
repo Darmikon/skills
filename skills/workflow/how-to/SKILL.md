@@ -1,10 +1,12 @@
 ---
 name: how-to
-description: 'Shortcut for /how to <task>: how the code around a task works, and where and how the new thing should go. Needs the how skill next to it.'
+description: 'Shortcut for /ask how to <task>: how the code around a task works, and where and how the new thing should go.'
 argument-hint: '<what to add or change>'
 disable-model-invocation: true
 ---
 
-Read `SKILL.md` in the `how` skill folder next to this skill's folder, and follow it as if the user had typed `/how to $ARGUMENTS`.
+<!-- how-to is now /ask how to. Kept as a shortcut so the short name still works. -->
 
-If there is no `how` folder next to this one, say that `how-to` needs the `how` skill installed with it (`npx skills add Darmikon/skills --skill how`), and stop.
+Read the `ask` skill's `SKILL.md` in the same skills folder as this skill, and follow it as if the user had typed `/ask how to $ARGUMENTS`. The skills folder is this skill's base directory with its last name cut off as text (`/…/skills/how-to` → `/…/skills`); do not write `../ask`, since the base directory may be a link and `..` follows it elsewhere.
+
+If the `ask` skill is not installed next to this one, say so and give the install command: `npx skills add Darmikon/skills --skill ask`.
