@@ -89,3 +89,18 @@ The "No argument" suggestions gain: a user action named → `feature`; two proje
 
 - Shortcuts for the new commands (the user can `/ask pin` them).
 - Any change to `scan` or `fix`.
+
+## Update, 2026-10-04: what is built
+
+Built now: `feature`, `compare`, `history`, `error`, `who`. Left for later: `config`, `test`, `package`.
+
+Changes to the design above, from the review and from what changed since:
+
+- Pages (`feature`, `compare`, `history`) are drawn by `scan/scripts/render-page.mjs` from a JSON file with `"family": "ask"`; the model never writes HTML.
+- Read yourself first; start subagents only when the trace runs through more than about 15 files.
+- `feature` follows hops that are not direct calls (an event name in a string, a lookup table, a DI container, a queue) and marks them as such; it follows a call into a sibling project when that project is on the machine, and says so when it is not.
+- `compare` never quotes the other project's code on the page or in a copied prompt: it describes it and cites paths. This keeps the user's rule that another project's code is never copied into files git tracks.
+- `error` takes a stack trace as well as a message, and follows its frames.
+- `history` and `who` say what they could not see when the folder is not a git repo or `gh` is not signed in.
+- The three page commands offer once to save the page into the project's git-ignored study folder when the project has one (for example `docs/study/`), and only on a yes.
+- Each new command has a case in `tests/run.sh`.
