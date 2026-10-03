@@ -10,7 +10,9 @@ This file adds the comments part to the rules in [../SKILL.md](../SKILL.md).
 
 By kind:
 
-- **A lie:** check it against the code once more (the code may have changed the other way since the scan), then a plan line that either corrects the comment to say what the code does, or deletes it when it adds nothing once corrected. Show the old and the new text in the line, short. When the code may be the one that is wrong (it looks wrong, or the fact is a business value: a price, a limit, a time, a number of retries), do not "fix" either: list it after the plan as a question for the user: "the comment says X, the code says Y; which is right?"
+- **A lie:** check it against the code once more (the code may have changed the other way since the scan), then a plan line that either corrects the comment to say what the code does, or deletes it when it adds nothing once corrected. Show the old and the new text in the line, short. Who wins when they disagree:
+  - **A technical fact** (a port, a path, a file or function name, a default value, a count of things in the code): the code wins. Correct the comment.
+  - **A business fact** (money: a currency, a unit such as cents or euros, an amount, a price; a limit, a time window, a number of retries, a rule users feel), or code that looks wrong: do not "fix" either. List it after the plan as a question: "the comment says X, the code says Y; which is right?" A wrong comment about money may mean wrong prices, and only the user knows which side is the mistake.
 - **A TODO marked done or gone:** a plan line that deletes it.
 - **A TODO marked old or open:** not in the plan. List them after the plan: "These are still open; say which ones to delete anyway."
 - **Code left commented out:** a plan line that deletes the block. Git keeps it in history; say the commit where it was last live, or that it was never live (it arrived commented out), so it can be found.

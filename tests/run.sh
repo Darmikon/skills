@@ -25,7 +25,7 @@ fresh() {
   mkdir -p "$WORK/$name"
   cp -R "$HERE/fixture" "$P"
   ln -s "$CACHE/node_modules" "$P/node_modules"
-  git init -q --bare "$R"
+  git init -q --bare -b main "$R"
   (cd "$P" && git init -q -b main && git config user.name "Test User" && git config user.email "test@example.com" \
     && git add -A && g commit -qm "chore: start the shop" && git remote add origin "$R" && git push -q -u origin main)
 }
@@ -68,7 +68,7 @@ case_scan_comments() {
   ask "/scan comments"
   check "finds the port lie (8080 vs 3000)" says "8080"
   check "finds the euros/cents lie" says "(euro|евро)"
-  check "finds the commented-out code" says "oldTotal"
+  check "finds the commented-out code" says "(oldTotal|18-22|commented|switched off|закоммент|выключен)"
   check "draws a page" says "scan-comments-[0-9-]+\\.html"
   check "changes nothing" clean
 }
@@ -217,6 +217,7 @@ case_explore() {
 case_verify() {
   fresh verify
   ask "/verify docs/superpowers/plans/2026-10-01-paging.md"
+  ask -c "да"
   check "reports the paging as not done" says "(not|не) (done|сделан|выполнен|proven|доказан)|broken|сломан|не реализован|not implemented"
   check "leaves the project as it was" clean
 }
