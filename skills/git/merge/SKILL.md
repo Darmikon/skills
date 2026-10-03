@@ -88,9 +88,12 @@ Reflog is checked first, but it only records a usable parent when the branch was
 ```bash
 git fetch --quiet --all --prune
 TARGET="$PARENT"   # or the branch the user passed in Step 3
-# Freshest ref: the remote is source of truth for the DEFAULT branch, but a local (stacked)
-# parent can carry unpushed commits the remote lacks — keep the local ref in that case.
-if [ "$TARGET" = "$DEFAULT" ] && git rev-parse --verify --quiet "origin/$TARGET" >/dev/null; then
+# Freshest ref: take origin/<target> when the local copy is missing or only behind it
+# (nothing local that the remote lacks); keep the local ref when it carries unpushed commits
+# (a stacked parent), because the remote copy would drop them.
+if git rev-parse --verify --quiet "origin/$TARGET" >/dev/null &&
+   { ! git rev-parse --verify --quiet "$TARGET" >/dev/null ||
+     git merge-base --is-ancestor "$TARGET" "origin/$TARGET"; }; then
   TARGET_REF="origin/$TARGET"
 else
   TARGET_REF="$TARGET"

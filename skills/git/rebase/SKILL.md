@@ -92,9 +92,12 @@ Rebase onto the up-to-date target, not a stale local copy.
 ```bash
 git fetch --quiet --all --prune
 TARGET="$PARENT"   # or the branch the user passed in Step 3
-# Freshest ref: the remote is source of truth for the DEFAULT branch, but a local (stacked)
-# parent can carry unpushed commits the remote lacks — keep the local ref in that case.
-if [ "$TARGET" = "$DEFAULT" ] && git rev-parse --verify --quiet "origin/$TARGET" >/dev/null; then
+# Freshest ref: take origin/<target> when the local copy is missing or only behind it
+# (nothing local that the remote lacks); keep the local ref when it carries unpushed commits
+# (a stacked parent), because the remote copy would drop them.
+if git rev-parse --verify --quiet "origin/$TARGET" >/dev/null &&
+   { ! git rev-parse --verify --quiet "$TARGET" >/dev/null ||
+     git merge-base --is-ancestor "$TARGET" "origin/$TARGET"; }; then
   TARGET_REF="origin/$TARGET"
 else
   TARGET_REF="$TARGET"
@@ -119,9 +122,9 @@ git rebase "$TARGET_REF"
 
 - **Success**: report it. If `$CURRENT` was already pushed, the remote now diverges — history was rewritten. Tell the user and print (do **not** run) the safe force-push:
   ```bash
-  git push --force-with-lease
+  git push --force-with-lease --force-if-includes
   ```
-  `--force-with-lease` refuses to clobber commits you haven't seen, unlike a bare `--force`.
+  `--force-with-lease --force-if-includes` refuses to clobber commits you haven't seen, unlike a bare `--force`. `--force-if-includes` matters here because Step 4 ran `git fetch`: after a fetch, `--force-with-lease` alone would accept a teammate's new commits as "seen".
 - **Conflict**: rebase stops mid-way. Do **not** `git rebase --abort` — that throws away the work. Hand off to the **resolving-merge-conflicts** skill if it's installed; otherwise resolve each hunk by the intent of both sides, `git add` the files, and finish with `git rebase --continue`.
 
 ## Example
@@ -133,5 +136,5 @@ Assistant: Working tree clean. Inferred parent: origin/feature/checkout-base (3 
 User: yes
 Assistant: [runs git rebase origin/feature/checkout-base] Done — 3 commits replayed cleanly.
            This branch is pushed, so the remote history differs now. To update it:
-             git push --force-with-lease
+             git push --force-with-lease --force-if-includes
 ```

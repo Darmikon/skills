@@ -118,7 +118,7 @@ Before sending, delete:
 1. The first sentence if it announces what you are about to do.
 2. The last sentence if it asks "anything else?" or recaps what just happened.
 3. Any "by the way" sidebar.
-4. Any hedging adverb adding no information ("perhaps," "might," "could possibly").
+4. Any filler hedge that carries no doubt ("basically," "just," "kind of"). A real doubt stays: a guess keeps "I think" or "I did not check" in the same sentence, so it never reads as a fact.
 
 Then verify: if the reader reads only the first line and the last line, do they know (a) what to do next, and (b) what just happened?
 
