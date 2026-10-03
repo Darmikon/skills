@@ -28,18 +28,13 @@ If there's output, stop and ask the user to commit or stash first.
 
 ### Step 2: Identify current and default branch
 
+The default branch comes from the shared script in `git-common`, next to this skill in the skills folder (the skills folder is this skill's base directory with its last name cut off as text, `/…/skills/<this skill>` → `/…/skills`; never `../`, since the base directory may be a link).
+
 ```bash
 # Merge needs a real branch — bail out if HEAD is detached.
 git symbolic-ref -q HEAD >/dev/null || echo "STOP: detached HEAD — check out a branch first."
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
-DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-if [ -z "$DEFAULT" ]; then           # probe locally — `git remote show origin` would stall on an unreachable remote
-  for c in main master; do
-    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
-    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
-  done
-fi
-[ -z "$DEFAULT" ] && DEFAULT=main
+DEFAULT=$(bash "<skills folder>/git-common/default-branch.sh")
 ```
 
 ### Step 3: Determine the target

@@ -14,20 +14,15 @@ One command for the whole PR lifecycle on the current branch. It composes three 
 
 ## Step 1: Preconditions and mode
 
+The default branch comes from the shared script in `git-common`, next to this skill in the skills folder (the skills folder is this skill's base directory with its last name cut off as text, `/…/skills/<this skill>` → `/…/skills`; never `../`, since the base directory may be a link).
+
 ```bash
 git symbolic-ref -q HEAD >/dev/null || echo "STOP: detached HEAD — check out a branch first."
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
 gh auth status >/dev/null 2>&1 || echo "STOP: GitHub CLI not authenticated — run 'gh auth login'."
 
 # Default/base branch — same local-probe idiom as the other git skills (no network stall).
-DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-if [ -z "$DEFAULT" ]; then
-  for c in main master; do
-    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
-    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
-  done
-fi
-[ -z "$DEFAULT" ] && DEFAULT=main
+DEFAULT=$(bash "<skills folder>/git-common/default-branch.sh")
 [ "$CURRENT" = "$DEFAULT" ] && echo "STOP: you're on the default branch ($DEFAULT) — check out a feature branch to PR."
 
 # Does an OPEN PR already exist for this branch?

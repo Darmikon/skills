@@ -26,7 +26,7 @@ Routing:
 - **No argument:** look at the conversation. Stuck in one place → `zoom-out`. Asking about one part → `how`. Asking about a reason → `why`. A project not yet looked at → `what-is-it`. Suggest one or two with the exact command, list the rest, and stop. Never start one on your own.
 - **A command name first:** read its reference and follow it with the rules in this file. The rest of the argument is its target.
 - **A plain question** ("how does billing work", "why is the timeout 30s"): if one command clearly fits, run it, saying which in one line.
-- **`pin` / `unpin`:** see "Shortcuts".
+- **`pin` / `unpin`:** read `pin.md` in the `scan` skill's `reference/` folder, in the same skills folder as this skill.
 
 ## Change nothing
 
@@ -54,7 +54,7 @@ Use only `+` `-` `|` for boxes and `-->` `<--` `^` `v` for arrows. No Unicode bo
 
 ## Shortcuts
 
-`/ask pin <command>` makes a separate `/<command>` command (for `how to`: `/how-to`); `/ask unpin <command>` removes it. Do it exactly as the `scan` skill's "Shortcuts" section says, with `ask` in place of `scan` and the name without a prefix: the same marker comment, and never touching a folder that does not carry it. `/how`, `/how-to`, `/why` and `/zoom-out` already ship as shortcuts.
+`/how`, `/how-to`, `/why` and `/zoom-out` ship as shortcuts. `/ask pin <command>` makes more (see above).
 
 ## Language
 

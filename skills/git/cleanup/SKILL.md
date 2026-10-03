@@ -25,16 +25,11 @@ git fetch --all --prune
 
 ### Step 2: Identify the branches to protect
 
+The default branch comes from the shared script in `git-common`, next to this skill in the skills folder (the skills folder is this skill's base directory with its last name cut off as text, `/…/skills/<this skill>` → `/…/skills`; never `../`, since the base directory may be a link).
+
 ```bash
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
-DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-if [ -z "$DEFAULT" ]; then           # probe locally — `git remote show origin` would stall on an unreachable remote
-  for c in main master; do
-    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
-    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
-  done
-fi
-[ -z "$DEFAULT" ] && DEFAULT=main
+DEFAULT=$(bash "<skills folder>/git-common/default-branch.sh")
 # Ref to test "merged into default" against — fresh remote default if present, else local, else none.
 # (Without this, a no-origin repo hits `fatal: malformed object name origin/main`.)
 git rev-parse --verify --quiet "origin/$DEFAULT" >/dev/null && BASE="origin/$DEFAULT" \

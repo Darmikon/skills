@@ -26,15 +26,10 @@ If this is empty, tell the user their `git config user.email` isn't set and stop
 
 Don't assume `main` — older repos use `master`, some use `develop`.
 
+The default branch comes from the shared script in `git-common`, next to this skill in the skills folder (the skills folder is this skill's base directory with its last name cut off as text, `/…/skills/<this skill>` → `/…/skills`; never `../`, since the base directory may be a link).
+
 ```bash
-DEFAULT=$(git symbolic-ref --quiet --short refs/remotes/origin/HEAD 2>/dev/null | sed 's@^origin/@@')
-if [ -z "$DEFAULT" ]; then           # probe locally — `git remote show origin` would stall on an unreachable remote
-  for c in main master; do
-    git rev-parse --verify --quiet "origin/$c" >/dev/null && { DEFAULT=$c; break; }
-    git rev-parse --verify --quiet "$c"        >/dev/null && { DEFAULT=$c; break; }
-  done
-fi
-[ -z "$DEFAULT" ] && DEFAULT=main
+DEFAULT=$(bash "<skills folder>/git-common/default-branch.sh")
 echo "Default branch: $DEFAULT"
 ```
 

@@ -33,6 +33,10 @@ The findings file (see "The findings file" in the `scan` skill) plus a `page` ob
 }
 ```
 
+The top-level fields every findings file has: `command`, `family`, `project` (the absolute root), `folder` (or null), `created` (`date +%Y-%m-%dT%H:%M:%S%z`), `head` (`git rev-parse HEAD`), `dirty` (`git status --porcelain | shasum | cut -c1-40`, or null when that prints nothing). The `fix` skill uses `project`, `head` and `dirty` to tell whether the file is still fresh.
+
+A finding has `id`, `title`, `places`, and as the command needs: `kind`, `rank`, `group`, `action`, `seen`, `direction`, `name` (a code or package name), `version` (for a package), `date` (for a timeline). Their words come from the command's reference. Every finding goes in, not only the ones shown.
+
 - `family` is `scan` or `ask` (it goes into the copied prompt: "Found by: /scan unused").
 - `lang` is the conversation's language. Russian and English get their own prompt endings; other languages get English.
 - `facts` are the header lines: what was looked at, tool versions, what did not run and why.
