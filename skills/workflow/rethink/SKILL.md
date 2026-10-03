@@ -36,7 +36,7 @@ State it explicitly:
 
 ### 1.1 Create a Problem Memory File
 
-Create `documentation/<feature-or-area>/problem-memory.md` if one doesn't already exist. This is the **single source of truth** for this investigation. It persists across sessions, branches, and conversations.
+Keep the notes in `problem-memory.md`. Ask the user once where it goes: a git-ignored folder of the project they name, or the OS temp directory (the default when they do not say). Do not create it inside a tracked folder of the project on your own. This is the **single source of truth** for this investigation. It persists across sessions, branches, and conversations.
 
 Structure:
 
@@ -99,9 +99,9 @@ Structure:
 
 Before any more attempts, collect evidence about what's actually happening vs. what you assumed.
 
-**For bugs — instrument with diagnostic logging:**
+**For bugs — plan diagnostic logging** (write it down here; adding it to the code is a change, so it waits until the user approves the experiment after Phase 2):
 
-- Add logs that trace the pipeline end-to-end
+- Plan logs that trace the pipeline end-to-end
 - Use a consistent prefix so logs are greppable
 - Log at every layer boundary the bug might cross
 - Log both the value AND the context

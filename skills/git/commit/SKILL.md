@@ -89,6 +89,8 @@ Show the composed commit message and ask the user to confirm before committing.
 
 **IMPORTANT**: Never execute `git commit` without explicit user approval.
 
+**No AI attribution.** The commit is the user's: no `Co-Authored-By` trailer, no "Generated with Claude" line, no assistant signature of any kind, even if a default would add one.
+
 ## Examples
 
 ### Example 1: New Feature

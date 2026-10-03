@@ -139,13 +139,18 @@ The changelog is the PR description, not a chat artifact — put it where it bel
 ```bash
 gh auth status >/dev/null 2>&1 || echo "STOP: GitHub CLI not authenticated — run 'gh auth login'."
 CURRENT=$(git rev-parse --abbrev-ref HEAD)
-PR=$(gh pr view --json number,url,body 2>/dev/null)
+PR=$(gh pr view --json number,url,body,state 2>/dev/null)
 ```
+
+Only a PR whose `state` is `OPEN` counts. `gh pr view` also returns a merged or closed PR of this branch: treat that as "no open PR" (below), and never rewrite a merged PR's description.
 
 - **An open PR exists** → update its description. Regenerate freely, but **carry over anything a person added** to the old body that isn't the mechanical change list — background/motivation, linked issues (`Closes #123`), migration notes, screenshots or demo links, reviewer checklists. Then overwrite:
   ```bash
-  gh pr edit "$(gh pr view --json number -q .number)" --body "<the changelog, with the useful old parts merged back in>"
+  gh pr edit "$(gh pr view --json number -q .number)" --body-file - <<'BODY'
+  <the changelog, with the useful old parts merged back in>
+  BODY
   ```
+  Pass the body through `--body-file -` and a quoted heredoc, never `--body "…"`: the body has backticks (`` `npm test` ``), and inside double quotes the shell would run them as commands.
   Report the PR URL — don't paste the whole body back into chat.
 
 - **No open PR for this branch** → don't dump the changelog into the void. Tell the user there's no PR yet and **offer to run the `pr` skill** (`/pr`), which opens one with this changelog as its body. Only if they decline (or there's no GitHub remote) fall back to printing the changelog to chat so the work isn't lost.

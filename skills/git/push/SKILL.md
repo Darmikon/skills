@@ -45,8 +45,19 @@ A push can be rejected for different reasons — only one of them is "rebase and
 
 ### Step 4: Integrate by rebase
 
+First check that the remote commits are really someone else's work, and not your own commits from before a rebase:
+
 ```bash
 git fetch origin
+git cherry HEAD "origin/$CURRENT"
+```
+
+`git cherry` lists the commits that are on the remote branch but not in yours: `+` means new work, `-` means the same change is already in your branch (it was rewritten, usually by your own `/rebase`).
+
+- **Every line starts with `-`**, or the list is empty while the push was still rejected: your branch was rebased, and the remote holds its old copy. Do **not** rebase onto it: that would replay your whole branch, with everything the rebase brought in, on top of the old copy, and leave duplicates and conflicts. Stop and tell the user, and offer the command for them to run: `git push --force-with-lease --force-if-includes`. Never run it yourself.
+- **Any `+` line**: someone else pushed new work. Go on:
+
+```bash
 git rebase "origin/$CURRENT"
 ```
 

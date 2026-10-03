@@ -8,6 +8,8 @@ disable-model-invocation: true
 
 One command for the whole PR lifecycle on the current branch. It composes three sibling skills — **commit**, **push**, and **changelog** — and wires them to the GitHub CLI, choosing **create** or **update** automatically based on whether a PR already exists.
 
+**How to use the sibling skills.** `push` and `changelog` start only when the user types them, so they cannot be called with the Skill tool from here. Read their `SKILL.md` and follow it instead. They sit in the same skills folder as this skill: the folder is this skill's base directory with its last name cut off as text (`/…/skills/pr` → `/…/skills`); do not write `../push`, since the base directory may be a link and `..` follows it elsewhere.
+
 > **No AI attribution — ever.** Never put "Generated with Claude", a `Co-Authored-By` trailer, or any assistant signature in the PR title or body. The PR is the user's.
 
 ## Step 1: Preconditions and mode
@@ -60,8 +62,12 @@ Generate the PR body in the **changelog** format — the emoji-sectioned summary
 ## Step 5a: Create the PR
 
 ```bash
-gh pr create --base "$DEFAULT" --head "$CURRENT" --title "<title>" --body "<changelog body>"
+gh pr create --base "$DEFAULT" --head "$CURRENT" --title "<title>" --body-file - <<'BODY'
+<changelog body>
+BODY
 ```
+
+The body goes through `--body-file -` and a quoted heredoc, never `--body "…"`: its backticks would run as shell commands inside double quotes.
 
 Report the resulting PR URL.
 
