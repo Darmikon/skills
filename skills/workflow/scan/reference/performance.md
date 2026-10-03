@@ -11,7 +11,7 @@ This file adds the performance part to the rules in [../SKILL.md](../SKILL.md). 
 - With a folder or area after `/scan performance`, look there.
 - Otherwise start from the hot paths: the routes and handlers that run most (list endpoints, search, the chat or feed, anything called per request or per message), the background jobs that go over many rows, and the pages of the web app. `git log --oneline -60 --name-only` shows where work goes on now.
 
-For a large project, start an `Explore` subagent per area with the list below. Check each claim a subagent makes against the code yourself before it goes on the page (an index it calls useful may be partial, a loop it calls unbounded may have a cap).
+In a full scan of a large project, start an `Explore` subagent per area with the list below. Check each claim a subagent makes against the code yourself before it goes on the page (an index it calls useful may be partial, a loop it calls unbounded may have a cap).
 
 ### What looks slow
 

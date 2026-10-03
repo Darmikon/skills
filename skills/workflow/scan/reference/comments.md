@@ -28,7 +28,7 @@ The TODO notes have their own search:
 git grep -n -I -w -E 'TODO|FIXME|HACK|XXX|@deprecated' -- <paths> ':!*.md' ':!*.d.ts'
 ```
 
-For a project with more than a few hundred fact-carrying comments, start a `general-purpose` subagent per area with all four kinds below. Ask it to return, for each finding, the comment with its path and line, the code fact with its path and line, and the command that showed it. Re-check yourself every finding that goes on a card.
+In a full scan, for a project with more than a few hundred fact-carrying comments, start a `general-purpose` subagent per area with all four kinds below. Ask it to return, for each finding, the comment with its path and line, the code fact with its path and line, and the command that showed it. Re-check yourself every finding that goes on a card.
 
 ## 2. The four kinds
 

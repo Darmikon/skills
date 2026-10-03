@@ -41,7 +41,7 @@ Then read what the project already decided: `CLAUDE.md`, `AGENTS.md`, and the de
 
 ### 2. Walk the code
 
-Start an `Explore` subagent (or read yourself if the area is small) with the area and the checks above. Ask it to report places where it felt friction, with file paths and one line of evidence each, and not to follow a fixed recipe. Keep what the code shows; drop what is only a taste.
+In a full scan, start an `Explore` subagent (in a quick one, or when the area is small, read yourself) with the area and the checks above. Ask it to report places where it felt friction, with file paths and one line of evidence each, and not to follow a fixed recipe. Keep what the code shows; drop what is only a taste.
 
 ### 3. The page
 

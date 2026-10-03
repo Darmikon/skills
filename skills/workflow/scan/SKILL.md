@@ -28,6 +28,16 @@ Routing:
 - **A command name first** (`doc` for `docs` and `comment` for `comments` work too): read its reference and follow it together with the rules in this file. The rest of the argument is the folder or area.
 - **Something else** ("is this secure?", "what is this project"): if one command clearly fits, name it and ask once before running it. If none fits, say so and show the menu.
 - **`pin` / `unpin`:** see "Shortcuts" below.
+- **`deep`** anywhere in the argument, or "full", "everything", "полный": a full scan (below). Without it, a quick one.
+
+## Quick and full
+
+A scan is **quick** unless the user asked for a full one. The user never has to remember a word for it: the quick scan offers the full one at its end.
+
+- **Quick** (the default): no subagents. Look first where the code changes most (`git log --oneline -60 --name-only`, or the folder the user named), and stop reading once you have the **5 most important findings** by the reference's own ranking. Tools that run on their own (`knip`, `gitleaks`, `semgrep`, the audit, the test runner) still run in full; only the reading and checking is cut to the top 5. Aim for a couple of minutes. The page's `facts` say "Quick scan: the 5 main findings" and what was not looked at.
+- **Full** (`deep`): everything the reference describes, subagents included, no cap on findings.
+
+Every reference's rules apply to both; where a reference says to start subagents, that is for the full scan only.
 
 ## The menu
 
@@ -109,6 +119,8 @@ The `fix` skill reads the same JSON, so that a scan just done is not done again.
 1. In the chat, one line per item, or counts by kind when the reference says so, in the form the command's reference names. Then the top pick, when the command has one.
 2. Ask the closing question that the reference names. One question.
 3. Unless the reference says otherwise: when the user picks an item, give them the ready command for the next skill, one line to copy, with the item as the topic: `/<skill> <what it is, the files, the evidence>`. The next skill is one the user starts: you cannot call it yourself.
+
+After a quick scan, add one more line before the closing question: how much was left out (the areas not read, the findings past the top 5 that the tools reported) and the offer: "Run the full scan? It takes about <your estimate> minutes." A "yes" runs the same command as a full scan; the findings file is written again, complete.
 
 Nothing starts before the user picks. No code.
 

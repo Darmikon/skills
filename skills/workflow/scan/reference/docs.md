@@ -16,7 +16,7 @@ With a folder after `/scan docs`, only the documents in it. Otherwise:
 
 Skip `node_modules/`, `.git/`, `vendor/`, `dist/`, `build/`, generated API docs (`openapi.json` and the like), and changelogs written by a tool. Skip what git ignores, and empty files. An append-only log (a long `log.md`, a journal) is skimmed for claims about the present, not read line by line.
 
-For a large project, start a `general-purpose` subagent per folder of documents (not `Explore`: it reads excerpts, and this scan needs whole documents) with the checks below. Ask it to return, for each false claim, the quote with its path and line, the code fact with its path and line, and the command that showed it. Re-check yourself every claim that goes on a card; claims that stay in the table may rest on the subagent's evidence.
+In a full scan of a large project, start a `general-purpose` subagent per folder of documents (not `Explore`: it reads excerpts, and this scan needs whole documents) with the checks below. Ask it to return, for each false claim, the quote with its path and line, the code fact with its path and line, and the command that showed it. Re-check yourself every claim that goes on a card; claims that stay in the table may rest on the subagent's evidence.
 
 ## 1. The list of documents
 

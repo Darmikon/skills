@@ -42,6 +42,8 @@ Fresh: say in one line which scan you use (its time and page link) and go on. No
 
 Never trust a findings file that is not fresh: the code it points at may have moved.
 
+A quick scan's file holds only its top 5 findings, and `fix` fixes those. When the scan it runs itself is quick, say so in one line and offer the full scan first for everything.
+
 ## 2. The plan
 
 Show the plan in the chat as one numbered list, one line per change: the file (and line: for a `package.json` change, the line of the section it goes in), what changes, and why in a few words. Group the lines under short headings when there are many. Mark every line that deletes a file. Say which findings you leave out and why (a "check first" finding with a real use, a lie you could not confirm).
