@@ -1,6 +1,11 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { renderPage, buildPrompt } from "./render-page.mjs";
+import { mkdtempSync, symlinkSync, writeFileSync, existsSync } from "node:fs";
+import { join, dirname } from "node:path";
+import { tmpdir } from "node:os";
+import { execFileSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
 
 const base = () => ({
   command: "unused",
@@ -98,4 +103,15 @@ test("a finding listed in a section but missing from findings is reported, not d
   const data = base();
   data.page.sections[0].findings = ["f1", "nope"];
   assert.throws(() => renderPage(data), /unknown finding "nope"/);
+});
+
+test("runs as a program when started through a link, and writes the page next to the JSON", () => {
+  const dir = mkdtempSync(join(tmpdir(), "render-page-"));
+  const link = join(dir, "linked-scan");
+  symlinkSync(dirname(fileURLToPath(import.meta.url)), link);
+  const json = join(dir, "scan-unused-1.json");
+  writeFileSync(json, JSON.stringify(base()));
+  const out = execFileSync("node", [join(link, "render-page.mjs"), json], { encoding: "utf8" }).trim();
+  assert.equal(out, join(dir, "scan-unused-1.html"));
+  assert.ok(existsSync(out));
 });

@@ -2,7 +2,7 @@
 // Draws a scan or ask page from its findings file. Plain Node, no packages.
 // Usage: node render-page.mjs <findings.json> [--open]
 
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, realpathSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
@@ -234,4 +234,6 @@ function main(argv) {
   }
 }
 
-if (import.meta.url === pathToFileURL(process.argv[1] ?? "").href) main(process.argv.slice(2));
+// Run as a program, also when started through a link (Node resolves the link for import.meta.url).
+const started = (() => { try { return pathToFileURL(realpathSync(process.argv[1] ?? "")).href; } catch { return ""; } })();
+if (import.meta.url === started) main(process.argv.slice(2));

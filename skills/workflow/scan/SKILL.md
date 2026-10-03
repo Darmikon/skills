@@ -80,7 +80,7 @@ The `fix` skill reads the same JSON, so that a scan just done is not done again.
   "family": "scan",
   "project": "/absolute/project/root",
   "folder": null,
-  "created": "2026-10-01T13:25:02+04:00",
+  "created": "<date +%Y-%m-%dT%H:%M:%S%z>",
   "head": "<git rev-parse HEAD>",
   "dirty": "<git status --porcelain | shasum | cut -c1-40, or null when the output is empty>",
   "findings": [

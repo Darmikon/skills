@@ -15,17 +15,17 @@ With a folder after `/scan comments`, only that folder. Otherwise every source f
 List them with a search, not by opening every file. Leave out what "Which code" excludes in the search itself:
 
 ```bash
-git grep -n -I -E '(//|/\*|^\s*\*)' -- <paths> ':!*.md' ':!*.lock' ':!*.json' ':!*.d.ts' ':!**/migrations/meta/**' ':!**/generated/**'
+git grep -n -I -E '(//|/\*|^[[:space:]]*\*)' -- <paths> ':!*.md' ':!*.lock' ':!*.json' ':!*.d.ts' ':!**/migrations/meta/**' ':!**/generated/**'
 ```
 
-Add markers only for the languages the project has: `^\s*#(\s|$)` for Python, shell and YAML; `^\s*--\s` for `.sql` files only; `<!--` for HTML and templates. Keep the hits that are real comments, not `#` in a string or a URL with `//`.
+Add markers only for the languages the project has: `^[[:space:]]*#([[:space:]]|$)` for Python, shell and YAML; `^[[:space:]]*--[[:space:]]` for `.sql` files only (use `[[:space:]]`, not `\s` or `\b`: the system regex on macOS does not know them); `<!--` for HTML and templates. Keep the hits that are real comments, not `#` in a string or a URL with `//`.
 
 A big project has tens of thousands of comment lines: do not check them all. Check every comment that carries a checkable fact (a digit, a name in backticks or in `CamelCase`/`snake_case`, a path, a URL, "returns", "throws", "always", "never", "only"), and a sample of the rest for repeats. Say on the page how many comment lines were found and how many were checked.
 
 The TODO notes have their own search:
 
 ```bash
-git grep -n -I -E '\b(TODO|FIXME|HACK|XXX)\b|@deprecated' -- <paths> ':!*.md' ':!*.d.ts'
+git grep -n -I -w -E 'TODO|FIXME|HACK|XXX|@deprecated' -- <paths> ':!*.md' ':!*.d.ts'
 ```
 
 For a project with more than a few hundred fact-carrying comments, start a `general-purpose` subagent per area with all four kinds below. Ask it to return, for each finding, the comment with its path and line, the code fact with its path and line, and the command that showed it. Re-check yourself every finding that goes on a card.
@@ -55,7 +55,7 @@ Blocks of two or more comment lines that are code: they end in `;` or `{`, call 
 
 `// increment i` above `i++`, `// constructor` above a constructor, `/** Gets the user. */` above `getUser()`. Only the clear cases; do not list every short comment. These are the lowest priority: give the count from the comments you checked (say it is from a sample) and at most ten examples.
 
-Words for the findings file: `kind` is `lie`, `todo`, `commented-out` or `repeat`; `group` for a TODO is `done`, `gone`, `old` or `open`; `action` is `correct`, `delete` or `ask` (the code may be the one that is wrong).
+Words for the findings file: `rank` for a lie is `High` when it would change what a reader does (a wrong unit, a wrong error case, a wrong limit) and `Medium` otherwise; a lie's `places` list the comment first, then the code that contradicts it, and `seen` says which is which. `kind` is `lie`, `todo`, `commented-out` or `repeat`; `group` for a TODO is `done`, `gone`, `old` or `open`; `action` is `correct`, `delete` or `ask` (the code may be the one that is wrong).
 
 ## 3. The page
 

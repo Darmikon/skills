@@ -57,9 +57,9 @@ The body has one section per kind, in this order, and leaves out a kind with no 
 5. **Types nothing uses** (`types`)
 6. **Imports that do not resolve** (`unresolved`)
 
-At the top of the body, one row of counts for the kinds that have findings, split into "safe to remove" and "check first" where the kind has that split, and one short line naming the kinds with nothing found.
+The summary row has a count for every kind, with `0` for a kind with nothing found, split into "safe to remove" and "check first" where the kind has that split.
 
-In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in the class that [page.md](page.md) gives its kind (`sym`, `const`, or `lit` for a package), the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are.
+In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in backticks, the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are.
 
 Each kind is a `lines` section; the program gives every finding its own copy button and the section one for the whole group. Every finding goes in the JSON, not only the 30 shown: put the rest in a folded `lines` section "More".
 
