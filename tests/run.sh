@@ -236,7 +236,63 @@ case_handoff() {
   check "changes nothing in the project" clean
 }
 
-CASES="scan_comments scan_unused fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff"
+case_feature() {
+  fresh feature
+  ask "/ask feature list the orders"
+  check "follows the route into the service" says "orderTotal"
+  check "starts at the server" says "server\\.ts"
+  check "draws a page" says "ask-feature-[0-9-]+\\.html"
+  check "changes nothing" clean
+}
+
+case_compare() {
+  fresh compare
+  local other="$WORK/compare/shop-paged"
+  cp -R "$HERE/fixture" "$other"
+  cat > "$other/src/services/orders.ts" <<'TS'
+export interface IOrder { id: string; items: { priceCents: number; qty: number }[] }
+const ORDERS: IOrder[] = [{ id: "a1", items: [{ priceCents: 1200, qty: 2 }] }];
+export const PAGE_SIZE = 20;
+export function listOrders(page = 1): IOrder[] {
+  return ORDERS.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+}
+export function orderTotal(items: IOrder["items"]): number {
+  return items.reduce((sum, i) => sum + i.priceCents * i.qty, 0);
+}
+TS
+  ask "/ask compare listing orders in this project and $other"
+  check "notices the paging difference" says "(paging|page|PAGE_SIZE|страниц)"
+  check "draws a page" says "ask-compare-[0-9-]+\\.html"
+  check "changes nothing" clean
+}
+
+case_history() {
+  fresh history
+  (cd "$P" && sed -i '' 's/Returns the total in euros./Returns the total in cents./' src/services/orders.ts && g commit -qam "fix: say totals are in cents" \
+    && printf '\nexport const CURRENCY = "EUR";\n' >> src/services/orders.ts && g commit -qam "feat: name the currency")
+  ask "/ask history orderTotal"
+  check "tells the chapters" says "(cents|currency|CURRENCY)"
+  check "draws a page" says "ask-history-[0-9-]+\\.html"
+  check "changes nothing" clean
+}
+
+case_error() {
+  fresh error
+  (cd "$P" && printf '\nexport function refundOrThrow(id: string) {\n  if (!refundOrder(id)) throw new Error(`order ${id} not found`);\n}\n' >> src/services/orders.ts && g commit -qam "feat: refund or throw")
+  ask "/ask error Error: order b7 not found"
+  check "finds where it is thrown" says "refundOrThrow"
+  check "changes nothing" clean
+}
+
+case_who() {
+  fresh who
+  (cd "$P" && echo "// tweak" >> src/routes/orders.ts && git -c user.name="Ann Example" -c user.email="ann@example.com" commit -qam "fix: tweak the route")
+  ask "/ask who src/routes"
+  check "names both people" bash -c "grep -q 'Ann Example' '$LOG' && grep -q 'Test User' '$LOG'"
+  check "changes nothing" clean
+}
+
+CASES="scan_comments scan_unused fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who"
 for c in $CASES; do run_case "$c"; done
 
 echo
