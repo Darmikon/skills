@@ -64,25 +64,25 @@ A scan observes and recommends. `fix` does the work.
 - Three to six good items beat twelve thin ones.
 - If nothing is worth showing, say so in the chat and stop. No page.
 
-## The page
+## The page and the findings file
 
-Write one self-contained HTML file to `<tmp>/scan-<command>-<timestamp>.html`, where `<tmp>` is `${TMPDIR:-/tmp}` without its trailing slash (`t="${TMPDIR:-/tmp}"; t="${t%/}"`; on macOS `$TMPDIR` ends in `/`), with the timestamp from `date +%Y%m%d-%H%M%S`. Open it with `open <path>` on macOS or `xdg-open <path>` on Linux, and give it in the chat as a `file://` link.
+A scan writes one JSON file and a program draws the page from it. You never write HTML.
 
-Read [reference/page.md](reference/page.md) for the layout and style. The command's reference says what goes in the body.
+1. Write `<tmp>/scan-<command>-<timestamp>.json`, where `<tmp>` is `${TMPDIR:-/tmp}` without its trailing slash (`t="${TMPDIR:-/tmp}"; t="${t%/}"`; on macOS `$TMPDIR` ends in `/`) and the timestamp comes from `date +%Y%m%d-%H%M%S`.
+2. Draw it: `node "<skills folder>/scan/scripts/render-page.mjs" "<the json>" --open` (the skills folder is this skill's base directory with its last name cut off as text).
+3. In the chat, give the page as a `file://` link and the JSON path under it.
 
-## The findings file
-
-Next to the page, write the same findings for a machine to read: `<tmp>/scan-<command>-<timestamp>.json`. The `fix` skill reads it, so that a scan just done is not done again. Give its path in the chat under the page link.
+The `fix` skill reads the same JSON, so that a scan just done is not done again.
 
 ```json
 {
   "command": "docs",
+  "family": "scan",
   "project": "/absolute/project/root",
   "folder": null,
   "created": "2026-10-01T13:25:02+04:00",
   "head": "<git rev-parse HEAD>",
   "dirty": "<git status --porcelain | shasum | cut -c1-40, or null when the output is empty>",
-  "page": "<absolute path of the page>",
   "findings": [
     {
       "id": "f1",
@@ -97,11 +97,12 @@ Next to the page, write the same findings for a machine to read: `<tmp>/scan-<co
       "action": "delete | drop export | rewrite | merge into … | add to … | …",
       "group": "safe to remove | check first | real | not reached | likely false alarm | …"
     }
-  ]
+  ],
+  "page": { "lang": "ru", "title": "…", "facts": [], "summary": [], "sections": [], "top_pick": null }
 }
 ```
 
-`kind`, `rank`, `action` and `group` take the words the command's reference uses; leave out a field the command does not have. Paths are relative to the project root. Every finding goes in, not only the ones shown on the page. No secret goes in, the same as on the page.
+`kind`, `rank`, `action` and `group` take the words the command's reference uses; leave out a field the command does not have. Paths are relative to the project root. Every finding goes in, not only the ones shown on the page. No secret goes in. What goes in `page` (the six blocks, the fields' style) is in [reference/page.md](reference/page.md); the command's reference says which sections to make.
 
 ## The ending
 

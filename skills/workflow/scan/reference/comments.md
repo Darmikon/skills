@@ -69,7 +69,7 @@ The body:
 4. **Commented-out code:** one line per block: the path tile with the line range, the size, how long it has been dead.
 5. **Repeats:** the count and the examples.
 
-Copy buttons: every card, every line in the TODO and commented-out sections, and each section as a whole (the group as one task, every finding in it, not only the ones shown). A kind with nothing found gets no section; the summary row says "none" for it.
+A kind with nothing found gets no section; the summary says `0` for it.
 
 Top pick: the lie that would mislead a reader the most.
 

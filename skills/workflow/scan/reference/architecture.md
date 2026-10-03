@@ -50,7 +50,7 @@ The body is one card per candidate:
 - **Title**: names the change, e.g. "Merge the three token helpers into one module".
 - **Strength**: `Strong` (emerald), `Worth exploring` (amber) or `Speculative` (slate). A candidate you believe in but did not confirm is `Speculative`, and the card says what was not checked.
 - **Files**: the files involved.
-- **Before / after picture**: side by side. This is the centre of the card.
+- **Before / after picture**: a `diagram` section right after the candidate's card, one Mermaid source with two subgraphs, `Before` and `After`.
 - **Problem**: one sentence, what hurts, with the evidence you saw.
 - **Direction**: one sentence, what would change. Not a new interface, no code.
 - **Wins**: short bullets in the words above: "locality: token bugs live in one module", "leverage: one interface, four callers". Not "cleaner" or "easier to maintain".
@@ -58,13 +58,7 @@ The body is one card per candidate:
 
 The header legend: solid box = module, dashed line = seam, red arrow = leak, thick dark box = deep module.
 
-Pick the picture that fits each candidate, and do not make every card look the same:
-
-- **Mermaid flowchart**: "X calls Y calls Z, and look at the mess". Colour leaks red with `classDef`. A sequence diagram works for "before: six round trips, after: one".
-- **Hand-built boxes**: the "after" as one thick deep module with its old parts faded inside.
-- **Cross-section**: stacked bands for the layers a call passes through. Before: six thin bands. After: one thick band.
-- **Mass picture**: two rectangles per module, interface and implementation. Shallow: almost the same height. Deep: a short interface over a tall implementation.
-- **Call-tree collapse**: before, a tree of nested boxes; after, the same tree folded into one box.
+Pick the Mermaid form that fits: a `flowchart` for "X calls Y calls Z", with leaks styled red through `classDef`; a `sequenceDiagram` for "before: six round trips, after: one"; nested `subgraph`s for a module that swallows its shallow parts.
 
 The top pick is the candidate to start with.
 

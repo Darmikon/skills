@@ -50,7 +50,7 @@ Use only `+` `-` `|` for boxes and `-->` `<--` `^` `v` for arrows. No Unicode bo
 
 ## The page (`what-is-it` only)
 
-`what-is-it` answers on one HTML page, made the way `scan` makes its pages: read the `scan` skill's `SKILL.md` ("The page", "Proof", "The findings file") and its `reference/page.md`, in the same skills folder as this skill. The skills folder is this skill's base directory with its last name cut off as text (`/…/skills/ask` → `/…/skills`); do not write `../scan`, since the base directory may be a link and `..` follows it elsewhere. The files are named `ask-what-is-it-<timestamp>.html` and `.json`. If the `scan` skill is not installed, answer in the chat with the same six sections, and say that the page needs it (`npx skills add Darmikon/skills --skill scan`).
+`what-is-it` answers on one page, drawn by the `scan` skill's program: write the JSON as the `scan` skill's `reference/page.md` says (with `"family": "ask"`), and run its `scripts/render-page.mjs`; both are in the `scan` folder of the same skills folder as this skill. Follow the `scan` skill's "Proof" rule too. The skills folder is this skill's base directory with its last name cut off as text (`/…/skills/ask` → `/…/skills`); do not write `../scan`, since the base directory may be a link and `..` follows it elsewhere. The files are named `ask-what-is-it-<timestamp>.html` and `.json`. If the `scan` skill is not installed, answer in the chat with the same six sections, and say that the page needs it (`npx skills add Darmikon/skills --skill scan`).
 
 ## Shortcuts
 

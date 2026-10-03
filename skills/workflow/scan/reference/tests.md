@@ -79,7 +79,7 @@ The body:
 5. **Switched off:** one line each: the test, its age, the reason if written.
 6. **Coverage:** when measured, a folded table of files under 50 %, lowest first.
 
-Copy buttons as [page.md](page.md) says, plus one on each line in sections 3 to 5 and one per section.
+Sections 3 to 5 are `lines` blocks; section 2 is a `cards` block; section 6 is a folded `table`.
 
 Top pick: the riskiest part with no tests, or a test that fails by chance on a path that matters, whichever would hurt more.
 

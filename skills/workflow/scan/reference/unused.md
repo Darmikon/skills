@@ -61,7 +61,7 @@ At the top of the body, one row of counts for the kinds that have findings, spli
 
 In each section, "safe to remove" comes first, then "check first". One line per finding: the path tile with its line, the name in the class that [page.md](page.md) gives its kind (`sym`, `const`, or `lit` for a package), the action ("delete", "drop `export`", "add to …"), and for "check first" the tiles of the places the search found. A section with more than 30 findings shows the first 30 and says how many more there are.
 
-Copy buttons ([page.md](page.md)): every finding line gets its own, so each one can be dealt with on its own, and every section gets one too, at the section's top right. A line's prompt is that one finding: path, line, name, action, and for "check first" the places the search found. A section's prompt is the whole group as one task: "In this project, these N findings are <kind>:" then one line per finding with its path, line, name and action, the "check first" ones marked with their places, then the usual ask. The section's prompt has every finding, not only the 30 shown.
+Each kind is a `lines` section; the program gives every finding its own copy button and the section one for the whole group. Every finding goes in the JSON, not only the 30 shown: put the rest in a folded `lines` section "More".
 
 No pictures and no top pick.
 
