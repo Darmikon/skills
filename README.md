@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill explore --skill fix --skill focus --skill handoff --skill handoff-lpm --skill ask --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -76,6 +76,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 |-------|---|-------------|---------|
 | ask | 🧍 | Understand code without changing it: `what-is-it` (a whole project, on a page), `how`, `how to`, `why`, `zoom-out`; `/ask` alone suggests which | `npx skills add Darmikon/skills --skill ask` |
 | baby | 🧍 | Re-explain the last answer in plain words, and keep going that way | `npx skills add Darmikon/skills --skill baby` |
+| domain-model | 🤖 | Keeps the project's glossary and decision records in `docs/` on its own; asks only before recording a decision | `npx skills add Darmikon/skills --skill domain-model` |
 | explore | 🧍 | Think together before building: read, draw, compare — no code, no files, until you say stop | `npx skills add Darmikon/skills --skill explore` |
 | fix | 🧍 | Fix what `/scan` found after you approve a numbered plan: `docs`, `comments`, `unused` change files and leave them uncommitted; `security`, `performance`, `architecture` go to brainstorming | `npx skills add Darmikon/skills --skill fix` |
 | focus | 🧍 | Action-first, skimmable output | `npx skills add Darmikon/skills --skill focus` |

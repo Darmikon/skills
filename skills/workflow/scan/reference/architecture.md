@@ -33,7 +33,7 @@ Never swap them for "component", "service", "layer", "wrapper", "API" or "bounda
 - An area named after `/scan architecture`: look there.
 - Otherwise the files that change most in `git log --oneline -60 --name-only`. With no clear hot spot, look wider.
 
-Then read what the project already decided: `CLAUDE.md`, `AGENTS.md`, and the design notes under `docs/` in the area. Use the project's own names for things. Do not suggest what a written decision rejected, unless the pain is real enough to reopen it; then say so on the card.
+Then read what the project already decided: its `decisions/` folders (see "The project's words" in the scan skill), `CLAUDE.md`, `AGENTS.md`, and the design notes under `docs/` in the area. Use the project's own names for things. Do not suggest what a written decision rejected, unless the pain is real enough to reopen it; then say so on the card.
 
 ### 2. Walk the code
 
@@ -60,6 +60,6 @@ The top pick is the candidate to start with.
 
 ### 4. The ending
 
-Chat line per candidate: its title and strength. Closing question: "Which one should we think through?" The next skill is `explore`: `/explore <the candidate>`.
+Chat line per candidate: its title and strength. Closing question: "Which one should we think through?" The next skill is `explore`: `/explore <the candidate>`. If the user turns a candidate down for a reason that will still hold later, offer to record it as a decision (the `domain-model` skill), so the next scan does not suggest it again.
 
-Adapted from `improve-codebase-architecture` and `codebase-design` in [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), without the glossary and ADR writing and without the grilling step.
+Adapted from `improve-codebase-architecture` and `codebase-design` in [mattpocock/skills](https://github.com/mattpocock/skills) (MIT), without the grilling step; the glossary and decision records live in the `domain-model` skill.

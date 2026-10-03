@@ -36,7 +36,7 @@ Use only `+` `-` `|` `v` `^` `-->`: Unicode box and arrow symbols fall apart in 
 
 ## Rules
 
-- **The project's words.** Name each part as `CLAUDE.md`, `AGENTS.md`, `docs/` or a glossary names it; only then as the code does, in backticks.
+- **The project's words.** Name each part as the project's glossary (see "The project's words" in the `ask` skill), `CLAUDE.md`, `AGENTS.md` or `docs/` names it; only then as the code does, in backticks.
 - **Read it yourself.** Search for who calls the area and read what it calls. No subagents, no page.
 - **Change nothing.** No file is written, nothing is run that changes anything.
 - **A guess stays a guess.** A caller you did not find in the code is marked "I think".

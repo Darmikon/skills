@@ -34,7 +34,7 @@ Write the answer yourself from their reports. Check in the code where two report
 
 ## Words
 
-Call things by the project's own names. Take them from `CLAUDE.md`, `AGENTS.md`, `docs/`, a glossary if the project has one, then from the code. One name for one thing, from start to end. Where a name comes from the code, put it in backticks.
+Call things by the project's own names. Take them from the project's glossary (see "The project's words" in the `ask` skill), then `CLAUDE.md`, `AGENTS.md`, `docs/`, then the code. One name for one thing, from start to end. Where a name comes from the code, put it in backticks.
 
 ## The answer
 

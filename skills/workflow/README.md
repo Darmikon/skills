@@ -21,4 +21,5 @@ How the agent responds and recovers: output styles, response shape, and stepping
 
 ## Model-invoked
 
+- **[domain-model](./domain-model/SKILL.md)** — Keeps the project's language and big decisions written down while you work, without being called. A settled word goes straight into `docs/glossary.md` (one word per idea, the others listed as words not to use, only this project's words), with one line at the end of the reply. A decision is recorded in `docs/decisions/NNNN-slug.md` only when it is hard to undo, odd without its reason and a real choice, and only after one yes/no question; a proposal turned down for a lasting reason counts too, so `scan architecture` stops suggesting it. Projects with parts get `docs/glossary-map.md` and a glossary and `decisions/` per part, split after one question when one glossary stops working. While `ask`, `scan`, `explore` or `verify` run it writes nothing and offers its words at their end. `ask` and `scan` read these files first. Adapted from Matt Pocock's `domain-modeling` (MIT), with the files under `docs/`.
 - **[rethink](./rethink/SKILL.md)** — Step back and rethink systematically after 3+ failed attempts at any task.

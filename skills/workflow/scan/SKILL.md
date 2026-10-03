@@ -40,6 +40,10 @@ A scan looks at a project, changes nothing in it, and shows what it found on one
 - When observing would need a change, do not do it: say what it would take and leave it to `/fix`.
 - Not sure a command leaves everything as it was? Ask.
 
+## The project's words
+
+Before looking, read the glossary and decisions: `docs/glossary-map.md` points to the glossary and `decisions/` of the part you look at (plus the root `docs/decisions/`); without a map, `docs/glossary.md` and `docs/decisions/`. Name things with its words. Do not report as a problem what a written decision chose on purpose, unless the pain is real enough to reopen it; then say which decision. Words or decisions worth recording go in one line at the end, recorded only after a yes.
+
 ## Proof
 
 Every finding names a file, a line when there is one, and what you saw there. What you worked out but did not see is marked "guess" in the same sentence. If nothing is worth showing, say so and stop: no page.

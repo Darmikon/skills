@@ -41,7 +41,9 @@ Routing:
 
 ## The project's words
 
-Call things by the project's own names: from `CLAUDE.md`, `AGENTS.md`, `docs/`, a glossary, then from the code in backticks. One name for one thing from start to end.
+Call things by the project's own names. Read the glossary and decisions: `docs/glossary-map.md` points to the glossary and `decisions/` of the part you look at (plus the root `docs/decisions/`); without a map, `docs/glossary.md` and `docs/decisions/` (the `domain-model` skill keeps them). Then `CLAUDE.md`, `AGENTS.md`, `docs/`, then the code, in backticks. One name for one thing from start to end. A written decision is not suggested against unless you say why it should be reopened.
+
+Words or decisions worth recording that come up while you answer: list them in one line at the end and record them only after a yes, since `ask` changes nothing.
 
 ## A guess stays a guess
 

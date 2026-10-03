@@ -24,7 +24,7 @@ Stop climbing as soon as the question is answered. Say in "Sources checked" wher
 - `git blame -L <start>,<end> <file>` for who last touched the lines, `git log --follow -- <file>` for the whole history through renames. Go back past the latest commit: the shape is often older than the last change.
 - Read the commit messages. Take the PR numbers (`(#1234)`) and ticket keys (`HQT-123`) from them and from branch names.
 - `gh pr view <number> --json title,body,comments,reviews,closingIssuesReferences` for each PR that changed the target in a meaningful way. Review comments often hold the real reason.
-- Comments next to the code, tests added in the same change, and the project's written decisions (`CLAUDE.md`, `AGENTS.md`, `docs/`, ADRs).
+- Comments next to the code, tests added in the same change, and the project's written decisions: the `decisions/` folders (see "The project's words" in the `ask` skill), `CLAUDE.md`, `AGENTS.md`, `docs/`, ADRs. A decision record that states the reason is a Found claim.
 
 **2. The ticket.** When step 1 found ticket keys, or left the question open: read the tickets in the tracker that is connected (Jira, Linear, GitHub Issues). The ticket often holds the business reason that engineering never wrote down.
 
