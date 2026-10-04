@@ -32,6 +32,7 @@ The skills folder is this skill's base directory with its last name cut off as t
 Look in `<tmp>` (`${TMPDIR:-/tmp}` without its trailing slash) for `scan-<command>-<digits>-<digits>.json` files whose `project` is this project's root, and take the newest. It is fresh when its `head` is the current `git rev-parse HEAD`, its `dirty` matches `git status --porcelain | shasum | cut -c1-40` (a clean tree matches `null`), its `folder` covers the one asked for, and its `scope` covers what is asked: `/fix <command>` on a branch with changes takes a `branch` or `deep` scan (from a deep one, only the findings that belong to the branch, as the `scan` skill's "What a scan looks at" says); `/fix <command> deep` takes only a `deep` one; with no branch changes, a `quick` or `deep` one.
 
 - Fresh: say which scan you use (time, page link) and go on.
+- No fresh scan, no branch changes, no folder and no `deep`: ask the `scan` skill's question for this case (quick or deep, with the time) and stop; do not run a scan unasked.
 - Not fresh: run the scan with the same scope by reading `<skills folder>/scan/SKILL.md` and the command's reference: write the page and the findings file, skip the scan's chat ending. Never trust a stale file.
 - A quick scan holds only its top 5, and `fix` fixes those; say so and offer the deep scan first.
 

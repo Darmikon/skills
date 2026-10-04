@@ -65,7 +65,7 @@ run_case() {
 
 case_scan_comments() {
   fresh scan_comments
-  ask "/scan comments"
+  ask "/scan comments src"
   check "finds the port lie (8080 vs 3000)" says "8080"
   check "finds the euros/cents lie" says "(euro|евро)"
   check "finds the commented-out code" says "(oldTotal|18-22|commented|switched off|закоммент|выключен)"
@@ -75,7 +75,7 @@ case_scan_comments() {
 
 case_scan_unused() {
   fresh scan_unused
-  ask "/scan unused"
+  ask "/scan unused src"
   check "finds the unused file" says "csv-export"
   check "finds the unused function" says "refundOrder"
   check "changes nothing" clean
@@ -84,13 +84,31 @@ case_scan_unused() {
 case_fix_comments() {
   fresh fix_comments
   local head; head=$(cd "$P" && git rev-parse HEAD)
-  ask "/fix comments"
+  ask "/fix comments src"
   check "shows a plan and waits (nothing changed yet)" clean
   ask -c "да"
   check "fixes the port comment" grep -q "3000 by default" "$P/src/server.ts"
   check "asks about euros instead of changing it" grep -q "in euros" "$P/src/services/orders.ts"
   check "removes the dead code" bash -c "! grep -q oldTotal '$P/src/services/orders.ts'"
   check "does not commit" head_is "$head"
+}
+
+case_scan_asks() {
+  fresh scan_asks
+  ask "/scan comments"
+  check "asks before scanning the whole project" says "(deep|весь проект|whole project)"
+  check "draws no page before the answer" bash -c "! grep -qE 'scan-comments-[0-9-]+\\.html' '$LOG'"
+  check "changes nothing" clean
+}
+
+case_scan_branch() {
+  fresh scan_branch
+  (cd "$P" && git checkout -q -b feat/health && printf '\n// Returns the uptime in minutes.\nexport const uptime = () => process.uptime();\n' >> src/server.ts && g commit -qam "feat: add uptime")
+  ask "/scan comments"
+  check "reviews the branch" says "(feat/health|ветк|branch)"
+  check "finds the new lie (seconds, not minutes)" says "(minute|минут)"
+  check "leaves out the untouched file" bash -c "! grep -qiE '(euro|евро)' '$LOG'"
+  check "changes nothing" clean
 }
 
 case_ask_what_is_it() {
@@ -292,7 +310,7 @@ case_who() {
   check "changes nothing" clean
 }
 
-CASES="scan_comments scan_unused fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who"
+CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who"
 for c in $CASES; do run_case "$c"; done
 
 echo

@@ -12,4 +12,4 @@ Look quickly, then suggest. Look only at what is cheap: `git log --oneline -30 -
 - Many `TODO`/`FIXME` (`git grep -c -E 'TODO|FIXME'`) → `comments`.
 - Otherwise → `architecture` without a scope.
 
-Lead with one or two picks, each with a one-line reason and the exact command (`/scan architecture src/app/modules/billing`). Then the full list of commands, one line each. Say that a scan reviews the current branch's changes by default (the project, quick, when there are none) and that `deep` scans the whole project. Stop there: never start a scan on your own.
+Lead with one or two picks, each with a one-line reason and the exact command (`/scan architecture src/app/modules/billing`). Then the full list of commands, one line each. Say that a scan reviews the current branch's changes by default (with none, it asks before scanning the whole project) and that `deep` scans the whole project. Stop there: never start a scan on your own.
