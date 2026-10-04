@@ -113,6 +113,66 @@ case_scan_branch() {
   check "changes nothing" clean
 }
 
+# Lines of `git status --porcelain` that are outside the given folders (none = only those changed).
+only_in() { (cd "$P" && git status --porcelain --untracked-files=all | awk '{print $2}' | grep -vE "$1" | grep -q .) && return 1 || return 0; }
+# The first existing file in the log whose name matches the pattern.
+file_from_log() { grep -oE "/[^][() \`<>\"']*$1" "$LOG" | while read -r f; do [ -f "$f" ] && { echo "$f"; break; }; done; }
+
+case_domain_model() {
+  fresh domain_model
+  ask "In this shop an order that is paid but not shipped yet is a 'pending order'. Not 'open order', not 'unshipped order'. Let's stick to that word."
+  check "writes the word into docs/glossary.md" grep -qi "pending order" "$P/docs/glossary.md"
+  check "nothing at the project root" bash -c "! ls '$P' | grep -qi glossary"
+  check "changes only docs/glossary.md" only_in "^docs/glossary\\.md$"
+  check "says it wrote the glossary" says "(glossary|словар)"
+}
+
+case_domain_model_decision() {
+  fresh domain_model_decision
+  ask "Let's settle it: we keep money in cents everywhere in the code, because the payment provider works in cents and we had rounding bugs with euros before. Euros only on screen. We looked at storing euros and said no."
+  check "asks before recording the decision" bash -c "! ls '$P/docs/decisions' 2>/dev/null | grep -q ."
+  ask -c "да, запиши это решение. Больше ничего не меняй."
+  check "records it in docs/decisions/0001-*.md" bash -c "ls '$P'/docs/decisions/0001-*.md"
+  check "changes only docs/" only_in "^docs/"
+}
+
+case_grill_me() {
+  fresh grill_me
+  ask "/grill-me docs/superpowers/specs/2026-10-01-paging-design.md"
+  check "numbers its questions" says "(Q1|В1|Вопрос 1)"
+  check "gives a recommended answer" says "(recommend|совет|рекоменд)"
+  check "writes no file" clean
+}
+
+case_grill_with_docs() {
+  fresh grill_with_docs
+  (cd "$P" && mkdir -p docs && printf '# Shop\n\nA tiny order service.\n\n## Words\n\n**Order total**:\nThe sum of an order in cents.\n_Not_: price, amount\n' > docs/glossary.md && g add -A && g commit -qm "docs: start the glossary")
+  ask "/grill-with-docs docs/superpowers/specs/2026-10-01-paging-design.md"
+  check "numbers its questions" says "(Q1|В1|Вопрос 1)"
+  ask -c "всё как ты советуешь"
+  check "changes only the glossary and decisions" only_in "^docs/(glossary|glossary-map)\\.md$|^docs/decisions/"
+}
+
+case_to_questionnaire() {
+  fresh to_questionnaire
+  ask "/to-questionnaire whether the orders list needs paging now. It goes to our product owner, who knows the traffic numbers; I am the developer. I need back: how many orders a user has at most, and whether the list must be sortable."
+  ask -c "это всё, пиши анкету"
+  local f; f=$(file_from_log "questionnaire-[^][() \`<>\"']*\\.md")
+  check "writes the questionnaire to the temp folder" test -n "$f"
+  check "has questions with answer lines" bash -c "grep -q '^### ' '$f' && grep -q '^>' '$f'"
+  check "changes nothing in the project" clean
+}
+
+case_prototype() {
+  fresh prototype
+  ask "/prototype does this order state model hold up: placed, paid, shipped; cancel is allowed only before shipping; refund only after paying"
+  local f; f=$(file_from_log "prototype-[^][() \`<>\"']*\\.html")
+  check "writes one HTML file to the temp folder" test -n "$f"
+  check "needs nothing from the internet" bash -c "! grep -qiE '<script[^>]+src=|<link[^>]+href=\"http' '$f'"
+  check "has buttons" grep -qi "<button" "$f"
+  check "changes nothing in the project" clean
+}
+
 case_ask_what_is_it() {
   fresh ask_what_is_it
   ask "/ask what-is-it"
@@ -312,7 +372,7 @@ case_who() {
   check "changes nothing" clean
 }
 
-CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who"
+CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire prototype"
 for c in $CASES; do run_case "$c"; done
 
 echo

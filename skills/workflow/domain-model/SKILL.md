@@ -64,7 +64,7 @@ Offer to record a decision only when all three hold:
 
 Turning down a proposal counts too, when the reason will still hold later and someone would otherwise suggest it again (a refactor `scan architecture` keeps finding, a library you ruled out).
 
-Ask one yes/no question at the end of the reply: "Record as a decision: <one line>?" On yes, write it in the format of [decisions.md](reference/decisions.md): into the part's `decisions/` when it concerns one part, into the root `docs/decisions/` when it concerns the whole project.
+Ask one yes/no question at the end of the reply: "Record as a decision: <one line>?" and do not write before the answer. A firm tone is not a yes: "let's settle it", "we decided", "that's final" settle the decision, not whether to record it. Write without asking only when the user asks for exactly that ("write it down", "record it", "запиши"). On yes, write it in the format of [decisions.md](reference/decisions.md): into the part's `decisions/` when it concerns one part, into the root `docs/decisions/` when it concerns the whole project.
 
 ## Splitting into parts
 
