@@ -72,7 +72,7 @@ Stay with one glossary until it stops working: the same word means different thi
 
 ## When another skill promises to change nothing
 
-`ask`, `scan`, `explore`, `verify` and any mode that promises not to change files keep their promise. Do not write while they run. Keep the words and decisions you would record, and at their end add one line: "For the glossary: *a*, *b*. Record?" On yes, write them.
+`ask`, `scan`, `explore`, `verify`, `grill-me` and any mode that promises not to change files keep their promise. Do not write while they run. Keep the words and decisions you would record, and at their end add one line: "For the glossary: *a*, *b*. Record?" On yes, write them.
 
 ## Do not
 

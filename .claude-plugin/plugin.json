@@ -28,6 +28,8 @@
     "./skills/workflow/focus",
     "./skills/workflow/rethink",
     "./skills/workflow/domain-model",
+    "./skills/workflow/grill-me",
+    "./skills/workflow/grill-with-docs",
     "./skills/workflow/output-style",
     "./skills/workflow/output-style-add",
     "./skills/workflow/baby",
