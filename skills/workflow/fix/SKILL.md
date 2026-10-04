@@ -1,7 +1,7 @@
 ---
 name: fix
-description: 'Fix what /scan found, after the user approves a numbered plan. docs, comments, todo, unused and tests change files and leave them uncommitted; security, performance and architecture hand the findings to brainstorming. Reuses a fresh scan or runs one first.'
-argument-hint: '[docs · comments · todo · unused · tests · security · performance · architecture · pin <command> · unpin <command>] [folder or area]'
+description: 'Fix what /scan found, after the user approves a numbered plan. docs, comments, todo, unused and tests change files and leave them uncommitted; security, performance and architecture hand the findings to brainstorming. By default it fixes what the current branch changed; `deep` the whole project. Reuses a fresh scan or runs one first.'
+argument-hint: '[docs · comments · todo · unused · tests · security · performance · architecture · pin <command> · unpin <command>] [folder or area] [deep]'
 disable-model-invocation: true
 ---
 
@@ -29,11 +29,11 @@ The skills folder is this skill's base directory with its last name cut off as t
 
 ## 1. The findings
 
-Look in `<tmp>` (`${TMPDIR:-/tmp}` without its trailing slash) for `scan-<command>-<digits>-<digits>.json` files whose `project` is this project's root, and take the newest. It is fresh when its `head` is the current `git rev-parse HEAD`, its `dirty` matches `git status --porcelain | shasum | cut -c1-40` (a clean tree matches `null`), and its `folder` covers the one asked for.
+Look in `<tmp>` (`${TMPDIR:-/tmp}` without its trailing slash) for `scan-<command>-<digits>-<digits>.json` files whose `project` is this project's root, and take the newest. It is fresh when its `head` is the current `git rev-parse HEAD`, its `dirty` matches `git status --porcelain | shasum | cut -c1-40` (a clean tree matches `null`), its `folder` covers the one asked for, and its `scope` covers what is asked: `/fix <command>` on a branch with changes takes a `branch` or `deep` scan (from a deep one, only the findings that belong to the branch, as the `scan` skill's "What a scan looks at" says); `/fix <command> deep` takes only a `deep` one; with no branch changes, a `quick` or `deep` one.
 
 - Fresh: say which scan you use (time, page link) and go on.
-- Not fresh: run the scan by reading `<skills folder>/scan/SKILL.md` and the command's reference: write the page and the findings file, skip the scan's chat ending. Never trust a stale file.
-- A quick scan holds only its top 5, and `fix` fixes those; say so and offer the full scan first.
+- Not fresh: run the scan with the same scope by reading `<skills folder>/scan/SKILL.md` and the command's reference: write the page and the findings file, skip the scan's chat ending. Never trust a stale file.
+- A quick scan holds only its top 5, and `fix` fixes those; say so and offer the deep scan first.
 
 ## 2. The plan
 

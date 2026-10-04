@@ -22,7 +22,7 @@ From the project root:
 gitleaks git . --redact --no-banner --report-format json --report-path "${TMPDIR:-/tmp}/scan-security-gitleaks.json"
 ```
 
-Exit code 1 means it found something. Files git ignores (`.env` and the like) are left alone on purpose; say so on the page. Say whether each secret is in the current code or only in history: one that ever reached history is leaked, and the fix is to rotate it, not only delete it.
+On a branch scan, add `--log-opts="<base>..HEAD"`: only the branch's commits. Exit code 1 means it found something. Files git ignores (`.env` and the like) are left alone on purpose; say so on the page. Say whether each secret is in the current code or only in history: one that ever reached history is leaked, and the fix is to rotate it, not only delete it.
 
 ## 3. Code patterns: semgrep
 

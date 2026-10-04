@@ -33,7 +33,7 @@ The findings file (see "The findings file" in the `scan` skill) plus a `page` ob
 }
 ```
 
-The top-level fields every findings file has: `command`, `family`, `project` (the absolute root), `folder` (or null), `created` (`date +%Y-%m-%dT%H:%M:%S%z`), `head` (`git rev-parse HEAD`), `dirty` (`git status --porcelain | shasum | cut -c1-40`, or null when that prints nothing). The `fix` skill uses `project`, `head` and `dirty` to tell whether the file is still fresh.
+The top-level fields every findings file has: `command`, `family`, `project` (the absolute root), `folder` (or null), `created` (`date +%Y-%m-%dT%H:%M:%S%z`), `head` (`git rev-parse HEAD`), `dirty` (`git status --porcelain | shasum | cut -c1-40`, or null when that prints nothing), `scope` (`branch`, `quick` or `deep`), `base` (the base commit of a branch scan, else null). The `fix` skill uses `project`, `head`, `dirty` and `scope` to tell whether the file is still fresh and covers what it is asked to fix.
 
 A finding has `id`, `title`, `places`, and as the command needs: `kind`, `rank`, `group`, `action`, `seen`, `direction`, `name` (a code or package name), `version` (for a package), `date` (for a timeline). Their words come from the command's reference. Every finding goes in, not only the ones shown.
 

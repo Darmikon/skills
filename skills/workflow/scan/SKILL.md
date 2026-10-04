@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look for problems in a whole project without changing it, and show them on one page. Commands: architecture, unused, security, performance, docs, comments, todo, tests. Quick by default (the 5 main findings), offers the full scan at the end. With no argument it suggests which fits.'
-argument-hint: '[architecture · unused · security · performance · docs · comments · todo · tests · pin <command> · unpin <command>] [folder or area]'
+description: 'Look for problems in a whole project without changing it, and show them on one page. Commands: architecture, unused, security, performance, docs, comments, todo, tests. By default it reviews what the current branch changed; `deep` scans the whole project. With no argument it suggests which fits.'
+argument-hint: '[architecture · unused · security · performance · docs · comments · todo · tests · pin <command> · unpin <command>] [folder or area] [deep]'
 disable-model-invocation: true
 ---
 
@@ -26,12 +26,17 @@ A scan looks at a project, changes nothing in it, and shows what it found on one
 - **A command first** (`doc`, `comment` work too): read its reference and follow it with this file. The rest is the folder or area.
 - **A plain question** ("is this secure?"): if one command fits, name it and ask once before running it.
 - **`pin` / `unpin`:** read [pin.md](reference/pin.md).
-- **`deep`**, "full", "полный" anywhere in the argument: a full scan.
+- **`deep`**, "full", "полный" anywhere in the argument: the whole project, in full.
 
-## Quick and full
+## What a scan looks at
 
-- **Quick** (the default): no subagents. Look first where the code changes most (`git log --oneline -60 --name-only`, or the folder named) and stop at the **5 most important findings** by the reference's ranking. Tools (`knip`, `gitleaks`, `semgrep`, the audit, the test runner) still run in full; only the reading is cut. The page's `facts` say it was a quick scan and what was not looked at.
-- **Full**: everything the reference describes, subagents included.
+Find the default branch with `bash "<skills folder>/git-common/default-branch.sh"` and the base with `git merge-base HEAD origin/<default>` (or `<default>` when there is no `origin`). Then pick one of three:
+
+- **The branch** (the default): no folder named, and the branch has changes against its base. The branch files are `git diff --name-only <base>` (commits on the branch and uncommitted changes) plus `git ls-files --others --exclude-standard`. Report every finding that belongs to the branch: one of its places is a branch file, or it is about one (a document that describes changed code, a test that should cover it). Problems in the untouched parts of a branch file go in only when they are `High`. No limit of five. Tools that need the whole project to answer (`knip`, the type check, the test runner) still run over it; only their findings are filtered. History is only the branch's: `<base>..HEAD`. A subagent only when the branch touches more than about thirty files.
+- **The project, quick**: a folder was named, or there are no branch changes (on the default branch, or nothing changed yet). No subagents. Look first where the code changes most (`git log --oneline -60 --name-only`, or the folder named) and stop at the **5 most important findings** by the reference's ranking. Tools still run in full; only the reading is cut.
+- **Deep**: `deep` in the argument. Everything the reference describes, over the whole project (or the folder named), subagents included.
+
+Where a reference says "a full scan", it means deep. The page's `facts` name the scope ("Branch feat/billing against main: 12 files", "No branch changes: the project, quick", "Deep: the whole project") and what was not looked at; the findings file gets `scope` and `base` (see [page.md](reference/page.md)).
 
 ## Observe, never change
 
@@ -55,7 +60,7 @@ Every finding names a file, a line when there is one, and what you saw there. Wh
 ## The ending
 
 1. The chat lines and the closing question the reference names. Then the top pick, if any.
-2. After a quick scan, before the question: what was left out, and "Run the full scan? It takes about <estimate> minutes." A yes runs the same command in full.
+2. Before the question: after a branch scan, "The rest of the project: `/scan <command> deep`, about <estimate> minutes."; after a quick scan, what was left out, and "Run the deep scan? It takes about <estimate> minutes." A yes runs the same command deep.
 3. When the user picks an item, give the ready command for the next skill (usually `/fix <command>`), one line to copy. You cannot start it yourself.
 
 Nothing starts before the user picks. Answer in the user's language; paths, commands and code names stay as they are.
