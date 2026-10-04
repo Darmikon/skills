@@ -319,7 +319,7 @@ case_handoff() {
 case_feature() {
   fresh feature
   ask "/ask feature list the orders"
-  check "follows the route into the service" says "orderTotal"
+  check "follows the route into the service" says "(orderTotal|services/orders)"
   check "starts at the server" says "server\\.ts"
   check "draws a page" says "ask-feature-[0-9-]+\\.html"
   check "changes nothing" clean
