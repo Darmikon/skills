@@ -33,7 +33,13 @@ A scan looks at a project, changes nothing in it, and shows what it found on one
 Find the default branch with `bash "<skills folder>/git-common/default-branch.sh"` and the base with `git merge-base HEAD origin/<default>` (or `<default>` when there is no `origin`). Then pick one of three:
 
 - **The branch** (the default): no folder named, and the branch has changes against its base. The branch files are `git diff --name-only <base>` (commits on the branch and uncommitted changes) plus `git ls-files --others --exclude-standard`. Report every finding that belongs to the branch: one of its places is a branch file, or it is about one (a document that describes changed code, a test that should cover it). Problems in the untouched parts of a branch file go in only when they are `High`. No limit of five. Tools that need the whole project to answer (`knip`, the type check, the test runner) still run over it; only their findings are filtered. History is only the branch's: `<base>..HEAD`. A subagent only when the branch touches more than about thirty files.
-- **No branch changes** (on the default branch, or nothing changed yet), no folder, no `deep`: do not start on your own. Ask one question and stop: "No changes on this branch. Scan the whole project: quick (the top 5, about <estimate> minutes) or deep (about <estimate> minutes)?" Quick runs the next scope, deep runs deep.
+- **No branch changes** (on the default branch, or nothing changed yet), no folder, no `deep`: do not start on your own. Ask one question and stop, in this shape:
+
+  > No changes on this branch. Scan the whole project?
+  > 1. Quick: the 5 most important findings, about <estimate> minutes.
+  > 2. Deep: everything, about <estimate> minutes.
+
+  Always both choices, each with its time, even when the project is small and the two take the same time: the user picks, you do not pick for them. Quick runs the next scope, deep runs deep.
 - **The project, quick**: a folder was named, or the user chose quick above. No subagents. Look first where the code changes most (`git log --oneline -60 --name-only`, or the folder named) and stop at the **5 most important findings** by the reference's ranking. Tools still run in full; only the reading is cut.
 - **Deep**: `deep` in the argument. Everything the reference describes, over the whole project (or the folder named), subagents included.
 

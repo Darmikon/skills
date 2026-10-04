@@ -96,7 +96,9 @@ case_fix_comments() {
 case_scan_asks() {
   fresh scan_asks
   ask "/scan comments"
-  check "asks before scanning the whole project" says "(deep|весь проект|whole project)"
+  check "asks before scanning the whole project" says "(весь проект|whole project)"
+  check "offers quick" says "(quick|быстр)"
+  check "offers deep" says "(deep|полн)"
   check "draws no page before the answer" bash -c "! grep -qE 'scan-comments-[0-9-]+\\.html' '$LOG'"
   check "changes nothing" clean
 }
