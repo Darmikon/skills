@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill grill-me --skill grill-with-docs --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill grill-me --skill grill-with-docs --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill prototype --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
