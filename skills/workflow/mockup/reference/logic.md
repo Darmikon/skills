@@ -1,10 +1,10 @@
-# Logic prototype
+# Logic mockup
 
 One self-contained HTML file that lets anyone push a state model through cases by clicking buttons. For questions about business rules, state changes or the shape of data: things that look fine on paper and feel wrong once you press through a real case.
 
 ## 1. Write the question down
 
-One paragraph at the top of the page, visible, not in a comment: what model is being tried and what question it should answer. A prototype that answers the wrong question is wasted, so make it checkable.
+One paragraph at the top of the page, visible, not in a comment: what model is being tried and what question it should answer. A mockup that answers the wrong question is wasted, so make it checkable.
 
 ## 2. Keep the logic in one pure module
 
@@ -32,7 +32,7 @@ Clean and quiet: readable type, space, one accent colour, no animations.
 
 ## 4. Save and open it
 
-Write it to `<tmp>/prototype-<slug>-<date +%Y%m%d-%H%M%S>.html`, where `<tmp>` is `${TMPDIR:-/tmp}` without its trailing slash. Never into the project. Open it (`open <path>` on macOS, `xdg-open` on Linux) and give the path as a `file://` link, so it can be sent to someone else.
+Write it to `<tmp>/mockup-<slug>-<date +%Y%m%d-%H%M%S>.html`, where `<tmp>` is `${TMPDIR:-/tmp}` without its trailing slash. Never into the project. Open it (`open <path>` on macOS, `xdg-open` on Linux) and give the path as a `file://` link, so it can be sent to someone else.
 
 The best moments are "wait, that should not be possible" and "I thought X would happen": those are holes in the idea, which is the point. Add actions or scenarios when asked.
 

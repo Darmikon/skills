@@ -163,10 +163,10 @@ case_to_questionnaire() {
   check "changes nothing in the project" clean
 }
 
-case_prototype() {
-  fresh prototype
-  ask "/prototype does this order state model hold up: placed, paid, shipped; cancel is allowed only before shipping; refund only after paying"
-  local f; f=$(file_from_log "prototype-[^][() \`<>\"']*\\.html")
+case_mockup() {
+  fresh mockup
+  ask "/mockup does this order state model hold up: placed, paid, shipped; cancel is allowed only before shipping; refund only after paying"
+  local f; f=$(file_from_log "mockup-[^][() \`<>\"']*\\.html")
   check "writes one HTML file to the temp folder" test -n "$f"
   check "needs nothing from the internet" bash -c "! grep -qiE '<script[^>]+src=|<link[^>]+href=\"http' '$f'"
   check "has buttons" grep -qi "<button" "$f"
@@ -372,7 +372,7 @@ case_who() {
   check "changes nothing" clean
 }
 
-CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire prototype"
+CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup"
 for c in $CASES; do run_case "$c"; done
 
 echo

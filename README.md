@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill grill-me --skill grill-with-docs --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill pr --skill prototype --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill to-questionnaire --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill grill-me --skill grill-with-docs --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill mockup --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill to-questionnaire --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -86,9 +86,9 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | handoff-lpm | 🧍 | Hand over to a fresh Claude session in a new lpm tab | `npx skills add Darmikon/skills --skill handoff-lpm` |
 | how | 🧍 | Shortcut for `/ask how`: how one part works; `/how to <task>` also says where the new thing goes | `npx skills add Darmikon/skills --skill how` |
 | how-to | 🧍 | Shortcut for `/ask how to <task>` | `npx skills add Darmikon/skills --skill ask --skill how --skill how-to` |
+| mockup | 🧍 | Answer a design question by trying it: a clickable HTML file for logic (in the OS temp folder), or screen variants in the app, removed after the choice | `npx skills add Darmikon/skills --skill mockup` |
 | output-style | 🧍 | Switch instantly by name, or pick from a list | `npx skills add Darmikon/skills --skill output-style` |
 | output-style-add | 🧍 | Create an output style from your description | `npx skills add Darmikon/skills --skill output-style-add` |
-| prototype | 🧍 | Answer a design question by trying it: a clickable HTML file for logic (in the OS temp folder), or screen variants in the app, removed after the choice | `npx skills add Darmikon/skills --skill prototype` |
 | rethink | 🤖 | Step back after 3+ failed attempts | `npx skills add Darmikon/skills --skill rethink` |
 | scan | 🧍 | Look for problems without changing anything, on one page; reviews the current branch by default, `deep` scans the whole project: `architecture` (where the code is harder to understand and test than it needs to be), `unused` (dead files, code and packages, via knip), `security` (secrets, dangerous code, holes in packages, via gitleaks, semgrep and audit), `performance` (slow-looking code, measured only after you approve the plan), `docs` (whether the documents tell the truth), `comments` (lying comments, stale TODOs, dead code), `todo`, `tests` (untested parts, empty and flaky tests); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
 | to-questionnaire | 🧍 | A decision you cannot make alone becomes a questionnaire for the person who knows, as a Markdown file in the OS temp folder | `npx skills add Darmikon/skills --skill to-questionnaire` |
