@@ -169,7 +169,7 @@ case_mockup() {
   local f; f=$(file_from_log "mockup-[^][() \`<>\"']*\\.html")
   check "writes one HTML file to the temp folder" test -n "$f"
   check "needs nothing from the internet" bash -c "! grep -qiE '<script[^>]+src=|<link[^>]+href=\"http' '$f'"
-  check "has buttons" grep -qi "<button" "$f"
+  check "has buttons" grep -qiE "<button|createElement\(.button" "$f"
   check "changes nothing in the project" clean
 }
 
