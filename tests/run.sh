@@ -173,6 +173,14 @@ case_mockup() {
   check "changes nothing in the project" clean
 }
 
+case_to_plan() {
+  fresh to_plan
+  rm "$P/docs/superpowers/plans/2026-10-01-paging.md"; (cd "$P" && g commit -qam "chore: drop the paging plan")
+  ask "/to-plan"
+  check "picks the paging spec" says "paging"
+  check "writes a plan" bash -c "ls '$P'/docs/superpowers/plans/*.md"
+}
+
 case_ask_what_is_it() {
   fresh ask_what_is_it
   ask "/ask what-is-it"
@@ -372,7 +380,7 @@ case_who() {
   check "changes nothing" clean
 }
 
-CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup"
+CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup to_plan"
 for c in $CASES; do run_case "$c"; done
 
 echo
