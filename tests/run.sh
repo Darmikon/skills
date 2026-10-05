@@ -181,6 +181,16 @@ case_to_plan() {
   check "writes a plan" bash -c "ls '$P'/docs/superpowers/plans/*.md"
 }
 
+case_to_spec() {
+  fresh to_spec
+  ask "Let's talk about filtering the orders list by status. The list gets ?status=paid or ?status=shipped. Without the parameter it shows everything, as now. An unknown status gives a 400 with a short message. We said no to filtering on the client, the list will grow."
+  ask -c "/to-spec"
+  check "writes a spec" bash -c "ls '$P'/docs/superpowers/specs/ | grep -v paging-design | grep -q ."
+  check "the spec covers the status filter" bash -c "grep -qi status '$P'/docs/superpowers/specs/*.md"
+  check "has open questions" bash -c "grep -qiE '^## (Open questions|Открытые вопросы)' \$(ls '$P'/docs/superpowers/specs/*.md | grep -v paging-design)"
+  check "changes only the specs folder" only_in "^docs/superpowers/specs/"
+}
+
 case_ask_what_is_it() {
   fresh ask_what_is_it
   ask "/ask what-is-it"
@@ -380,7 +390,7 @@ case_who() {
   check "changes nothing" clean
 }
 
-CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup to_plan"
+CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup to_plan to_spec"
 for c in $CASES; do run_case "$c"; done
 
 echo

@@ -13,7 +13,7 @@ npx skills add Darmikon/skills
 Install all at once:
 
 ```bash
-npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill grill-me --skill grill-with-docs --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill mockup --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill to-plan --skill to-questionnaire --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
+npx skills add Darmikon/skills --skill ask --skill baby --skill better-docs --skill changelog --skill cleanup --skill commit --skill domain-model --skill explore --skill fix --skill focus --skill grill-me --skill grill-with-docs --skill handoff --skill handoff-lpm --skill how --skill how-to --skill merge --skill output-style --skill output-style-add --skill mockup --skill pr --skill push --skill rebase --skill rethink --skill scan --skill show-my-branches --skill to-plan --skill to-questionnaire --skill to-spec --skill update-plans --skill verify --skill why --skill wtf --skill zoom-out
 ```
 
 **Claude Code plugin** — a managed, auto-updating bundle you don't edit by hand:
@@ -93,6 +93,7 @@ Switch between styles with `/output-style`; write a new one with `/output-style-
 | scan | 🧍 | Look for problems without changing anything, on one page; reviews the current branch by default, `deep` scans the whole project: `architecture` (where the code is harder to understand and test than it needs to be), `unused` (dead files, code and packages, via knip), `security` (secrets, dangerous code, holes in packages, via gitleaks, semgrep and audit), `performance` (slow-looking code, measured only after you approve the plan), `docs` (whether the documents tell the truth), `comments` (lying comments, stale TODOs, dead code), `todo`, `tests` (untested parts, empty and flaky tests); `/scan` alone suggests which | `npx skills add Darmikon/skills --skill scan` |
 | to-plan | 🧍 | Shortcut for superpowers `writing-plans`: a spec becomes a step-by-step plan; needs superpowers | `npx skills add Darmikon/skills --skill to-plan` |
 | to-questionnaire | 🧍 | A decision you cannot make alone becomes a questionnaire for the person who knows, as a Markdown file in the OS temp folder | `npx skills add Darmikon/skills --skill to-questionnaire` |
+| to-spec | 🧍 | What we already discussed becomes a spec in `docs/superpowers/specs/`, no questions asked; unsettled points go to "Open questions"; then `/to-plan` | `npx skills add Darmikon/skills --skill to-spec` |
 | update-plans | 🧍 | The plan changed mid-work: bring the superpowers spec and plan in line, no code touched | `npx skills add Darmikon/skills --skill update-plans` |
 | verify | 🧍 | Check the code against the ticket, spec or plan item by item, each proven by a test that ran; the project is not changed | `npx skills add Darmikon/skills --skill verify` |
 | why | 🧍 | Shortcut for `/ask why`: what led to the code's shape, every claim marked | `npx skills add Darmikon/skills --skill why` |
