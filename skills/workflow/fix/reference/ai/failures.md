@@ -41,7 +41,7 @@ export function isRetriable(e: unknown): boolean {
   if (e instanceof APIConnectionError) return true;   // check BEFORE APIError (it extends it, status undefined)
   // A mid-stream `event: error` is an APIError with no HTTP status; its type says whether a retry can help.
   // (APIUserAbortError also has no status and type null, so a user's cancel is not retried.)
-  if (e instanceof APIError && e.status === undefined) return e.type === 'overloaded_error' || e.type === 'api_error';
+  if (e instanceof APIError && e.status === undefined) return e.type === 'overloaded_error' || e.type === 'api_error' || e.type === 'timeout_error';
   if (e instanceof APIError) return !!e.status && (RETRIABLE.has(e.status) || e.status >= 500);
   return false;                                        // unknown ⇒ treat as terminal, fail loud
 }
@@ -170,25 +170,31 @@ For concurrency use `p-limit` (e.g. 5) — unbounded `Promise.all` over 1000 ite
 Text can go to the UI immediately; tool calls only after the stream closes.
 ```ts
 // `anthropic` is the client from §2; callWithRetry: llm/retry.ts; assertNotRefused: llm/call.ts
+// usage: streamAnswer(params, (t) => appendPartialText(t), { onRetry: () => resetPartialText() })
 import Anthropic, { AnthropicError, APIError } from '@anthropic-ai/sdk';
 import { StreamBroken } from './errors';
 
-export async function streamAnswer(params: Anthropic.MessageStreamParams, onText: (t: string) => void) {
+export async function streamAnswer(
+  params: Anthropic.MessageStreamParams,
+  onText: (t: string) => void,
+  { onRetry }: { onRetry?: (e: unknown, attempt: number, delay: number) => void } = {},   // clear partial text here
+) {
   return callWithRetry(async () => {
-    let uiError: unknown;
+    let ui: { error: unknown } | undefined;
     const stream = anthropic.messages.stream(params);
-    stream.on('text', (t) => { try { onText(t); } catch (e) { uiError ??= e; } });   // a bug in our UI code is not a broken stream
+    stream.on('text', (t) => { try { onText(t); } catch (e) { ui ??= { error: e }; } });   // a bug in our UI code is not a broken stream
     try {
       const final = await stream.finalMessage();          // SDK accumulates input_json deltas
-      if (uiError) throw uiError;
+      if (ui) throw ui.error;
       const toolCalls = final.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
       return { final: assertNotRefused(final), toolCalls };
     } catch (e) {
+      if (ui) throw ui.error;                             // a UI error wins, even when the stream also broke
       // A socket/body failure mid-stream comes out of MessageStream as a plain AnthropicError, not an APIError.
-      if (e !== uiError && e instanceof AnthropicError && !(e instanceof APIError)) throw new StreamBroken(e);
+      if (e instanceof AnthropicError && !(e instanceof APIError)) throw new StreamBroken(e);
       throw e;
     }
-  });
+  }, { onRetry });
 }
 ```
 Broken mid-stream ⇒ the whole request is retried; never pass partial output or partial tool input downstream. If the UI already showed partial text, reset it on retry.
