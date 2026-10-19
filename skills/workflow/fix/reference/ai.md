@@ -11,7 +11,7 @@ A finding is **direct** when all three hold: the change touches at most two file
 Usually direct:
 
 - E2: model ids into one config (`llm/models.ts`, `failures.md` §8), the literals replaced by it.
-- E7: `max_tokens` chosen per call for what the call returns.
+- E7: `max_tokens` chosen per call to cover thinking plus what the call returns (thinking is on by default on the 5.5 models and counts toward `max_tokens`); a short label on Haiku 5.5 gets `thinking: { type: 'disabled' }` (`failures.md` §7).
 - A7: a tool failure returned as a `tool_result` with `is_error: true` and the error text (`failures.md` §3).
 - A4, when the fix is one setting: `maxRetries: 0` on the client under an own loop, or the own loop removed when only the SDK should retry (`failures.md` §2).
 - A9: tool calls acted on only after the stream ends, in one function (`failures.md` §5).
@@ -35,7 +35,7 @@ Steps 3 to 5 of ../SKILL.md. Write each fix from the matching file in `reference
 
 Work one area at a time (A, E, G, …), the smallest diff first, and run the project's checks after each area, so a broken check points at one area; the before and after checks of ../SKILL.md step 4 still apply.
 
-A file that holds a key (a place of a G1 or G2 finding, or a file the scan's code pipeline lists with a match) is read only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>` (the scan's mask, section 5 of its `ai` reference); change it with a command that does not print the key's line, and leave that line as it is (moving a key is G1 or G2, a discuss finding). Any git-ignored file is read only through `<mask> show` too, and a diff read for its content (`git diff`, `git log -p`, `git show`, the fix's own diff included) goes through `<mask> show`, which keeps headers and `+`/`-` lines readable and masks keys (`<mask> history` is only the key search), with `<mask>` = `node "<skills folder>/scan/scripts/mask-keys.mjs"`.
+A file that holds a key (a place of a G1 or G2 finding, or a file the scan's code pipeline lists with a match) is read only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>` (the scan's mask, section 5 of its `ai` reference); change it with a command that does not print the key's line, and leave that line as it is (moving a key is G1 or G2, a discuss finding). Any git-ignored file is read only through `<mask> show` too, and a diff read for its content (`git diff`, `git log -p`, `git show`, the fix's own diff included) goes through `<mask> show`, which keeps headers and `+`/`-` lines readable and hides the lines of a key statement (`<mask> history` is only the key search), with `<mask>` = `node "<skills folder>/scan/scripts/mask-keys.mjs"`.
 
 Nothing extra: a router, the batches API or multi-agent orchestration is proposed only when a finding shows the need.
 

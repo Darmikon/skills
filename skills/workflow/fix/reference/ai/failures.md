@@ -154,7 +154,7 @@ An empty result is read by the model as valid data ⇒ confident wrong answer.
 ## 4. Batch loop isolation
 
 ```ts
-// `anthropic` is the client from §2; callWithRetry: llm/retry.ts; assertNotRefused, firstText: llm/call.ts; ModelRefused, RetryBudgetExhausted: llm/errors.ts
+// `anthropic` is the client from §2; callWithRetry: llm/retry.ts; assertNotRefused: llm/call.ts; ModelRefused, RetryBudgetExhausted: llm/errors.ts
 type Result<I> =
   | { item: I; status: 'ok'; text: string }
   | { item: I; status: 'refused' | 'failed'; error?: string };
@@ -164,7 +164,12 @@ export async function processBatch<I>(items: I[], build: (i: I) => Anthropic.Mes
   for (const item of items) {
     try {
       const resp = assertNotRefused(await callWithRetry(() => anthropic.messages.create(build(item))));
-      out.push({ item, status: 'ok', text: firstText(resp) });
+      const block = resp.content.find((b) => b.type === 'text');
+      if (resp.stop_reason === 'max_tokens' || !block || block.type !== 'text') {   // one item's answer, not a bug: the rest go on
+        out.push({ item, status: 'failed', error: resp.stop_reason === 'max_tokens' ? 'cut off at max_tokens (thinking counts toward it)' : 'no text in the answer' });
+        continue;
+      }
+      out.push({ item, status: 'ok', text: block.text });
     } catch (e) {
       if (e instanceof ModelRefused) out.push({ item, status: 'refused' });
       else if (e instanceof RetryBudgetExhausted) out.push({ item, status: 'failed', error: String(e.lastError) });
@@ -219,7 +224,7 @@ Broken mid-stream ⇒ the whole request is retried; never pass partial output or
 // `anthropic` is the client from §2, MODELS is llm/models.ts; TOOLS, SYSTEM_PROMPT and userMessage are the project's own
 const resp = await anthropic.messages.create({
   model: MODELS.default,
-  max_tokens: 1024,                                      // sized to the answer this call gives (E7)
+  max_tokens: 1024,                                      // sized to thinking plus the answer this call gives (E7)
   tools: TOOLS,                                          // stable → cached (tools come before system)
   system: [
     { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },   // breakpoint
@@ -240,8 +245,11 @@ Flag: timestamps, user ids, A/B text, or shuffled tool order *before* the breakp
 const batch = await anthropic.messages.batches.create({
   requests: reviews.map((r) => ({
     custom_id: r.id,
-    params: { model: MODELS.cheap, max_tokens: 64, system: CACHED_SYSTEM, messages: [{ role: 'user', content: r.text }] },
-  })),                                                   // a label needs few tokens: max_tokens set for what the call returns (E7)
+    params: {
+      model: MODELS.cheap, max_tokens: 64, system: CACHED_SYSTEM, messages: [{ role: 'user', content: r.text }],
+      thinking: { type: 'disabled' },                    // a label needs no thinking, and thinking would eat the 64 tokens (E7)
+    },
+  })),
 });
 
 // later (cron/poller)
@@ -254,6 +262,8 @@ if (status.processing_status === 'ended') {
 }
 ```
 User waiting ⇒ stream. Nobody waiting (cron, backfill, nightly report) ⇒ batch. Batch + caching compound.
+
+`max_tokens` and thinking (E7): on the 5.5 models thinking is on by default and its tokens count toward `max_tokens`, so `max_tokens` covers thinking plus the answer; a stop with `stop_reason: 'max_tokens'` and no text means thinking ate it. For a short answer: Haiku 5.5 takes `thinking: { type: 'disabled' }` (at effort `high` or below; its default is `medium`); Sonnet 5.5 rejects `disabled`, and its lowest setting is `thinking: { type: 'between_tools' }` (no up-front thinking, effort `high` or below); Opus 5.5 always thinks, so leave headroom or lower `output_config.effort`. Check the model's row in the thinking docs (platform.claude.com/docs/en/build-with-claude/thinking-troubleshooting) before relying on this.
 
 ## 8. Model config & router
 

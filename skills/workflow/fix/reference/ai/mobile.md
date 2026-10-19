@@ -3,7 +3,7 @@
 ## 🔴 Rule zero: no API key in the app
 Anything in the bundle is public: `.env` via `react-native-config`, `EXPO_PUBLIC_*`, `app.config.js` extra, hardcoded strings. Anyone can unzip the IPA/APK and use your key.
 
-Detect: in the app package, grep for `@anthropic-ai/sdk` and `api.anthropic.com`; find keys and key variables only through the scan's mask, which never prints one: `git grep -nIE -A1 --untracked "$KEYS" -- <app folder> | node "<skills folder>/scan/scripts/mask-keys.mjs" code` (`KEYS` as the scan's `ai` reference §5 gives it). Also look at `app.json` / `app.config.*` `extra`.
+Detect: in the app package, grep for `@anthropic-ai/sdk` and `api.anthropic.com`; find keys and key variables only through the scan's mask, which never prints one: `git grep -nIE -A1 --untracked "$KEYS" -- <app folder> | node "<skills folder>/scan/scripts/mask-keys.mjs" code`, and its git-ignored env files: `git grep -nIE -A1 --untracked --no-exclude-standard "$KEYS" -- '<app folder>/.env*' '<app folder>/**/.env*' | node "<skills folder>/scan/scripts/mask-keys.mjs" code` (`KEYS` as the scan's `ai` reference §5 gives it). Read `app.json` / `app.config.*` (their `extra`) only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>`.
 Fix: app → **own backend** (auth'd) → Claude. Backend applies everything from failures.md (retry, telemetry, guards, rate limit per user). If a key shipped: rotate it.
 
 ## Client ↔ backend resilience

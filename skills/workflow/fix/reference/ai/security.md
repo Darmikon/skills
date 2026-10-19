@@ -86,11 +86,12 @@ If the repo is worked on by Claude Code agents, check:
   },
   "hooks": {
     "PreToolUse": [
-      { "matcher": "Write|Edit|Bash", "hooks": [{ "type": "command", "command": "node .claude/hooks/guard.mjs" }] }
+      { "matcher": "Write|Edit|Bash", "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.mjs"], "onFailure": "block" }] }
     ]
   }
 }
 ```
+The hook runs in Claude's current directory, which follows every `cd`; a relative path (`node .claude/hooks/guard.mjs`) is not found after `cd src`, and a hook that fails without `onFailure: "block"` lets the write through. `${CLAUDE_PROJECT_DIR}` stays at the project root, and `onFailure: "block"` (Claude Code 2.1.295 or later) makes a guard that cannot run refuse the call. Confirm both in the hooks docs (code.claude.com/docs/en/hooks).
 
 ```js
 // .claude/hooks/guard.mjs — reads hook event JSON from stdin
@@ -101,7 +102,7 @@ const p = ev.tool_input?.file_path ? path.resolve(ev.tool_input.file_path) : nul
 const blocked = p && (/\.env|secrets|\.aws|\.ssh/.test(p));
 // Bash calls carry no file_path, so for them this hook only audits. The `Read(./.env)` deny rules above already stop
 // `cat .env` and other named reads; to block more, check `ev.tool_input.command` here or use the sandbox's `denyRead`.
-fs.appendFileSync('.claude/audit.log', JSON.stringify({ t: Date.now(), tool: ev.tool_name, path: p, result: blocked ? 'BLOCKED' : 'allowed' }) + '\n');
+fs.appendFileSync(path.join(process.env.CLAUDE_PROJECT_DIR ?? '.', '.claude/audit.log'), JSON.stringify({ t: Date.now(), tool: ev.tool_name, path: p, result: blocked ? 'BLOCKED' : 'allowed' }) + '\n');
 if (blocked) {
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'protected path' } }));
 }
