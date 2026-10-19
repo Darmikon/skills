@@ -23,7 +23,7 @@ import { APIError } from '@anthropic-ai/sdk';
 const apiError = (status: number) => new APIError(status, undefined, `HTTP ${status}`, new Headers());
 
 describe('isRetriable', () => {
-  it.each([429, 529, 500, 503])('retries %i', (s) => expect(isRetriable(apiError(s))).toBe(true));
+  it.each([408, 409, 429, 529, 500, 503])('retries %i', (s) => expect(isRetriable(apiError(s))).toBe(true));
   it.each([400, 401, 403, 404])('fails fast %i', (s) => expect(isRetriable(apiError(s))).toBe(false));
 });
 
@@ -32,6 +32,7 @@ it('routes classify to cheap model', () => expect(pickModel('classify', 'hi')).t
 
 ## Failure-path with MSW
 ```ts
+// llm (LlmService), firstText, runTool, ModelRefused, RetryBudgetExhausted: llm/ (failures.md); beforeAll/it/expect: vitest globals
 import { setupServer } from 'msw/node';
 import { http, HttpResponse } from 'msw';
 
@@ -89,6 +90,7 @@ Use `vi.useFakeTimers()` or `retry-after: 0` so backoff doesn't slow the suite. 
 
 ## Integration — test the seam
 ```ts
+// server, URL and ok: the block above; service and db are the project's own
 it('LLM JSON → parser → saved order', async () => {
   server.use(http.post(URL, () => ok(JSON.stringify({ orderId: '123', amount: 50 }))));
   await service.handleRefundRequest('user-1', 'refund order 123');
@@ -99,6 +101,7 @@ it('LLM JSON → parser → saved order', async () => {
 
 ## E2E backend (NestJS)
 ```ts
+// Test: @nestjs/testing; request: supertest; AppModule is the project's own
 const app = (await Test.createTestingModule({ imports: [AppModule] }).compile()).createNestApplication();
 await app.init();
 await request(app.getHttpServer()).post('/support/ask').send({ q: 'where is my order?' }).expect(200);

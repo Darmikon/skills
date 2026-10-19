@@ -49,8 +49,8 @@ const guards: Record<string, (input: any, ctx: Ctx) => string | null> = {
 };
 
 export async function dispatchTool(name: string, input: unknown, ctx: Ctx): Promise<unknown> {
-  if (!(name in TOOLS)) throw new Error(`Unknown tool ${name}`);          // allow-list
-  const reason = guards[name]?.(input, ctx) ?? null;
+  if (!Object.hasOwn(TOOLS, name)) throw new Error(`Unknown tool ${name}`);   // allow-list (own keys only, not `toString`)
+  const reason = Object.hasOwn(guards, name) ? guards[name](input, ctx) : null;
   await audit.log({ actor: ctx.userId, tool: name, input: redact(input), result: reason ? 'BLOCKED' : 'allowed', reason });
   if (reason) throw new Error(reason);                                     // becomes is_error tool_result
   return TOOLS[name](input, ctx);
@@ -98,6 +98,8 @@ import fs from 'node:fs';
 const ev = JSON.parse(fs.readFileSync(0, 'utf8'));
 const p = ev.tool_input?.file_path ? path.resolve(ev.tool_input.file_path) : null;
 const blocked = p && (/\.env|secrets|\.aws|\.ssh/.test(p));
+// Bash calls carry no file_path, so for them this hook only audits. The `Read(./.env)` deny rules above already stop
+// `cat .env` and other named reads; to block more, check `ev.tool_input.command` here or use the sandbox's `denyRead`.
 fs.appendFileSync('.claude/audit.log', JSON.stringify({ t: Date.now(), tool: ev.tool_name, path: p, result: blocked ? 'BLOCKED' : 'allowed' }) + '\n');
 if (blocked) {
   console.log(JSON.stringify({ hookSpecificOutput: { hookEventName: 'PreToolUse', permissionDecision: 'deny', permissionDecisionReason: 'protected path' } }));

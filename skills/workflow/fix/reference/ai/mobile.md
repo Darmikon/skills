@@ -10,17 +10,28 @@ Fix: app → **own backend** (auth'd) → Claude. Backend applies everything fro
 The app talks to your backend, not Claude. Still needed:
 
 ```ts
-// api/llmClient.ts
+// api/llmClient.ts — API (backend base URL) and getToken are the project's own
 export class TemporaryError extends Error {
   constructor(public retryAfterSec: number) { super('Temporarily unavailable'); }
 }
 export class RefusedError extends Error {}
+export class TimeoutError extends Error {}           // our time limit ran out (a screen's cancel stays an AbortError)
 
 async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
   const ctrl = new AbortController();
-  const timer = setTimeout(() => ctrl.abort(), ms);
-  init.signal?.addEventListener('abort', () => ctrl.abort());   // the screen's own cancel still works
-  try { return await fetch(url, { ...init, signal: ctrl.signal }); } finally { clearTimeout(timer); }
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, ms);
+  const onAbort = () => ctrl.abort();                 // the screen's own cancel still works
+  if (init.signal?.aborted) ctrl.abort(); else init.signal?.addEventListener('abort', onAbort, { once: true });
+  try {
+    return await fetch(url, { ...init, signal: ctrl.signal });
+  } catch (e) {
+    if (timedOut) throw new TimeoutError(`No response in ${ms} ms`);
+    throw e;
+  } finally {
+    clearTimeout(timer);
+    init.signal?.removeEventListener('abort', onAbort);
+  }
 }
 
 export async function ask(question: string, signal?: AbortSignal) {

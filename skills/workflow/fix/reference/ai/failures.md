@@ -31,9 +31,17 @@ export class RetryBudgetExhausted extends Error {
   name = 'RetryBudgetExhausted';
   constructor(public lastError: unknown) { super('Retry budget exhausted'); }
 }
+export class StreamBroken extends Error {             // a stream that died mid-response (§5): retried as a whole
+  name = 'StreamBroken';
+  constructor(public streamError: unknown) { super('Stream broke mid-response'); }
+}
 
 export function isRetriable(e: unknown): boolean {
+  if (e instanceof StreamBroken) return true;
   if (e instanceof APIConnectionError) return true;   // check BEFORE APIError (it extends it, status undefined)
+  // A mid-stream `event: error` is an APIError with no HTTP status; its type says whether a retry can help.
+  // (APIUserAbortError also has no status and type null, so a user's cancel is not retried.)
+  if (e instanceof APIError && e.status === undefined) return e.type === 'overloaded_error' || e.type === 'api_error';
   if (e instanceof APIError) return !!e.status && (RETRIABLE.has(e.status) || e.status >= 500);
   return false;                                        // unknown ⇒ treat as terminal, fail loud
 }
@@ -61,7 +69,11 @@ const backoff = (attempt: number, baseMs = 1000, capMs = 30_000) =>
 
 export async function callWithRetry<T>(
   makeCall: () => Promise<T>,
-  { maxAttempts = 5, onRetry }: { maxAttempts?: number; onRetry?: (e: unknown, attempt: number, delay: number) => void } = {},
+  {
+    maxAttempts = 5,
+    maxWaitMs = 60_000,
+    onRetry,
+  }: { maxAttempts?: number; maxWaitMs?: number; onRetry?: (e: unknown, attempt: number, delay: number) => void } = {},
 ): Promise<T> {
   let lastError: unknown;
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -72,6 +84,7 @@ export async function callWithRetry<T>(
       lastError = e;
       if (attempt === maxAttempts - 1) break;
       const delay = retryAfterMs(e) ?? backoff(attempt);
+      if (delay > maxWaitMs) break;           // a retry-after longer than we will wait: stop now, throw RetryBudgetExhausted
       onRetry?.(e, attempt, delay);           // log/metric each retry
       await sleep(delay);
     }
@@ -130,6 +143,7 @@ An empty result is read by the model as valid data ⇒ confident wrong answer.
 ## 4. Batch loop isolation
 
 ```ts
+// `anthropic` is the client from §2; callWithRetry: llm/retry.ts; assertNotRefused, firstText: llm/call.ts; ModelRefused, RetryBudgetExhausted: llm/errors.ts
 type Result<I> =
   | { item: I; status: 'ok'; text: string }
   | { item: I; status: 'refused' | 'failed'; error?: string };
@@ -155,13 +169,25 @@ For concurrency use `p-limit` (e.g. 5) — unbounded `Promise.all` over 1000 ite
 
 Text can go to the UI immediately; tool calls only after the stream closes.
 ```ts
+// `anthropic` is the client from §2; callWithRetry: llm/retry.ts; assertNotRefused: llm/call.ts
+import Anthropic, { AnthropicError, APIError } from '@anthropic-ai/sdk';
+import { StreamBroken } from './errors';
+
 export async function streamAnswer(params: Anthropic.MessageStreamParams, onText: (t: string) => void) {
   return callWithRetry(async () => {
+    let uiError: unknown;
     const stream = anthropic.messages.stream(params);
-    stream.on('text', onText);
-    const final = await stream.finalMessage();          // SDK accumulates input_json deltas
-    const toolCalls = final.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
-    return { final: assertNotRefused(final), toolCalls };
+    stream.on('text', (t) => { try { onText(t); } catch (e) { uiError ??= e; } });   // a bug in our UI code is not a broken stream
+    try {
+      const final = await stream.finalMessage();          // SDK accumulates input_json deltas
+      if (uiError) throw uiError;
+      const toolCalls = final.content.filter((b): b is Anthropic.ToolUseBlock => b.type === 'tool_use');
+      return { final: assertNotRefused(final), toolCalls };
+    } catch (e) {
+      // A socket/body failure mid-stream comes out of MessageStream as a plain AnthropicError, not an APIError.
+      if (e !== uiError && e instanceof AnthropicError && !(e instanceof APIError)) throw new StreamBroken(e);
+      throw e;
+    }
   });
 }
 ```
@@ -170,6 +196,7 @@ Broken mid-stream ⇒ the whole request is retried; never pass partial output or
 ## 6. Prompt caching
 
 ```ts
+// `anthropic` is the client from §2, MODELS is llm/models.ts; TOOLS, SYSTEM_PROMPT and userMessage are the project's own
 const resp = await anthropic.messages.create({
   model: MODELS.default,
   max_tokens: 1024,
@@ -189,6 +216,7 @@ Flag: timestamps, user ids, A/B text, or shuffled tool order *before* the breakp
 ## 7. Batches API (non-urgent volume)
 
 ```ts
+// `anthropic` is the client from §2, MODELS is llm/models.ts; reviews, CACHED_SYSTEM, save and markFailed are the project's own
 const batch = await anthropic.messages.batches.create({
   requests: reviews.map((r) => ({
     custom_id: r.id,
