@@ -230,7 +230,7 @@ const resp = await anthropic.messages.create({
 });
 // verify: resp.usage.cache_read_input_tokens > 0 on 2nd+ call
 ```
-Economics: write 1.25x (5-min TTL) / 2x (1-hour), read 0.1x. Pays off only when the same prefix recurs within TTL and exceeds the model's minimum cacheable length.
+Economics: a cache write costs more than plain input (a 1-hour write more than a 5-minute one) and a hit far less, but the ratios differ by model, so take them for the model in use from the pricing page (platform.claude.com/docs/en/about-claude/pricing); `estimateCost` in observability.md keeps them per model. Pays off only when the same prefix recurs within TTL and exceeds the model's minimum cacheable length.
 Flag: timestamps, user ids, A/B text, or shuffled tool order *before* the breakpoint — cache never hits.
 
 ## 7. Batches API (non-urgent volume)

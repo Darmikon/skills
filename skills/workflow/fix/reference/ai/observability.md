@@ -66,15 +66,30 @@ Also span each tool execution (`tool.<name>`) under the same parent so the trace
 ## Cost estimate
 
 ```ts
-// prices per 1M tokens — keep in config, confirm against current pricing page
-const PRICE: Record<string, { in: number; out: number }> = { /* model -> prices */ };
+// $ per 1M tokens, per model, kept in config. Confirm every number on the pricing page
+// (platform.claude.com/docs/en/about-claude/pricing): the cache-read share differs by model, 5-minute and
+// 1-hour cache writes cost differently, and some models price a long prompt higher.
+type Price = { in: number; out: number; cacheRead: number; cacheWrite5m: number; cacheWrite1h: number };
+const PRICE: Record<string, Price> = {
+  'claude-opus-5-5':   { in: 4,   out: 20,  cacheRead: 0.20, cacheWrite5m: 5,     cacheWrite1h: 8 },     // confirm on the pricing page
+  'claude-sonnet-5-5': { in: 2,   out: 10,  cacheRead: 0.10, cacheWrite5m: 2.50,  cacheWrite1h: 4 },     // confirm on the pricing page
+  'claude-haiku-5-5':  { in: 0.10, out: 0.50, cacheRead: 0.01, cacheWrite5m: 0.125, cacheWrite1h: 0.20 }, // prompts up to 100,000 tokens
+};
+// A model priced by prompt length: above `over` input tokens (cache reads and writes included) the whole request costs more.
+const LONG_PROMPT: Record<string, { over: number; price: Price }> = {
+  'claude-haiku-5-5': { over: 100_000, price: { in: 0.50, out: 2.50, cacheRead: 0.05, cacheWrite5m: 0.625, cacheWrite1h: 1 } },   // confirm on the pricing page
+};
 
 export function estimateCost(model: string, u: Anthropic.Usage) {
-  const p = PRICE[model]; if (!p) return 0;
   const cacheRead = u.cache_read_input_tokens ?? 0;
-  const cacheWrite = u.cache_creation_input_tokens ?? 0;
+  const write5m = u.cache_creation?.ephemeral_5m_input_tokens ?? u.cache_creation_input_tokens ?? 0;   // no split given: count all as 5-minute
+  const write1h = u.cache_creation?.ephemeral_1h_input_tokens ?? 0;
+  const prompt = u.input_tokens + cacheRead + write5m + write1h;
+  const long = LONG_PROMPT[model];
+  const p = long && prompt > long.over ? long.price : PRICE[model];
+  if (!p) return 0;                                    // an unknown model: add it to PRICE rather than guess
   return (
-    (u.input_tokens * p.in + cacheRead * p.in * 0.1 + cacheWrite * p.in * 1.25 + u.output_tokens * p.out) / 1e6
+    (u.input_tokens * p.in + cacheRead * p.cacheRead + write5m * p.cacheWrite5m + write1h * p.cacheWrite1h + u.output_tokens * p.out) / 1e6
   );
 }
 ```
