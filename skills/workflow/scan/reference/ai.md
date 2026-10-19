@@ -24,7 +24,7 @@ A folder with its own manifest (an app next to a server) gets its own type even 
 The scan covers every place that calls a model or runs a tool for one.
 
 - **Libraries**, by exact package name in the manifests: `@anthropic-ai/sdk`, `openai`, `ai` (the Vercel AI SDK), `langchain`, `@langchain/*`; Python: `anthropic`, `openai`, `langchain`. Never search the code for the bare word `ai`.
-- **Call sites**, searched in the code (the key-shaped terms `sk-ant-`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` only the way section 5 says: file and line, or `-l`/`-c`, never printing the matching line): `messages.create`, `messages.stream`, `batches.create`, `chat.completions.create`, `responses.create`, `generateText`, `streamText`, `from 'openai'`, `from 'ai'`, `import anthropic`, `from openai`, `tool_use`, `tool_result`, `api.anthropic.com`, `api.openai.com`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `sk-ant-`.
+- **Call sites**, searched in the code, every search piped through section 5's mask (`git grep -n … | <mask> show`): `@anthropic-ai/sdk`, `@langchain/`, `langchain`, `ChatAnthropic`, `ChatOpenAI`, `messages.create`, `messages.stream`, `batches.create`, `toolRunner`, `chat.completions.create`, `responses.create`, `generateText`, `streamText`, `generateObject`, `streamObject`, `tool_use`, `tool_result`, `api.anthropic.com`, `api.openai.com`; Python: `import anthropic`, `from anthropic`, `import openai`, `from openai`. The imports of `openai` and `ai` are matched without the quote character, so either quote style matches: `git grep -nE '(from|require\() *.(openai|ai)(/[a-z/-]+)?[^A-Za-z0-9_/-]'` (the `.` stands for the quote). Where keys and `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` sit is section 5's code pipeline, never a search of its own.
 - **Tooling already there**, for the list: `vitest`, `jest`, `msw`, `nock`, `supertest`, `detox`, `maestro`, `playwright`, `promptfoo`, `@opentelemetry/*`, `langfuse`, `@langfuse/*`, `helicone`, `@sentry/*`, `pino`, `nestjs-pino`, `@nestjs/terminus`, `gitleaks`, `trufflehog`, `.claude/settings.json` and its hooks.
 
 `facts` get "AI surface: N call sites in M files" and the tooling found.
@@ -69,12 +69,12 @@ The rank in brackets is the default when the item is missing. `Critical` is data
 - B10 Slow non-LLM code profiled when traces show latency outside model calls [Low]
 - B11 One tracer provider when Sentry and an own OpenTelemetry setup run together [Medium]
 
-**C. Tests** (`testing.md`)
+**C. Tests** (`testing.md`). C covers tests of the AI code; other test gaps are `/scan tests`.
 - C1 Unit tests for pure logic: parsers, router, cost, guards [Medium]
 - C2 Failure-path tests with a mocked API: 429 then success, 400 no retry, refusal, timeout, budget exhausted, tool error [High]
 - C3 Integration tests at the seams: LLM output → parser → DB or tool [Medium]
 - C4 E2E: supertest (backend), Maestro or Detox (mobile), Playwright (web) [Low]
-- C5 Tests never hit the real API by default (`onUnhandledRequest: 'error'`) [High]
+- C5 Tests never hit the real API by default (MSW set to error on an unhandled request: `onUnhandledFrame` on msw 3, `onUnhandledRequest` on msw 2) [High]
 
 **D. Evals** (`testing.md` §Evals)
 - D1 A fixed eval set per LLM feature (20–50 cases to start), seeded from real failures [Medium]
@@ -120,7 +120,7 @@ The rank in brackets is the default when the item is missing. `Critical` is data
 - M5 A per-user rate limit on the backend [High]
 - M6 Sentry for React Native, tagged with the backend trace id from a response header [Low]
 - M7 Client metrics: time to first token, total time, error shown to the user [Low]
-- M8 Tests: UI states (loading, streaming, error, refused), mocked network (MSW native), Maestro flows on a mocked backend [Medium]
+- M8 Tests: UI states (loading, streaming, error, refused), mocked network (`@msw/react-native` (msw 3) or `msw/native` (msw 2)), Maestro flows on a mocked backend [Medium]
 - M9 Tokens in Keychain or Keystore, not AsyncStorage [High]
 - M10 No prompts or answers in device logs in release builds [Medium]
 
@@ -128,7 +128,7 @@ What matters most by type: Backend: every section; most fixes land here. Mobile:
 
 ## 4. The findings
 
-Every `partial` and `missing` item is a finding: `kind` the id (`A2`), `rank`, `group` the mark (`missing` or `partial`), `places`, `seen` (what is there, or what is absent and where it would go), `direction` (one sentence: what to add, no code).
+Every `partial` and `missing` item is a finding (on a quick scan, only the 5 most important; the rest stay table rows, section 6): `kind` the id (`A2`), `rank`, `group` the mark (`missing` or `partial`), `places`, `seen` (what is there, or what is absent and where it would go), `direction` (one sentence: what to add, no code).
 
 A whole area absent (no tracing at all, no tests at all, no evals) is one finding, not one per item: `kind` the area letter (`B`), `seen` names the ids it covers (`B1–B11`), `rank` the highest among them, `direction` "start from the setup playbook" for B, or the area's first step. The table still marks each of those items `missing`, with the finding's title as the reason.
 
@@ -138,26 +138,28 @@ Nothing extra: a router (E3), the batches API (E5) and several agents (F1) are f
 
 ## 5. Keys
 
-A key found in the code or in history is shown as its first 4 characters and `…`, with its kind ("Anthropic key"), everywhere: the page, the chat, the temp files.
+A key is shown only as its first 4 characters and `…`, with its kind ("Anthropic key"), everywhere: the chat, the page, the findings file, the temp files, and what this session reads. Only the mask looks at key-shaped text. With `KEYS='sk-(ant-|proj-|[A-Za-z0-9]{20})|(ANTHROPIC|OPENAI)_API_KEY'` and `<mask>` = `node "<skills folder>/scan/scripts/mask-keys.mjs"` (the skills folder as scan/SKILL.md defines it):
 
-- In the code: `git grep -nE 'sk-ant-|sk-proj-' | cut -d: -f1,2` gives the file and line only. Read the line yourself; never copy it out.
-- In history: `git log --all -S 'sk-ant-' --format='%h %ad' --date=short --name-only`, and the same with `sk-proj-`, and for legacy OpenAI keys `git log --all -G 'sk-[A-Za-z0-9]{20}' --format='%h %ad' --date=short --name-only` (on a branch scan, `<base>..HEAD` instead of `--all`). It names commits and files without printing their content.
-- Obvious placeholders (`sk-ant-xxxx`, `your-key-here`, one letter repeated) are not keys: mention them only when they sit next to a real-looking value.
+- The code: `git grep -nIE --untracked "$KEYS" | <mask> code` (on a branch scan, add `-- <the branch files>`). Each match (`sk-ant-`, `sk-proj-`, a legacy `sk-` key of 20 or more letters and digits, a value assigned to `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`) comes out as `path:line`, kind, the first 4 characters and `…`, its length, an id (the same key has the same id in the code and in history) and a tag: `placeholder` (shorter than 20 characters after the prefix; contains `xxx`, `your`, `example`, `placeholder`, `fake`, `dummy` or `<`; one repeated character; or a reference such as `${{ secrets.… }}` instead of a value) or `looks real`. A line that only reads the variable says "named, no value here".
+- History: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | <mask> history` (on a branch scan, `<base>..HEAD` instead of `--all`). The same mask over the `+` and `-` lines of each diff only: commit id, date, file, `added` or `removed`, and the match as above.
+- A file the code pipeline lists with a match (anything but "named, no value here") is read only as `<mask> show <path>` (the file, numbered, keys masked). Every other search that prints lines of the code is piped through `<mask> show` too.
 
-A key that ever reached history is leaked: G2 is `Critical` and the direction is "rotate the key; deleting it from history is not enough". A key in client code (an `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` value, or a literal in app code) is G1.
+There is no other way to look: never Read, cat, grep without the mask, or `git show` a line that holds a key, and never print a diff or a history line of one without the mask. A `placeholder` is not a key: mention it only next to a `looks real` value.
+
+A `looks real` key that ever reached history is leaked: G2 is `Critical` and the direction is "rotate the key; deleting it from history is not enough". A key in client code is G1, `Critical`: an `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` variable that holds an AI key (the build puts its value in the app, whatever the literal next to it is), or a `looks real` literal in app code.
 
 `facts` say: "The full search for secrets is `/scan security`."
 
 ## 6. The page
 
-The findings file has `command: "ai"` and every finding. Sections, in order:
+The findings file has `command: "ai"` and every finding; on a quick scan, only the 5 most important (scan/SKILL.md), in the file and on the page alike. Sections, in order:
 
-1. `cards`: the findings, most serious first. On a quick scan, the top 5 as cards and the rest in a `lines` section after them.
+1. `cards`: the findings, most serious first.
 2. `table`, title "Every check": `columns` `["Id", "Item", "Mark", "Where or why"]`, one row per item in list order, the id alone in the first cell, the item's text only in the second (no `[rank]` bracket, no `(file §…)` tag). All 63 rows on every scope.
 3. `table`, title "Already good": `columns` `["Id", "Item", "Where"]`, one row per `ok` item.
 4. `table`, title "Questions": `columns` `["Q", "Id", "Question"]`, one row per `not checked` item the user can answer, `Q1`, `Q2`, … in the first cell.
 
-Findings are only the `partial` and `missing` items; `ok` items and questions are table rows, never findings.
+Findings are only the `partial` and `missing` items; `ok` items and questions are table rows, never findings. On a quick scan the table still has every id: an item that was read but did not make the top 5 keeps its mark with the reason "left out of the quick scan", and an item that was not read is `not checked`.
 
 `summary`: counts of `Critical`, `High`, `Medium`, `Low` (findings), then `ok`, `n/a`, `not checked` (items). `facts`: the types, the AI surface, the tooling found, what did not run, and the line about `/scan security`.
 

@@ -15,6 +15,7 @@ The command is `ai`. `llm` is accepted as another name (`/scan llm`, `/fix llm`)
 
 ```
 skills/workflow/scan/reference/ai.md       how to find the AI surface, the numbered checklist, the page
+skills/workflow/scan/scripts/mask-keys.mjs the one mask for key-shaped text (code, history, show), with its test
 skills/workflow/fix/reference/ai.md        the direct/discuss rule, the plan, the hand-over
 skills/workflow/fix/reference/ai/
   failures.md       errors, retry, refusal, tool results, batch isolation, streaming, caching,
@@ -57,7 +58,7 @@ The type goes in the page's `facts`.
 
 ### 2. The AI surface
 
-Every place that calls a model or runs a tool. Libraries are matched by exact package name in the manifests, never by a word search over the code (the package `ai` must not match every file). Then search the code for (the key-shaped terms `sk-ant-`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` only the way section 5 says: file and line, or `-l`/`-c`, never printing the matching line): `@anthropic-ai/sdk`, `messages.create`, `messages.stream`, `batches.create`, `from 'openai'`, `from 'ai'`, `langchain`, `tool_use`, `tool_result`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `api.anthropic.com`, `api.openai.com`, `sk-ant-`, and their Python forms (`import anthropic`, `from openai`).
+Every place that calls a model or runs a tool. Libraries are matched by exact package name in the manifests, never by a word search over the code (the package `ai` must not match every file). Then search the code, every search piped through section 5's mask, for: `@anthropic-ai/sdk`, `@langchain/`, `langchain`, `ChatAnthropic`, `ChatOpenAI`, `messages.create`, `messages.stream`, `batches.create`, `toolRunner`, `chat.completions.create`, `responses.create`, `generateText`, `streamText`, `generateObject`, `streamObject`, `tool_use`, `tool_result`, `api.anthropic.com`, `api.openai.com`, and the Python forms (`import anthropic`, `from anthropic`, `import openai`, `from openai`). The imports of `openai` and `ai` are matched without the quote character (`from` or `require(`, any one character, then the package), so either quote style matches. Where keys and `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` sit is section 5's code pipeline, never a search of its own.
 
 Existing tooling, for the checklist: `vitest`, `jest`, `msw`, `nock`, `supertest`, `detox`, `maestro`, `playwright`, `promptfoo`, `@opentelemetry/*`, `langfuse`, `@langfuse/*`, `helicone`, `@sentry/*`, `pino`, `nestjs-pino`, `.claude/settings.json`, hooks.
 
@@ -87,14 +88,21 @@ Order: rank first; among equals, by area: security (G, M9–M10), failures (A), 
 
 ### 5. Keys
 
-A key found in code or history is shown as its first 4 characters and `…`, everywhere: page, chat, temp files. Search the code for files and lines only, never printing the matching line. Search history with `git log --all -S 'sk-ant-' --name-only` (and `sk-proj-`, and `-G 'sk-[A-Za-z0-9]{20}'` for legacy OpenAI keys), which names commits and files without content; on a branch scan only `<base>..HEAD`. Obvious placeholders (`sk-ant-xxxx`, `your-key-here`, one repeated letter) are not keys. A key that ever reached history is leaked: the direction is "rotate it". The page's `facts` say that the full secret search is `/scan security`.
+A key is shown only as its first 4 characters and `…`, everywhere: page, chat, findings file, temp files, and what the session reads. Only one mask, `scan/scripts/mask-keys.mjs`, looks at key-shaped text, in one pipeline for the code and one for history:
+
+- The code: `git grep -nIE --untracked "$KEYS" | <mask> code`, with `KEYS='sk-(ant-|proj-|[A-Za-z0-9]{20})|(ANTHROPIC|OPENAI)_API_KEY'`.
+- History: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | <mask> history` (on a branch scan `<base>..HEAD`); only the `+` and `-` lines of each diff and the commit ids are kept.
+
+The mask matches `sk-ant-`, `sk-proj-`, legacy `sk-` keys of 20 or more letters and digits, and values assigned to `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. It tags each match `placeholder` (shorter than 20 characters after the prefix; contains `xxx`, `your`, `example`, `placeholder`, `fake`, `dummy` or `<`; one repeated character; or a reference instead of a value) or `looks real`, and prints it masked to its first 4 characters and `…`, with its length and an id (8 hex characters of a hash, the same in code and history). A file with a match is read only through `<mask> show <path>`, and every other search that prints code lines is piped through `<mask> show`. There is no other way to look: never Read, cat, grep without the mask, or `git show` a line that holds a key.
+
+A placeholder is not a key. A `looks real` key that ever reached history is leaked: the direction is "rotate it". An `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` variable that holds an AI key is G1 `Critical` whatever the literal next to it is: the build puts the value in the app. The page's `facts` say that the full secret search is `/scan security`.
 
 ### 6. The page
 
 The findings file has `command: "ai"`, the shared fields, and per finding `kind` = the item id (`A2`) and `rank`. Sections:
 
-1. `cards`: the findings, most serious first. Quick scan: the top 5 as cards, the rest as `lines`.
-2. `table`: every item of the appendix, always all of them, even on a quick or branch scan: id, item (the item's text only, without the `[rank]` bracket and the file tags), mark, place or reason.
+1. `cards`: the findings, most serious first. A quick scan has only its 5 most important findings, in the findings file and on the page alike (as `scan/SKILL.md` and `fix/SKILL.md` say).
+2. `table`: every item of the appendix, always all of them, even on a quick or branch scan: id, item (the item's text only, without the `[rank]` bracket and the file tags), mark, place or reason. On a quick scan an item that was read but left out of the top 5 keeps its mark with the reason "left out of the quick scan"; an item that was not read is `not checked`.
 3. `table` "Already good": columns Id, Item, Where; one row per `ok` item.
 4. `table` "Questions": columns Q, Id, Question; one row per `not checked` item that the user can answer.
 
@@ -104,7 +112,7 @@ Findings are only the `partial` and `missing` items. A whole absent area is one 
 
 ### 7. The ending
 
-Chat: a line per `Critical` and `High` finding, one line counting the rest, the questions (numbered), the top pick, then the shared ending lines. If the user answers a question, the item's mark changes in the findings file (in `<tmp>`), a new finding is added when the answer shows a gap, and the page is drawn again. Closing question: "What do we fix first?" A picked item gets `/fix ai` to copy.
+Chat: a line per `Critical` and `High` finding (place and code name per chat line, never a key value), one line counting the rest, the questions (numbered), the top pick, then the shared ending lines. If the user answers a question, the item's mark changes in the findings file (in `<tmp>`), a new finding is added when the answer shows a gap, and the page is drawn again. Closing question: "What do we fix first?" A picked item gets `/fix ai` to copy.
 
 ## fix ai
 
@@ -204,12 +212,12 @@ Default rank when missing in brackets. `failures.md`, `observability.md` and the
 - B10 Slow non-LLM code profiled when traces show latency outside model calls [Low]
 - B11 One tracer provider when Sentry and an own OpenTelemetry setup run together [Medium]
 
-**C. Tests** (`testing.md`)
+**C. Tests** (`testing.md`). C covers tests of the AI code; other test gaps are `/scan tests`.
 - C1 Unit tests for pure logic: parsers, router, cost, guards [Medium]
 - C2 Failure-path tests with a mocked API: 429 then success, 400 no retry, refusal, timeout, budget exhausted, tool error [High]
 - C3 Integration tests at the seams: LLM output → parser → DB or tool [Medium]
 - C4 E2E: supertest (backend), Maestro or Detox (mobile), Playwright (web) [Low]
-- C5 Tests never hit the real API by default (`onUnhandledRequest: 'error'`) [High]
+- C5 Tests never hit the real API by default (MSW set to error on an unhandled request: `onUnhandledFrame` on msw 3, `onUnhandledRequest` on msw 2) [High]
 
 **D. Evals** (`testing.md` §Evals)
 - D1 A fixed eval set per LLM feature (20–50 cases to start), seeded from real failures [Medium]
@@ -255,6 +263,6 @@ Default rank when missing in brackets. `failures.md`, `observability.md` and the
 - M5 A per-user rate limit on the backend [High]
 - M6 Sentry for React Native, tagged with the backend trace id from a response header [Low]
 - M7 Client metrics: time to first token, total time, error shown to the user [Low]
-- M8 Tests: UI states (loading, streaming, error, refused), mocked network (MSW native), Maestro flows on a mocked backend [Medium]
+- M8 Tests: UI states (loading, streaming, error, refused), mocked network (`@msw/react-native` (msw 3) or `msw/native` (msw 2)), Maestro flows on a mocked backend [Medium]
 - M9 Tokens in Keychain or Keystore, not AsyncStorage [High]
 - M10 No prompts or answers in device logs in release builds [Medium]
