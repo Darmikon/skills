@@ -57,13 +57,13 @@ The type goes in the page's `facts`.
 
 ### 2. The AI surface
 
-Every place that calls a model or runs a tool. Libraries are matched by exact package name in the manifests, never by a word search over the code (the package `ai` must not match every file). Then search the code for: `@anthropic-ai/sdk`, `messages.create`, `messages.stream`, `batches.create`, `from 'openai'`, `from 'ai'`, `langchain`, `tool_use`, `tool_result`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `api.anthropic.com`, `api.openai.com`, `sk-ant-`, and their Python forms (`import anthropic`, `from openai`).
+Every place that calls a model or runs a tool. Libraries are matched by exact package name in the manifests, never by a word search over the code (the package `ai` must not match every file). Then search the code for (the key-shaped terms `sk-ant-`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY` only the way section 5 says: file and line, or `-l`/`-c`, never printing the matching line): `@anthropic-ai/sdk`, `messages.create`, `messages.stream`, `batches.create`, `from 'openai'`, `from 'ai'`, `langchain`, `tool_use`, `tool_result`, `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `api.anthropic.com`, `api.openai.com`, `sk-ant-`, and their Python forms (`import anthropic`, `from openai`).
 
 Existing tooling, for the checklist: `vitest`, `jest`, `msw`, `nock`, `supertest`, `detox`, `maestro`, `playwright`, `promptfoo`, `@opentelemetry/*`, `langfuse`, `@langfuse/*`, `helicone`, `@sentry/*`, `pino`, `nestjs-pino`, `.claude/settings.json`, hooks.
 
-No AI surface: say so in the chat and stop. No page.
+No AI surface: say "No calls to an AI model were found here." (in the user's language, a faithful translation) and what was searched, and stop. No page.
 
-On a branch scan the surface is the AI places in branch files plus the code they call or are called from.
+On a branch scan the surface is the AI places in branch files plus the code they call or are called from. When the project has AI code but the branch touches none: say "This branch does not touch code that calls an AI model.", offer `/scan ai deep` with its time, and draw no page.
 
 ### 3. The checklist
 
@@ -87,16 +87,18 @@ Order: rank first; among equals, by area: security (G, M9–M10), failures (A), 
 
 ### 5. Keys
 
-A key found in code or history is shown as its first 4 characters and `…`, everywhere: page, chat, temp files. Search history with `git log -p -S 'sk-ant-' --all` (and `sk-` for OpenAI), on a branch scan only `<base>..HEAD`. A key that ever reached history is leaked: the direction is "rotate it". The page's `facts` say that the full secret search is `/scan security`.
+A key found in code or history is shown as its first 4 characters and `…`, everywhere: page, chat, temp files. Search the code for files and lines only, never printing the matching line. Search history with `git log --all -S 'sk-ant-' --name-only` (and `sk-proj-`, and `-G 'sk-[A-Za-z0-9]{20}'` for legacy OpenAI keys), which names commits and files without content; on a branch scan only `<base>..HEAD`. Obvious placeholders (`sk-ant-xxxx`, `your-key-here`, one repeated letter) are not keys. A key that ever reached history is leaked: the direction is "rotate it". The page's `facts` say that the full secret search is `/scan security`.
 
 ### 6. The page
 
 The findings file has `command: "ai"`, the shared fields, and per finding `kind` = the item id (`A2`) and `rank`. Sections:
 
 1. `cards`: the findings, most serious first. Quick scan: the top 5 as cards, the rest as `lines`.
-2. `table`: every item of the appendix, always all of them, even on a quick or branch scan: id, item, mark, place or reason.
-3. `lines`: already good (the `ok` items).
-4. `lines`: the questions for `not checked` items that the user can answer.
+2. `table`: every item of the appendix, always all of them, even on a quick or branch scan: id, item (the item's text only, without the `[rank]` bracket and the file tags), mark, place or reason.
+3. `table` "Already good": columns Id, Item, Where; one row per `ok` item.
+4. `table` "Questions": columns Q, Id, Question; one row per `not checked` item that the user can answer.
+
+Findings are only the `partial` and `missing` items. A whole absent area is one finding with `kind` the area letter and the covered ids in `seen`. `summary`: rank counts are findings; `ok`, `n/a`, `not checked` counts are items.
 
 `facts`: project type, AI surface ("N call sites in M files"), the tooling found, what did not run.
 
