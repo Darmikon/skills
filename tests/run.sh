@@ -35,12 +35,28 @@ fresh() {
     && git add -A && g commit -qm "chore: start the shop" && git remote add origin "$R" && git push -q -u origin main)
 }
 
-# Runs one prompt in the project; -c continues the last session there. Output appends to $LOG.
+# Runs one prompt in the project; -c continues the last session there. The answer appends to $LOG.
+# With $TRANSCRIPT set, the whole session (every tool call and its output) also appends there, as stream-json.
 ask() {
-  local t0=$SECONDS
+  local t0=$SECONDS code
   echo ">>> $*" >> "$LOG"
-  (cd "$P" && perl -e 'alarm shift; exec @ARGV' 600 claude -p --permission-mode auto --output-format text "$@") >> "$LOG" 2>&1
-  echo "<<< exit $? in $((SECONDS - t0))s" >> "$LOG"
+  if [ -n "${TRANSCRIPT:-}" ]; then
+    (cd "$P" && perl -e 'alarm shift; exec @ARGV' 600 claude -p --permission-mode auto --output-format stream-json --verbose "$@") 2>> "$LOG" \
+      | tee -a "$TRANSCRIPT" | answer_of >> "$LOG"
+    code=${PIPESTATUS[0]}
+  else
+    (cd "$P" && perl -e 'alarm shift; exec @ARGV' 600 claude -p --permission-mode auto --output-format text "$@") >> "$LOG" 2>&1
+    code=$?
+  fi
+  echo "<<< exit $code in $((SECONDS - t0))s" >> "$LOG"
+}
+# The final answer of a stream-json session, as --output-format text prints it.
+answer_of() {
+  node -e '
+    let buf = "";
+    process.stdin.on("data", (d) => (buf += d)).on("end", () => {
+      for (const l of buf.split("\n")) { try { const j = JSON.parse(l); if (j.type === "result") console.log(j.result ?? ""); } catch {} }
+    });'
 }
 
 # Checks. Each adds a line to $CHECKS; a case passes when none failed.
@@ -57,7 +73,7 @@ printf '| case | result | seconds |\n|---|---|---|\n' > "$REPORT"
 run_case() {
   local name=$1
   [ -n "$FILTER" ] && [[ "$name" != *"$FILTER"* ]] && return
-  LOG="$OUT/$name.log"; CHECKS="$OUT/$name.checks"; FAILED=0; : > "$LOG"; : > "$CHECKS"
+  LOG="$OUT/$name.log"; CHECKS="$OUT/$name.checks"; FAILED=0; : > "$LOG"; : > "$CHECKS"; TRANSCRIPT=""
   local t0=$SECONDS
   echo "=== $name"
   "case_$name"
@@ -159,6 +175,24 @@ has_finding() {
 
 # No Anthropic key beyond its first characters in the log or in the given files.
 no_key() { ! grep -qE 'sk-ant-[A-Za-z0-9]' "$LOG" "$@"; }
+
+# The lead picks of the /scan menu name the pattern: the lines before the full list of commands
+# (the first run of 5 or more list items; indented lines inside a run do not break it).
+lead_says() {
+  node -e '
+    const lines = require("fs").readFileSync(process.argv[1], "utf8").split("\n").filter((l) => !/^(>>>|<<<) /.test(l));
+    const item = (l) => /^ {0,3}([-*•]|\d+[.)])\s/.test(l), inside = (l) => item(l) || /^ {2,}\S/.test(l);
+    let start = -1;
+    for (let i = 0; i < lines.length && start < 0; i++) {
+      if (!item(lines[i])) continue;
+      let j = i, n = 0;
+      for (; j < lines.length && inside(lines[j]); j++) if (item(lines[j])) n++;
+      if (n >= 5) start = i; else i = j;
+    }
+    if (start < 0) { console.error("no full list of commands"); process.exit(1); }
+    process.exit(new RegExp(process.argv[2], "m").test(lines.slice(0, start).join("\n")) ? 0 : 1);
+  ' "$LOG" "$1"
+}
 
 case_domain_model() {
   fresh domain_model
@@ -433,7 +467,9 @@ case_who() {
 }
 
 case_scan_ai() {
+  check "the key mask passes its own tests" node --test "$HERE/../skills/workflow/scan/scripts/mask-keys.test.mjs"
   fresh scan_ai; plant_ai
+  TRANSCRIPT="$OUT/scan_ai.jsonl"
   ask "/scan ai deep"
   local f; f=$(file_from_log "scan-ai-[0-9-]+\\.json")
   check "writes the findings file" test -n "$f"
@@ -444,6 +480,7 @@ case_scan_ai() {
   check "finds the key in the app" says "mobile/src/api/claude\\.ts"
   check "the app's key is a Critical G1" has_finding "$f" G1 mobile/src/api/claude.ts Critical
   check "never shows the key beyond its first characters" bash -c "test -s '$f' && test -s '${f%.json}.html' && ! grep -qE 'sk-ant-[A-Za-z0-9]' '$LOG' '$f' '${f%.json}.html'"
+  check "never reads the key either (whole transcript)" no_key "$TRANSCRIPT"
   check "draws a page" says "scan-ai-[0-9-]+\\.html"
   check "changes nothing" clean
 }
@@ -460,6 +497,7 @@ case_fix_ai() {
   fresh fix_ai; plant_ai
   local head; head=$(cd "$P" && git rev-parse HEAD)
   local start="$WORK/fix_ai/start"; touch "$start"
+  TRANSCRIPT="$OUT/fix_ai.jsonl"
   ask "/scan ai deep"
   ask -c "/fix ai deep"
   check "shows a plan and waits (nothing changed yet)" clean
@@ -467,17 +505,19 @@ case_fix_ai() {
   check "model ids in one place" bash -c "[ \$(grep -rl 'claude-sonnet-5-5' '$P/src' | wc -l) -le 1 ]"
   check "tool errors go back as is_error" grep -q "is_error" "$P/src/llm/tools.ts"
   check "still type-checks" bash -c "cd '$P' && npx tsc --noEmit"
-  check "hands the big ones to brainstorming" says "brainstorming"
-  check "does not commit" head_is "$head"
   local handed; handed=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'fix-ai-*.json' -newer "$start" 2>/dev/null)
+  check "hands the big ones to brainstorming (names it, writes the hand-over file)" bash -c "[ -n '$handed' ] && grep -qi brainstorming '$LOG'"
+  check "leaves the discuss items alone (the sleep(0) retry, the app's key)" bash -c "grep -q 'sleep(0)' '$P/src/llm/support.ts' && grep -q 'EXPO_PUBLIC_ANTHROPIC_KEY' '$P/mobile/src/api/claude.ts'"
+  check "installs nothing" bash -c "cd '$P' && git diff --quiet -- package.json mobile/package.json && ! git status --porcelain --untracked-files=all | grep -qE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)\$'"
+  check "does not commit" head_is "$head"
   # shellcheck disable=SC2086
-  check "never shows the key beyond its first characters" no_key $handed
+  check "never shows or reads the key (log, whole transcript, hand-over file)" no_key "$TRANSCRIPT" $handed
 }
 
 case_scan_menu_ai() {
   fresh scan_menu_ai; plant_ai
   ask "/scan"
-  check "suggests scan ai" says "/scan ai"
+  check "suggests scan ai in its lead picks" lead_says "/scan ai([^a-z]|$)"
   check "changes nothing" clean
 }
 

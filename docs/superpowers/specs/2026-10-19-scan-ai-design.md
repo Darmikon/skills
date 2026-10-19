@@ -188,10 +188,10 @@ Nothing extra: a router, the batches API or multi-agent orchestration is propose
 
 Cases in `tests/run.sh`:
 
-1. `scan_ai`: `/scan ai deep`. The findings file has an A3 (or A) finding on `src/llm/support.ts`, an A7 (or A) finding on `src/llm/tools.ts` and a `Critical` G1 (or G) finding on `mobile/src/api/claude.ts`; the log names `Promise.all` and the app file; the findings file's table has every id of the appendix; the log, the findings file and the page never contain `sk-ant-` followed by a letter or digit; a page is drawn; the project is unchanged.
+1. `scan_ai`: first the mask's own tests (`node --test mask-keys.test.mjs`), then `/scan ai deep`, with the whole session recorded as stream-json next to the log. The findings file has an A3 (or A) finding on `src/llm/support.ts`, an A7 (or A) finding on `src/llm/tools.ts` and a `Critical` G1 (or G) finding on `mobile/src/api/claude.ts`; the log names `Promise.all` and the app file; the findings file's table has every id of the appendix; the log, the findings file, the page and the whole transcript (every tool call and its output) never contain `sk-ant-` followed by a letter or digit; a page is drawn; the project is unchanged.
 2. `scan_ai_none`: `/scan ai deep` on the plain fixture. Says there are no AI calls; no page; unchanged.
-3. `fix_ai`: `/fix ai deep`. A plan with two groups; nothing changed before the answer. After "да": the model ids are in one place, the tool error is an `is_error` result, the code still type-checks, the second group went to `brainstorming` (the log names it), nothing committed, and neither the log nor a `fix-ai-*.json` hand-over file made during the case contains `sk-ant-` followed by a letter or digit.
-4. `scan_menu_ai`: `/scan` on the planted fixture suggests `ai`.
+3. `fix_ai`: `/fix ai deep`. A plan with two groups; nothing changed before the answer. After "да": the model ids are in one place, the tool error is an `is_error` result, the code still type-checks, the second group went to `brainstorming` (the log names it and a `fix-ai-*.json` hand-over file was written), the discuss items are left alone (the `sleep(0)` retry, the app's `EXPO_PUBLIC_ANTHROPIC_KEY` line), nothing was installed (no `package.json` or lock file change), nothing committed, and neither the log, the whole transcript nor the hand-over file contains `sk-ant-` followed by a letter or digit.
+4. `scan_menu_ai`: `/scan` on the planted fixture suggests `ai` among its lead picks (the lines before the full list of commands, so the closing `/scan ai deep` example does not count).
 
 ## Independent verification
 
