@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // Says where AI keys are without ever printing one: every match is masked to its first 4 characters and "…".
-//   KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY'
+//   KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)|([Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]|[Oo][Pp][Ee][Nn][Aa][Ii])[A-Za-z0-9_-]*[Kk][Ee][Yy]([^A-Za-z0-9_-]|$)'
 //   code:    git grep -nIE -A1 --untracked "$KEYS" | node mask-keys.mjs code
 //            (ignored files: add --no-exclude-standard -- '.env*' '**/.env*' '*.env' '**/*.env'
 //             '.claude/settings.local.json' '**/.claude/settings.local.json')
@@ -22,13 +22,14 @@ const KEY = new RegExp(`sk-(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|(?<=${BEFORE}
 const PIECE = new RegExp(`(?<=${BEFORE})sk-[A-Za-z0-9_-]{0,19}(?![A-Za-z0-9_-])`, 'g');
 // The search's own sk- pattern: a line it matches that the finder cannot place is still hidden.
 const RAW = /sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)/;
-// A variable that names an AI key: ANTHROPIC_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, …
-const NAME = /\b([A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY)\b/g;
-const ONLY_NAME = /^[A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY$/;
+// A variable that names an AI key, in any case and in snake, camel or kebab form: ANTHROPIC_API_KEY, OPENAI_API_KEY,
+// AZURE_OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, openai_api_key, anthropicApiKey, openAIApiKey, azure-openai-key, …
+const NAME = /(?<![A-Za-z0-9_-])([A-Za-z0-9_-]*?(?:anthropic|openai)[A-Za-z0-9_-]*?key)(?![A-Za-z0-9_-])/gi;
+const ONLY_NAME = /^[A-Za-z0-9_-]*?(?:anthropic|openai)[A-Za-z0-9_-]*?key$/i;
 // A string literal, or one left open at the end of the line (it goes on below).
 const QUOTED = /(["'`])((?:\\.|(?!\1)[^\\])*)(\1|$)/g;
-// A value that only points somewhere else.
-const REFERENCE = /^(\$|process\.env|os\.environ|os\.getenv|import\.meta\.env)/;
+// A value that only points somewhere else: a variable reference, or code that fetches it (a call, await, new, this.…).
+const REFERENCE = /^(\$|process\.env|os\.environ|os\.getenv|import\.meta\.env|(await|new|this)\b|[A-Za-z_$][\w$.]*\()/;
 
 const mask = (v) => `${v.slice(0, 4)}…`;
 // The same key gets the same id in the code and in history; 8 hex characters of a hash give nothing of the key away.
@@ -82,7 +83,12 @@ function analyze(text, pending) {
   }
 
   const names = [...text.matchAll(NAME)];
+  const literals = [...text.matchAll(QUOTED)];
   names.forEach((m, n) => {
+    // A name inside a longer string ("anthropicApiKey is not set") is prose: the quotes after it close that string.
+    // Only NAME="value" or NAME=value inside it gives a value, and the line below is never its value.
+    const host = literals.find((q) => q.index < m.index && m.index + m[0].length <= q.index + q[0].length - (q[3] ? 1 : 0) &&
+      q[2] !== m[0]);
     let from = m.index + m[0].length;
     const before = text[m.index - 1];
     if (before && /["'`]/.test(before) && text[from] === before) from++;    // the name's own closing quote
@@ -90,11 +96,12 @@ function analyze(text, pending) {
     const after = text.slice(from, end);
     let has = false;
     for (const q of after.matchAll(QUOTED)) {                           // every literal after the name is its value
+      if (host && !(q.index === after.search(/["'`]/) && /^\s*[:=]\s*["'`]/.test(after) && q[1] !== host[1])) break;
       const start = from + q.index + 1;
       if (!q[2] || ONLY_NAME.test(q[2]) || inKey(start)) { has ||= inKey(start); continue; }
       add(`${m[1]} value`, q[2], start, '', goesOnFrom(from + q.index + q[0].length, q[3] === '')); has = true;
     }
-    let bare = after.match(/^\s*(:|=(?!=))\s*([^\s"'`,;)}\]{(\[<>|][^\s"'`,;)}\]]*)(.*)$/);   // NAME=value, NAME: value
+    let bare = after.match(/^\s*(:|=(?!=))\s*([^\s"'`,;)}\]{(\[<>|\\][^\s"'`,;)}\]]*)(.*)$/);   // (a \ alone: the value is below)   // NAME=value, NAME: value
     // NAME value: a Dockerfile ENV or ARG, a csh setenv, a fish set; elsewhere only a token that looks like a secret
     const spaced = !bare && after.match(/^(\s+)([^\s"'`,;)}\]{(\[<>|=:?][^\s"'`,;)}\]]*)(.*)$/);
     if (spaced && (/^\s*(ENV|ARG|setenv|set(\s+-\w+)*)\s+$/i.test(text.slice(0, m.index)) ||
@@ -104,8 +111,8 @@ function analyze(text, pending) {
       const start = from + bare[0].length - bare[3].length - bare[2].length;
       if (!typed && !inKey(start)) { add(`${m[1]} value`, bare[2], start, '', /\\$/.test(bare[2]) && !bare[3] ? 'split, looks real' : undefined); has = true; }
     }
-    if (!has && /^[\])"'`]*(\s*(\?\?|\|\||=(?!=)|:|,|\(|\bor\b|[|>][-+]?))+\s*$/.test(after)) { next = { name: m[1], op: true }; has = true; }
-    if (!has && /^[\])"'`]*\s*$/.test(after)) next = { name: m[1], op: false };   // the name ends the line
+    if (!has && !host && /^[\])"'`]*(\s*(\?\?|\|\||=(?!=)|:|,|\(|\\|\bor\b|[|>][-+]?))+\s*$/.test(after)) { next = { name: m[1], op: true }; has = true; }
+    if (!has && !host && /^[\])"'`]*\s*$/.test(after)) next = { name: m[1], op: false };   // the name ends the line
     if (!has) named.push(m[1]);
   });
   return { found, named, next, names: names.map((m) => m[1]) };

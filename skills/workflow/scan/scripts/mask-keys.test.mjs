@@ -8,7 +8,7 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const MASK = join(dirname(fileURLToPath(import.meta.url)), "mask-keys.mjs");
-const KEYS = "sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY";
+const KEYS = "sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)|([Aa][Nn][Tt][Hh][Rr][Oo][Pp][Ii][Cc]|[Oo][Pp][Ee][Nn][Aa][Ii])[A-Za-z0-9_-]*[Kk][Ee][Yy]([^A-Za-z0-9_-]|$)";
 // Key prefixes built from parts, so this file never holds a key-shaped literal itself.
 const ANT = "sk-" + "ant-", PROJ = "sk-" + "proj-";
 // random letters and digits, never holding a stand-in word (xxx, fake, …) that would make it a placeholder by chance
@@ -16,6 +16,14 @@ const rnd = (n) => {
   for (;;) { const v = randomBytes(n * 2).toString("base64").replace(/[^A-Za-z0-9]/g, "").slice(0, n); if (v.length === n && !/xxx|your|example|placeholder|fake|dummy|changeme/i.test(v)) return v; }
 };
 const b64 = (n) => randomBytes(n).toString("base64").slice(0, n);   // has + / = in it
+const MASK_WORDS = "line hidden: holds an AI key — Anthropic key OpenAI key (legacy) the line names key-shaped text chars, id " +
+  "looks real split, looks real prefix only placeholder reference named, no value here its value on the next line message " +
+  "added removed diff commit Author: t <t@e.x> Date: index new file mode deleted file mode 100644 --- a/ +++ b/ @@ one ";
+// a value none of whose 4-character windows is in `around` or the mask's own words (a window in the output is a leak)
+const rndClean = (n, around = "") => {
+  for (;;) { const v = rnd(n); if (![...Array(n - 3).keys()].some((i) => (around + MASK_WORDS).includes(v.slice(i, i + 4)))) return v; }
+};
+const PIECES_AROUND = 'const a = [].join(""); const b = [ ].join(""); const c = "" + "" + "" + const d = "api03-\\ export const shown = 1;';
 
 // A repo with real-looking keys of every shape, placeholders, references, values in env and JSON files,
 // a fallback literal, a value on the line after its name, an ignored .env, and a key that lives in history only.
@@ -33,7 +41,8 @@ function repo() {
     tsWhole: `${ANT}api03-${rnd(93)}AA`, joinRest: rnd(80), uncommitted: `${ANT}api03-${rnd(93)}AA`, local: rnd(40),
     dated: `${ANT}api03-${rnd(93)}AA`, escaped: `${ANT}api03-${rnd(93)}AA`, percent: `${PROJ}${rnd(60)}`,
     opNext: rnd(34), lettersOnly: "qwertyuiopasdfghjklzxcvbnmQWERTY",
-    pieces: `${ANT}api03-${rnd(40)}`, piecesML: `${ANT}api03-${rnd(40)}`, plusRest: rnd(40), slashRest: rnd(60), readable: `${ANT}api03-${rnd(93)}AA`,
+    pieces: `${ANT}api03-${rndClean(40, PIECES_AROUND)}`, piecesML: `${ANT}api03-${rndClean(40, PIECES_AROUND)}`,
+    plusRest: rndClean(40, PIECES_AROUND), slashRest: rndClean(60, PIECES_AROUND), readable: `${ANT}api03-${rnd(93)}AA`,
   };
   const quads = (k) => k.match(/.{1,4}/g).map((q) => `"${q}"`).join(", ");
   mkdirSync(join(dir, "src"));
@@ -292,17 +301,33 @@ test("history finds a key that was deleted", () => {
 
 // ---------- audit 7: keys after escapes and colours, the space form, commit messages, and statements that stay readable ----------
 
+// Random values whose 4-character windows never occur in the text around them (the files with the values left out,
+// the file names, the mask's own words, git's headers): a window found in the output is then a leak, not chance.
+function freshValues(gen, build, extra = () => "") {
+  for (;;) {
+    const s = gen(), files = build(s);
+    const blank = Object.fromEntries(Object.keys(s).map((k) => [k, ""]));
+    const vocab = Object.values(build(blank)).join("\n") + Object.keys(files).join(" ") + MASK_WORDS + extra(blank) + new Date().toString();
+    const clash = Object.values(s).some((v) => {
+      const b = v.replace(/^sk-(ant-|proj-|svcacct-|admin-)?([a-z]+\d+-)?/, "");
+      for (let i = 0; i + 4 <= b.length; i++) if (vocab.includes(b.slice(i, i + 4))) return true;
+      return false;
+    });
+    if (!clash) return { s, files };
+  }
+}
+
 function shapes() {
   const dir = mkdtempSync(join(tmpdir(), "mask-keys-shapes-"));
   const sh = (cmd, args, input) => execFileSync(cmd, args, { cwd: dir, input, encoding: "utf8" });
   const git = (...a) => sh("git", ["-c", "user.name=t", "-c", "user.email=t@e.x", ...a]);
   const ant = () => `${ANT}api03-${rnd(93)}AA`;
-  const s = {
+  const gen = () => ({
     ansiRaw: ant(), ansiU: ant(), ansiX: ant(), u20: ant(), x20: ant(), ubrace: ant(), glued: ant(), legacyAnsi: `sk-${rnd(48)}`,
     gluedLegacy: `sk-${rnd(48)}`, docker: rnd(32), dockerArg: rnd(40), csh: rnd(40), spaced: `${rnd(10)}7${rnd(20)}`,
     splitA: rnd(16), splitB: rnd(24), inTest: rnd(80), message: ant(), messageValue: rnd(40), settings: ant(), expo: ant(),
-  };
-  const files = {
+  });
+  const build = (s) => ({
     "run.log": `\x1b[32m${s.ansiRaw}\x1b[0m logged in\n\x1b[31m${s.legacyAnsi}\x1b[0m\nplain line\n`,
     "ansi.ts": [
       `const banner = "\\u001b[32m${s.ansiU}\\u001b[0m";`,
@@ -358,7 +383,8 @@ function shapes() {
       `  }`,
       `}`,
     ].join("\n"),
-  };
+  });
+  const { s, files } = freshValues(gen, build, (s) => `use key ${s.message} for now OPENAI_API_KEY=${s.messageValue}`);
   mkdirSync(join(dir, ".claude"));
   for (const [f, t] of Object.entries(files)) writeFileSync(join(dir, f), t);
   sh("git", ["init", "-q"]);
@@ -436,7 +462,7 @@ test("a key whole on its line hides that line only: the client, the settings and
   assert.equal(st[5], `    "deny": ["Read(**/.env)", "Read(**/.env.*)"]`);
   assert.match(st[8], /"matcher": "Write\|Edit\|NotebookEdit\|Bash"/);
   const ap = x.show["app.json"].trimEnd().split("\n").map((l) => l.split("\t")[1]);
-  assert.deepEqual(ap.filter((l) => /hidden/.test(l)), [`<line 6 hidden: holds an AI key — Anthropic key sk-a…>`]);
+  assert.deepEqual(ap.filter((l) => /hidden/.test(l)), [`<line 6 hidden: holds an AI key — Anthropic key sk-a…; the line names anthropicKey>`]);
   assert.equal(ap[4], `    "extra": {`);
   assert.equal(ap[2], `    "name": "shop",`);
 });
@@ -455,4 +481,98 @@ test("git log -p and piped search output go through show: key lines hidden, the 
   assert.match(x.logp, /^\+FROM node:22$/m);
   assert.match(x.piped, /^client\.ts:3:<line 3 hidden: holds an AI key — Anthropic key sk-a…>$/m);
   assert.match(x.piped, /^client\.ts:2:export const client = new Anthropic\(\{$/m);
+});
+
+// ---------- key names in any case and form: openai_api_key, openAIApiKey, anthropicApiKey, azure-openai-key ----------
+
+function names() {
+  const dir = mkdtempSync(join(tmpdir(), "mask-keys-names-"));
+  const sh = (cmd, args, input) => execFileSync(cmd, args, { cwd: dir, input, encoding: "utf8" });
+  const git = (...a) => sh("git", ["-c", "user.name=t", "-c", "user.email=t@e.x", ...a]);
+  const gen = () => ({ snake: rnd(32), camelAI: rnd(40), camel: rnd(36), kebab: rnd(32), yaml: rnd(40), next: rnd(40), msg: rnd(40), py: rnd(32), inSnippet: rnd(24), inEnv: rnd(30) });
+  const build = (s) => ({
+    "lc.py": `llm = AzureChatOpenAI(openai_api_key="${s.snake}")\n`,
+    "chain.ts": [
+      `const model = new ChatOpenAI({ openAIApiKey: "${s.camelAI}", temperature: 0 });`,
+      `const anthropicApiKey: string = "${s.camel}";`,
+      `const cfg = { "azure-openai-key": "${s.kebab}" };`,
+      `const openTimeout = 30_000;`,
+      `const anthropicKey = await loadKey();`,
+      `const openaiKey = process.env.OPENAI_KEY;`,
+      `const client = new Anthropic({ apiKey: anthropicApiKey });`,
+      `const opener = getOpenAIKeyring();`,
+    ].join("\n"),
+    "config.yaml": `azure-openai-key: ${s.yaml}\nmodel: claude-haiku-5-5\n`,
+    "settings.py": `anthropic_api_key = \\\n    "${s.next}"\nother = 1\n`,
+    "prose.ts": [
+      `throw new Error("anthropicApiKey is not set"); log('x');`,
+      `const msg = "Set ANTHROPIC_API_KEY first";`,
+      `const snippet = 'OPENAI_API_KEY="${s.inSnippet}"';`,
+      `const env = "openai_api_key=${s.inEnv}";`,
+      `const missing = [`,
+      `  "Missing ANTHROPIC_API_KEY",`,
+      `  "not a value here",`,
+      `];`,
+    ].join("\n"),
+  });
+  const { s, files } = freshValues(gen, build, (s) => `Client(openai_api_key="${s.py}") drop it, openaiApiKey=${s.msg} old.py`);
+  for (const [f, t] of Object.entries(files)) writeFileSync(join(dir, f), t);
+  writeFileSync(join(dir, "old.py"), `Client(openai_api_key="${s.py}")\n`);
+  sh("git", ["init", "-q"]);
+  git("add", "-A"); git("commit", "-qm", "one");
+  git("rm", "-q", "old.py"); git("commit", "-qm", `drop it, openaiApiKey=${s.msg}`);
+  const show = Object.fromEntries([...Object.keys(files)].map((f) => [f, sh("node", [MASK, "show", f])]));
+  const code = sh("node", [MASK, "code"], sh("git", ["grep", "-nIE", "-A1", "--untracked", KEYS]));
+  const history = sh("node", [MASK, "history"], sh("git", ["log", "--all", "-p", "-G", KEYS, "--format=commit %h %ad", "--date=short"]));
+  const messages = sh("node", [MASK, "history"], sh("git", ["log", "--all", "--format=commit %h %ad%n%w(0,4,4)%B", "--date=short"]));
+  const logp = sh("node", [MASK, "show"], sh("git", ["log", "-p"]));
+  const oneline = sh("node", [MASK, "show"], sh("git", ["log", "--oneline", "--name-only"]));
+  const piped = sh("node", [MASK, "show"], sh("git", ["grep", "-n", "--untracked", "-e", "=", "-e", ":"]));
+  return { s, show, code, history, messages, logp, oneline, piped, all: [...Object.values(show), code, history, messages, logp, oneline, piped].join("\n") };
+}
+
+const nm = names();
+
+test("names in any case and form: no 4 characters in a row of their values in any mode's output", () => {
+  for (const [name, v] of Object.entries(nm.s)) assert.equal(noRun(v, nm.all), null, name);
+});
+
+test("snake, camel and kebab names in any case are found in the code, history and messages", () => {
+  assert.match(nm.code, /^lc\.py:1  openai_api_key value  .{4}…  \(32 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(nm.code, /^chain\.ts:1  openAIApiKey value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(nm.code, /^chain\.ts:2  anthropicApiKey value  .{4}…  \(36 chars.*looks real$/m);
+  assert.match(nm.code, /^chain\.ts:3  azure-openai-key value  .{4}…  \(32 chars.*looks real$/m);
+  assert.match(nm.code, /^config\.yaml:1  azure-openai-key value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(nm.code, /^settings\.py:2  anthropic_api_key value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(nm.code, /^chain\.ts:5  anthropicKey value  awai….*reference$/m);
+  assert.match(nm.code, /^chain\.ts:7  anthropicApiKey named, no value here$/m);
+  assert.doesNotMatch(nm.code, /openTimeout|getOpenAIKeyring|chain\.ts:[48] /);
+  assert.match(nm.history, /old\.py removed  openai_api_key value  .{4}…  \(32 chars.*looks real$/m);
+  assert.match(nm.history, /old\.py added  openai_api_key value/m);
+  assert.match(nm.messages, / message  openaiApiKey value  .{4}…  \(40 chars.*looks real$/m);
+});
+
+test("show hides the lines with those values and keeps the rest readable, an unrelated camelCase name included", () => {
+  const c = nm.show["chain.ts"].trimEnd().split("\n").map((l) => l.split("\t")[1]);
+  assert.deepEqual(c.slice(0, 3).map((l) => /^<line \d hidden: holds an AI key — /.test(l)), [true, true, true]);
+  assert.deepEqual(c.slice(3), [
+    `const openTimeout = 30_000;`, `const anthropicKey = await loadKey();`, `const openaiKey = process.env.OPENAI_KEY;`,
+    `const client = new Anthropic({ apiKey: anthropicApiKey });`, `const opener = getOpenAIKeyring();`]);
+  assert.match(nm.show["lc.py"], /^ +1\t<line 1 hidden: holds an AI key — openai_api_key value .{4}…; the line names openai_api_key>$/m);
+  assert.match(nm.show["config.yaml"], /^ +1\t<line 1 hidden: .*\n +2\tmodel: claude-haiku-5-5$/m);
+  assert.match(nm.show["settings.py"], /^ +1\t<line 1 hidden: .*\n +2\t<line 2 hidden: .*\n +3\tother = 1$/m);
+  assert.match(nm.logp, /^-<line hidden: holds an AI key — openai_api_key value/m);
+  assert.match(nm.oneline, /^<line hidden: holds an AI key — openaiApiKey value/m);
+  assert.match(nm.piped, /^chain\.ts:4:const openTimeout = 30_000;$/m);
+});
+
+test("a name inside a longer string is prose: the message stays readable, NAME=value inside a string is still hidden", () => {
+  const p = nm.show["prose.ts"].trimEnd().split("\n").map((l) => l.split("\t")[1]);
+  assert.equal(p[0], `throw new Error("anthropicApiKey is not set"); log('x');`);
+  assert.equal(p[1], `const msg = "Set ANTHROPIC_API_KEY first";`);
+  assert.match(p[2], /^<line 3 hidden: holds an AI key — OPENAI_API_KEY value .{4}…/);
+  assert.match(p[3], /^<line 4 hidden: holds an AI key — openai_api_key value .{4}…/);
+  assert.deepEqual(p.slice(4), [`const missing = [`, `  "Missing ANTHROPIC_API_KEY",`, `  "not a value here",`, `];`]);
+  assert.match(nm.code, /^prose\.ts:1  anthropicApiKey named, no value here$/m);
+  assert.match(nm.code, /^prose\.ts:3  OPENAI_API_KEY value  .{4}…  \(24 chars.*looks real$/m);
 });
