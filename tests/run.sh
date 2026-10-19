@@ -148,11 +148,11 @@ plant_ai() {
 # The 63 checklist ids of scan ai.
 AI_IDS=$(for p in A:9 B:11 C:5 D:5 E:8 F:3 G:12 M:10; do for i in $(seq 1 "${p#*:}"); do printf '%s%s ' "${p%:*}" "$i"; done; done)
 
-# Every id is the first cell of a row in a table section of the findings file.
+# Every id is the first cell of a row in the "Every check" table of the findings file.
 has_all_ids() {
   node -e '
     const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
-    const rows = (j.page.sections || []).filter((s) => s.block === "table").flatMap((s) => s.rows || []);
+    const rows = (j.page.sections || []).filter((s) => s.block === "table" && /^every check$/i.test(String(s.title).trim())).flatMap((s) => s.rows || []);
     const seen = new Set(rows.map((r) => String(r[0]).replace(/`/g, "").trim()));
     const missing = process.argv.slice(2).filter((id) => !seen.has(id));
     if (missing.length) { console.error("missing ids: " + missing.join(" ")); process.exit(1); }
@@ -173,8 +173,14 @@ has_finding() {
   ' "$@"
 }
 
-# No Anthropic key beyond its first characters in the log or in the given files.
-no_key() { ! grep -qE 'sk-ant-[A-Za-z0-9]' "$LOG" "$@"; }
+# Nothing of the fixture's key beyond its first 4 characters (sk-a…) in the log or the given files:
+# not its prefix (sk-an…), not its body (FAKEFAKE…).
+no_key() { ! grep -qE 'sk-an|FAKEFAKE' "$LOG" "$@"; }
+# The same for a whole transcript, which also holds the skills' own text: there the prefix alone may
+# appear (the skills name it); the key itself (sk-ant- and a letter or digit) or its body may not.
+no_key_read() { ! grep -qE 'sk-ant-[A-Za-z0-9]|FAKEFAKE' "$@"; }
+# The findings file and its page exist, and they and the log are clean.
+no_key_in_page() { test -s "$1" && test -s "${1%.json}.html" && no_key "$1" "${1%.json}.html"; }
 
 # The lead picks of the /scan menu name the pattern: the lines before the full list of commands
 # (the first run of 5 or more list items; indented lines inside a run do not break it).
@@ -479,8 +485,8 @@ case_scan_ai() {
   check "finds Promise.all" says "Promise\\.all"
   check "finds the key in the app" says "mobile/src/api/claude\\.ts"
   check "the app's key is a Critical G1" has_finding "$f" G1 mobile/src/api/claude.ts Critical
-  check "never shows the key beyond its first characters" bash -c "test -s '$f' && test -s '${f%.json}.html' && ! grep -qE 'sk-ant-[A-Za-z0-9]' '$LOG' '$f' '${f%.json}.html'"
-  check "never reads the key either (whole transcript)" no_key "$TRANSCRIPT"
+  check "never shows the key beyond its first characters (log, findings file, page)" no_key_in_page "$f"
+  check "never reads the key either (whole transcript)" no_key_read "$TRANSCRIPT"
   check "draws a page" says "scan-ai-[0-9-]+\\.html"
   check "changes nothing" clean
 }
@@ -489,7 +495,7 @@ case_scan_ai_none() {
   fresh scan_ai_none
   ask "/scan llm deep"
   check "says there are no AI calls" says "\\bno\\b.{0,30}\\b(calls?|usage)\\b.{0,30}\\b(AI|LLM|models?)\\b|\\bno\\b.{0,30}\\b(AI|LLM|model)\\b.{0,20}\\b(calls?|usage|found)\\b|\\b(AI|LLM) calls?\\b.{0,30}\\b(none|not found)\\b|(вызов|обращени|использован)[а-я]*.{0,60}(ИИ|LLM|модел).{0,60}(^|[^[:alpha:]])(нет|не найден)|(^|[^[:alpha:]])(нет|не найден[а-я]*)([^[:alpha:]]|$).{0,40}(вызов|обращени)[а-я]*.{0,40}(ИИ|LLM|модел)"
-  check "draws no page" bash -c "! grep -qE 'scan-ai-[0-9-]+\\.html' '$LOG'"
+  check "draws no page" bash -c "! grep -qE 'scan-(ai|llm)-[0-9-]+\\.html' '$LOG'"
   check "changes nothing" clean
 }
 
@@ -511,7 +517,8 @@ case_fix_ai() {
   check "installs nothing" bash -c "cd '$P' && git diff --quiet -- package.json mobile/package.json && ! git status --porcelain --untracked-files=all | grep -qE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)\$'"
   check "does not commit" head_is "$head"
   # shellcheck disable=SC2086
-  check "never shows or reads the key (log, whole transcript, hand-over file)" no_key "$TRANSCRIPT" $handed
+  check "never shows the key (log, hand-over file)" no_key $handed
+  check "never reads the key (whole transcript)" no_key_read "$TRANSCRIPT"
 }
 
 case_scan_menu_ai() {
