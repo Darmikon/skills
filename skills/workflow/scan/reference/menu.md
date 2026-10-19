@@ -1,6 +1,6 @@
 # The menu (`/scan` with no argument)
 
-Look quickly, then suggest. Look only at what is cheap: `git log --oneline -30 --name-only`, whether a `README*` or `CLAUDE.md` exists, the root manifest (`package.json`, `pyproject.toml`, …).
+Look quickly, then suggest. Look only at what is cheap: `git log --oneline -30 --name-only | node "<skills folder>/scan/scripts/mask-keys.mjs" show` (a commit message can hold an AI key; the mask hides that line), whether a `README*` or `CLAUDE.md` exists, the root manifest (`package.json`, `pyproject.toml`, …).
 
 - The user does not know this project yet, or it has no notes of its own → say that `/ask what-is-it` gives the first look (it is not a scan), then go on.
 - Recent history keeps coming back to the same files → `architecture`, scoped to that area.

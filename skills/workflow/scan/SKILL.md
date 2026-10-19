@@ -41,7 +41,7 @@ Find the default branch with `bash "<skills folder>/git-common/default-branch.sh
   > 2. Deep: everything, about <estimate> minutes.
 
   Always both choices, each with its time, even when the project is small and the two take the same time: the user picks, you do not pick for them. Quick runs the next scope, deep runs deep.
-- **The project, quick**: a folder was named, or the user chose quick above. No subagents. Look first where the code changes most (`git log --oneline -60 --name-only`, or the folder named) and stop at the **5 most important findings** by the reference's ranking. Tools still run in full; only the reading is cut.
+- **The project, quick**: a folder was named, or the user chose quick above. No subagents. Look first where the code changes most (`git log --oneline -60 --name-only | node "<skills folder>/scan/scripts/mask-keys.mjs" show`, so a key in a commit message is never printed; or the folder named) and stop at the **5 most important findings** by the reference's ranking. Tools still run in full; only the reading is cut.
 - **Deep**: `deep` in the argument. Everything the reference describes, over the whole project (or the folder named), subagents included.
 
 Where a reference says "a full scan", it means deep. The page's `facts` name the scope ("Branch feat/billing against main: 12 files", "The project, quick", "Deep: the whole project") and what was not looked at; the findings file gets `scope` and `base` (see [page.md](reference/page.md)).

@@ -289,3 +289,170 @@ test("history finds a key that was deleted", () => {
   assert.match(r.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d old\.py added  OpenAI key  sk-p….*\)  looks real$/m);
   assert.match(r.history, /config\.json added  ANTHROPIC_API_KEY value  .{4}….*\)  looks real$/m);
 });
+
+// ---------- audit 7: keys after escapes and colours, the space form, commit messages, and statements that stay readable ----------
+
+function shapes() {
+  const dir = mkdtempSync(join(tmpdir(), "mask-keys-shapes-"));
+  const sh = (cmd, args, input) => execFileSync(cmd, args, { cwd: dir, input, encoding: "utf8" });
+  const git = (...a) => sh("git", ["-c", "user.name=t", "-c", "user.email=t@e.x", ...a]);
+  const ant = () => `${ANT}api03-${rnd(93)}AA`;
+  const s = {
+    ansiRaw: ant(), ansiU: ant(), ansiX: ant(), u20: ant(), x20: ant(), ubrace: ant(), glued: ant(), legacyAnsi: `sk-${rnd(48)}`,
+    gluedLegacy: `sk-${rnd(48)}`, docker: rnd(32), dockerArg: rnd(40), csh: rnd(40), spaced: `${rnd(10)}7${rnd(20)}`,
+    splitA: rnd(16), splitB: rnd(24), inTest: rnd(80), message: ant(), messageValue: rnd(40), settings: ant(), expo: ant(),
+  };
+  const files = {
+    "run.log": `\x1b[32m${s.ansiRaw}\x1b[0m logged in\n\x1b[31m${s.legacyAnsi}\x1b[0m\nplain line\n`,
+    "ansi.ts": [
+      `const banner = "\\u001b[32m${s.ansiU}\\u001b[0m";`,
+      `const banner2 = "\\x1b[32m${s.ansiX}\\x1b[0m";`,
+      `const s = "key:\\u0020${s.u20}";`,
+      `const t = "key:\\x20${s.x20}";`,
+      `const u = \`key:\\u{20}${s.ubrace}\`;`,
+      `const g = "Bearer${s.glued}";`,
+      `const h = "token${s.gluedLegacy}";`,
+      `export const shown = 1;`,
+    ].join("\n"),
+    "Dockerfile": `FROM node:22\nENV AZURE_OPENAI_API_KEY ${s.docker}\nARG OPENAI_API_KEY ${s.dockerArg}\nRUN npm ci\n`,
+    "env.csh": `setenv OPENAI_API_KEY ${s.csh}\n`,
+    "notes.txt": `OPENAI_API_KEY ${s.spaced}\nANTHROPIC_API_KEY is required\n`,
+    "split.ts": `const OPENAI_API_KEY = "${s.splitA}" +\n  "${s.splitB}";\nconst after = 2;\n`,
+    "llm.test.ts": [
+      `describe("llm", () => {`,
+      `  it("builds", () => {`,
+      `    const k = ["${ANT}api03-", "${s.inTest}"].join("");`,
+      `    expect(k).toBeTruthy();`,
+      `  });`,
+      `});`,
+    ].join("\n"),
+    "client.ts": [
+      `import Anthropic from "@anthropic-ai/sdk";`,
+      `export const client = new Anthropic({`,
+      `  apiKey: "${ANT}test",`,
+      `  baseURL,`,
+      `  maxRetries: 0,`,
+      `});`,
+    ].join("\n"),
+    ".claude/settings.json": [
+      `{`,
+      `  "env": {`,
+      `    "ANTHROPIC_API_KEY": "${s.settings}"`,
+      `  },`,
+      `  "permissions": {`,
+      `    "deny": ["Read(**/.env)", "Read(**/.env.*)"]`,
+      `  },`,
+      `  "hooks": {`,
+      `    "PreToolUse": [{ "matcher": "Write|Edit|NotebookEdit|Bash", "hooks": [{ "type": "command", "command": "node" }] }]`,
+      `  }`,
+      `}`,
+    ].join("\n"),
+    "app.json": [
+      `{`,
+      `  "expo": {`,
+      `    "name": "shop",`,
+      `    "slug": "shop",`,
+      `    "extra": {`,
+      `      "anthropicKey": "${s.expo}"`,
+      `    }`,
+      `  }`,
+      `}`,
+    ].join("\n"),
+  };
+  mkdirSync(join(dir, ".claude"));
+  for (const [f, t] of Object.entries(files)) writeFileSync(join(dir, f), t);
+  sh("git", ["init", "-q"]);
+  git("add", "-A"); git("commit", "-qm", "one");
+  writeFileSync(join(dir, "later.txt"), "later\n");
+  git("add", "-A"); git("commit", "-qm", `use key ${s.message} for now`, "-m", `OPENAI_API_KEY=${s.messageValue}`);
+  const one = (f) => sh("node", [MASK, "show", f]);
+  const show = Object.fromEntries(Object.keys(files).map((f) => [f, one(f)]));
+  const code = sh("node", [MASK, "code"], sh("git", ["grep", "-nIE", "-A1", "--untracked", KEYS]));
+  const history = sh("node", [MASK, "history"],
+    sh("git", ["log", "--all", "-p", "-G", KEYS, "--format=commit %h %ad", "--date=short"]));
+  const messages = sh("node", [MASK, "history"],
+    sh("git", ["log", "--all", "--format=commit %h %ad%n%w(0,4,4)%B", "--date=short"]));
+  const oneline = sh("node", [MASK, "show"], sh("git", ["log", "--oneline", "-60", "--name-only"]));
+  const logp = sh("node", [MASK, "show"], sh("git", ["log", "-p"]));
+  const piped = sh("node", [MASK, "show"], sh("git", ["grep", "-n", "--untracked", "-e", "=", "-e", ":"]));
+  return { s, show, code, history, messages, oneline, logp, piped, all: [...Object.values(show), code, history, messages, oneline, logp, piped].join("\n") };
+}
+
+const x = shapes();
+// the key's body: after its prefix and a version part such as api03-
+const bodyOf = (k) => k.replace(/^sk-(ant-|proj-|svcacct-|admin-)?([a-z]+\d+-)?/, "");
+const noRun = (k, text) => {
+  text = text.replace(/[0-9a-f]{7,}/g, "");   // ids, commit hashes, index lines: hex by chance (so no key here is hex)
+  const b = bodyOf(k), from = b === k ? 1 : 0;                          // a named value shows its first 4 by design
+  for (let i = from; i + 4 <= b.length; i++) if (text.includes(b.slice(i, i + 4))) return b.slice(i, i + 4);
+  return null;
+};
+
+test("no 4 characters in a row of a key's body appear in any mode's output, for the new shapes", () => {
+  for (const [name, k] of Object.entries(x.s)) assert.equal(noRun(k, x.all), null, name);
+});
+
+test("a key after an ANSI colour, \\x20, \\u0020, \\u{20} or glued to a word is found, in the code and in history", () => {
+  for (const n of [1, 2]) assert.match(x.code, new RegExp(`^run\\.log:${n}  (Anthropic key  sk-a…  \\(108|OpenAI key \\(legacy\\)  sk-.…  \\(51) chars, id [0-9a-f]{8}\\)  looks real$`, "m"));
+  for (const n of [1, 2, 3, 4, 5, 6]) assert.match(x.code, new RegExp(`^ansi\\.ts:${n}  Anthropic key  sk-a…  \\(108 chars, id [0-9a-f]{8}\\)  looks real$`, "m"));
+  assert.match(x.code, /^ansi\.ts:7  key-shaped text$/m);                  // sk- and 48 characters right after a word
+  assert.match(x.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d run\.log added  Anthropic key  sk-a…  \(108 chars/m);
+  assert.match(x.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d ansi\.ts added  key-shaped text$/m);
+  for (const n of [1, 2, 3, 4, 5, 6, 7]) assert.match(x.show["ansi.ts"], new RegExp(`^ +${n}\\t<line ${n} hidden: `, "m"));
+  assert.match(x.show["ansi.ts"], /^ +7\t<line 7 hidden: key-shaped text>$/m);
+  assert.match(x.show["ansi.ts"], /^ +8\texport const shown = 1;$/m);
+  assert.match(x.show["run.log"], /^ +1\t<line 1 hidden: .*\n +2\t<line 2 hidden: .*\n +3\tplain line$/m);
+});
+
+test("ENV NAME value, ARG, setenv and a bare secret-like token after a name", () => {
+  assert.match(x.code, /^Dockerfile:2  AZURE_OPENAI_API_KEY value  .{4}…  \(32 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(x.code, /^Dockerfile:3  OPENAI_API_KEY value  .{4}…  \(40 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(x.code, /^env\.csh:1  OPENAI_API_KEY value  .{4}…  \(40 chars/m);
+  assert.match(x.code, /^notes\.txt:1  OPENAI_API_KEY value  .{4}…  \(31 chars/m);
+  assert.match(x.code, /^notes\.txt:2  ANTHROPIC_API_KEY named, no value here$/m);
+  assert.match(x.show.Dockerfile, /^ +1\tFROM node:22\n +2\t<line 2 hidden: .*\n +3\t<line 3 hidden: .*\n +4\tRUN npm ci$/m);
+  assert.match(x.show["notes.txt"], /^ +2\tANTHROPIC_API_KEY is required$/m);
+});
+
+test("a key in a commit message is found by the message search and hidden in git log through show", () => {
+  assert.match(x.messages, /^[0-9a-f]+ \d{4}-\d\d-\d\d message  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(x.messages, /^[0-9a-f]+ \d{4}-\d\d-\d\d message  OPENAI_API_KEY value  .{4}…  \(40 chars/m);
+  assert.doesNotMatch(x.messages, /message .*one/);
+  assert.match(x.oneline, /^<line hidden: holds an AI key — Anthropic key sk-a…>$/m);
+  assert.match(x.oneline, /^[0-9a-f]{7,} one$/m);                          // a message without a key reads normally
+  assert.match(x.oneline, /^later\.txt$/m);
+});
+
+test("a key whole on its line hides that line only: the client, the settings and the app config stay readable", () => {
+  const c = x.show["client.ts"].trimEnd().split("\n");
+  assert.deepEqual(c.map((l) => l.split("\t")[1]), [
+    `import Anthropic from "@anthropic-ai/sdk";`, `export const client = new Anthropic({`,
+    `<line 3 hidden: holds an AI key — Anthropic key sk-a…>`, `  baseURL,`, `  maxRetries: 0,`, `});`]);
+  const st = x.show[".claude/settings.json"].trimEnd().split("\n").map((l) => l.split("\t")[1]);
+  assert.equal(st.filter((l) => /hidden/.test(l)).length, 1);
+  assert.equal(st[2], `<line 3 hidden: holds an AI key — Anthropic key sk-a…; the line names ANTHROPIC_API_KEY>`);
+  assert.equal(st[1], `  "env": {`);
+  assert.equal(st[4], `  "permissions": {`);
+  assert.equal(st[5], `    "deny": ["Read(**/.env)", "Read(**/.env.*)"]`);
+  assert.match(st[8], /"matcher": "Write\|Edit\|NotebookEdit\|Bash"/);
+  const ap = x.show["app.json"].trimEnd().split("\n").map((l) => l.split("\t")[1]);
+  assert.deepEqual(ap.filter((l) => /hidden/.test(l)), [`<line 6 hidden: holds an AI key — Anthropic key sk-a…>`]);
+  assert.equal(ap[4], `    "extra": {`);
+  assert.equal(ap[2], `    "name": "shop",`);
+});
+
+test("a split key hides its own statement, not the block or describe around it; a split named value hides its rest", () => {
+  const t = x.show["llm.test.ts"].trimEnd().split("\n").map((l) => l.split("\t")[1]);
+  assert.deepEqual(t.map((l) => /hidden/.test(l)), [false, false, true, false, false, false]);
+  assert.equal(t[0], `describe("llm", () => {`);
+  assert.equal(t[3], `    expect(k).toBeTruthy();`);
+  assert.match(x.show["split.ts"], /^ +1\t<line 1 hidden: .*\n +2\t<line 2 hidden: .*\n +3\tconst after = 2;$/m);
+  assert.match(x.code, /^split\.ts:1  OPENAI_API_KEY value  .{4}…  \(16 chars.*split, looks real$/m);
+});
+
+test("git log -p and piped search output go through show: key lines hidden, the rest readable", () => {
+  assert.match(x.logp, /^\+<line hidden: holds an AI key — Anthropic key sk-a…>$/m);
+  assert.match(x.logp, /^\+FROM node:22$/m);
+  assert.match(x.piped, /^client\.ts:3:<line 3 hidden: holds an AI key — Anthropic key sk-a…>$/m);
+  assert.match(x.piped, /^client\.ts:2:export const client = new Anthropic\(\{$/m);
+});

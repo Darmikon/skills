@@ -5,17 +5,24 @@
 //            (ignored files: add --no-exclude-standard -- '.env*' '**/.env*' '*.env' '**/*.env'
 //             '.claude/settings.local.json' '**/.claude/settings.local.json')
 //   history: git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node mask-keys.mjs history
+//            git log --all --format='commit %h %ad%n%w(0,4,4)%B' --date=short | node mask-keys.mjs history   (commit messages)
 //            git diff -G "$KEYS" <base> | node mask-keys.mjs history   (uncommitted and branch changes: "diff")
-//   show:    node mask-keys.mjs show <file>     (the file as it is, numbered; every line of a statement that holds a key hidden whole)
-//            any-search-or-diff | node mask-keys.mjs show   (the same for search output and diffs)
+//   show:    node mask-keys.mjs show <file>     (the file as it is, numbered; the lines of a key statement hidden whole)
+//            any-search-diff-or-log | node mask-keys.mjs show   (the same for search output, diffs and git log)
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
-// sk-ant-, sk-proj-, sk-svcacct-, sk-admin-, and any other sk- key of 20 or more characters (legacy OpenAI keys)
-// (after a letter or digit it is part of a longer word, unless that is an escape such as \n or a %20)
-const KEY = /(?<=^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2})sk-(?:(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|[A-Za-z0-9_-]{20,})/g;
+// What may stand right before a key: the start, a sign, or an escape that ends in a letter or digit
+// (\n, %20, \x20, \u0020, \u{20}, an ANSI colour such as \x1b[32m).
+const BEFORE = String.raw`^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2}|\\x[0-9A-Fa-f]{2}|\\u[0-9A-Fa-f]{4}|\\u\{[0-9A-Fa-f]+\}|\[[0-9;]*m`;
+// sk-ant-, sk-proj-, sk-svcacct-, sk-admin- wherever they stand, and any other sk- key of 20 or more characters
+// (legacy OpenAI keys; after a letter or digit that is not an escape it is part of a longer word: task-…)
+const KEY = new RegExp(`sk-(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|(?<=${BEFORE})sk-[A-Za-z0-9_-]{20,}`, 'g');
+// a short piece of a key: "sk-", "sk-a", "sk-an" … (the rest put together elsewhere)
+const PIECE = new RegExp(`(?<=${BEFORE})sk-[A-Za-z0-9_-]{0,19}(?![A-Za-z0-9_-])`, 'g');
+// The search's own sk- pattern: a line it matches that the finder cannot place is still hidden.
+const RAW = /sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)/;
 // A variable that names an AI key: ANTHROPIC_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, …
-const PIECE = /(?<=^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2})sk-[A-Za-z0-9_-]{0,19}(?![A-Za-z0-9_-])/g;
 const NAME = /\b([A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY)\b/g;
 const ONLY_NAME = /^[A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY$/;
 // A string literal, or one left open at the end of the line (it goes on below).
@@ -42,12 +49,13 @@ function tag(value, prefix) {
 
 function analyze(text, pending) {
   const found = [], named = [];
-  const add = (kind, v, start, prefix = '', t) => {
+  const add = (kind, v, start, prefix = '', t, above = false) => {
     if (!v || found.some((f) => f.start === start)) return;
-    found.push({ kind, shown: mask(v), tag: t ?? tag(v, prefix), length: v.length, id: idOf(v), start });
+    found.push({ kind, shown: mask(v), tag: t ?? tag(v, prefix), length: v.length, id: idOf(v), start, above });
   };
+  // a value that goes on below (+, a \ at the end, a string left open) is split: the next lines hold the rest
+  const goesOnFrom = (end, open) => (open || /^\s*(\+|\\$)/.test(text.slice(end)) ? 'split, looks real' : undefined);
   const keys = [...text.matchAll(KEY)];
-  // a short piece of a key: "sk-", "sk-a", "sk-an" … (the rest put together elsewhere)
   for (const p of text.matchAll(PIECE)) if (!keys.some((k) => p.index >= k.index && p.index < k.index + k[0].length)) keys.push(Object.assign(p, { piece: true }));
   const inKey = (i) => keys.some((k) => i >= k.index && i < k.index + k[0].length);
   let next = null;
@@ -56,8 +64,8 @@ function analyze(text, pending) {
   // counts only when this line goes on with an operator (NAME⏎ ?? "value")
   if (pending && !/^\s*[A-Za-z_][\w.]*\s*[:=]/.test(text) && (pending.op || /^\s*(\?\?|\|\||or\b|,)/.test(text))) {
     const q = [...text.matchAll(QUOTED)][0], b = text.match(/^\s*([^\s,;]+)/);
-    if (q) add(`${pending.name} value`, q[2], q.index + 1);
-    else if (b && pending.op) add(`${pending.name} value`, b[1], b.index + b[0].length - b[1].length);
+    if (q) add(`${pending.name} value`, q[2], q.index + 1, '', goesOnFrom(q.index + q[0].length, q[3] === ''), true);
+    else if (b && pending.op) add(`${pending.name} value`, b[1], b.index + b[0].length - b[1].length, '', goesOnFrom(b.index + b[0].length, false), true);
   }
 
   for (const m of keys) {
@@ -84,13 +92,17 @@ function analyze(text, pending) {
     for (const q of after.matchAll(QUOTED)) {                           // every literal after the name is its value
       const start = from + q.index + 1;
       if (!q[2] || ONLY_NAME.test(q[2]) || inKey(start)) { has ||= inKey(start); continue; }
-      add(`${m[1]} value`, q[2], start); has = true;
+      add(`${m[1]} value`, q[2], start, '', goesOnFrom(from + q.index + q[0].length, q[3] === '')); has = true;
     }
-    const bare = after.match(/^\s*(:|=(?!=))\s*([^\s"'`,;)}\]{(\[<>|][^\s"'`,;)}\]]*)(.*)$/);   // NAME=value, NAME: value
+    let bare = after.match(/^\s*(:|=(?!=))\s*([^\s"'`,;)}\]{(\[<>|][^\s"'`,;)}\]]*)(.*)$/);   // NAME=value, NAME: value
+    // NAME value: a Dockerfile ENV or ARG, a csh setenv, a fish set; elsewhere only a token that looks like a secret
+    const spaced = !bare && after.match(/^(\s+)([^\s"'`,;)}\]{(\[<>|=:?][^\s"'`,;)}\]]*)(.*)$/);
+    if (spaced && (/^\s*(ENV|ARG|setenv|set(\s+-\w+)*)\s+$/i.test(text.slice(0, m.index)) ||
+        /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_+\/=-]{16,}$/.test(spaced[2]))) bare = [spaced[0], ' ', spaced[2], spaced[3]];
     if (bare && !has) {
       const typed = bare[1] === ':' && /^\s*(\||=(?!=)|\[\])/.test(bare[3]);  // NAME: string = …, a type, not a value
       const start = from + bare[0].length - bare[3].length - bare[2].length;
-      if (!typed && !inKey(start)) { add(`${m[1]} value`, bare[2], start); has = true; }
+      if (!typed && !inKey(start)) { add(`${m[1]} value`, bare[2], start, '', /\\$/.test(bare[2]) && !bare[3] ? 'split, looks real' : undefined); has = true; }
     }
     if (!has && /^[\])"'`]*(\s*(\?\?|\|\||=(?!=)|:|,|\(|\bor\b|[|>][-+]?))+\s*$/.test(after)) { next = { name: m[1], op: true }; has = true; }
     if (!has && /^[\])"'`]*\s*$/.test(after)) next = { name: m[1], op: false };   // the name ends the line
@@ -101,10 +113,11 @@ function analyze(text, pending) {
 
 // ---------- showing: the text as it is, every line of a key statement hidden whole ----------
 
-// A line that goes on below: it ends in an operator, an opening bracket, a backslash, or inside a string.
-const CONT_END = /(\+|,|\(|\[|\{|\\|=|:|\?\?|\|\||\.concat\()\s*$/;
-// A line that goes on from above: it starts with +, a . (a method), ?? or ||, or a bare string literal.
-const CONT_START = /^\s*(\+|\.|\?\?|\|\||["'`])/;
+// A split key goes on below through +, a backslash, ??, ||, .concat( or a string left open at the end of a line,
+// and from above through a line that starts with +, ??, || or .concat(. Commas, colons and brackets do not carry it:
+// a key whole on its line hides that line only, and the object or call around it stays readable.
+const CONT_END = /(\+|\\|\?\?|\|\||\.concat\()\s*$/;
+const CONT_START = /^\s*(\+|\?\?|\|\||\.concat\()/;
 const comment = (l) => /^\s*(\/\/|#|\*|\/\*)/.test(l);
 const openAtEnd = (l) => !comment(l) && [...l.matchAll(QUOTED)].some((q) => q[3] === '' && q.index + q[0].length === l.length);
 const goesOn = (l) => !comment(l) && (CONT_END.test(l) || openAtEnd(l));
@@ -117,18 +130,22 @@ function hiddenLines(lines) {
     const r = analyze(l, pending);
     pending = r.next;
     const k = r.found.find((f) => f.tag !== 'reference');               // a reference points elsewhere: nothing to hide
-    if (k) keyAt.set(i, { ...k, names: r.names });
+    if (k) keyAt.set(i, { ...k, names: r.names, above: r.found.some((f) => f.above && f.tag !== 'reference'),
+      splits: r.found.filter((f) => f.tag === 'split, looks real').map((f) => f.start) });
   });
-  const hide = new Map();
+  const hide = new Map(), spread = [];
   const put = (i, k) => { if (!hide.has(i)) hide.set(i, keyAt.get(i) ?? { ...k, names: [] }); };
   for (const [i, k] of keyAt) {
     put(i, k);
-    if (k.tag === 'split, looks real' || k.tag === 'prefix only') {   // a bracketed list or call holding a piece: hidden whole
-      const span = enclosing(lines, i, k.start);
-      if (span) for (let j = span[0]; j <= span[1]; j++) put(j, k);
+    if (k.above && i > 0) put(i - 1, k);                                 // NAME =⏎ "value": the name's line too
+    if (!k.splits.length) continue;
+    spread.push([i, k]);
+    for (const col of k.splits) {                                        // a bracketed list or call of pieces: hidden whole
+      const span = enclosing(lines, i, col);
+      if (span) for (let j = span[0]; j <= span[1]; j++) { put(j, k); spread.push([j, k]); }
     }
   }
-  for (const [i, k] of [...hide]) {                                      // the statement around it, both ways
+  for (const [i, k] of spread) {                                         // the rest of a split key, both ways
     let a = i, b = i;
     while (a > 0 && lines[a - 1].trim() && (goesOn(lines[a - 1]) || CONT_START.test(lines[a]))) put(--a, k);
     while (b < lines.length - 1 && lines[b + 1].trim() && (goesOn(lines[b]) || CONT_START.test(lines[b + 1]))) put(++b, k);
@@ -137,12 +154,15 @@ function hiddenLines(lines) {
 }
 
 // The [ or ( that encloses position `col` of line `i`, and the line of its match: [first, last], within 40 lines.
+// An open { or a ; met first ends the search: the key is not in a list or call of its own statement (a block, a describe(…)).
 function enclosing(lines, i, col) {
   let depth = 0, a = -1, b = -1;
   for (let j = i, c = col - 1; j >= Math.max(0, i - 40) && a < 0; j--, c = (lines[j] ?? '').length - 1) {
     for (; c >= 0; c--) {
       const ch = lines[j][c];
-      if (ch === ')' || ch === ']') depth++;
+      if (ch === ')' || ch === ']' || ch === '}') depth++;
+      else if ((ch === '{' || ch === ';') && depth === 0) return null;
+      else if (ch === '{') depth--;
       else if (ch === '(' || ch === '[') { if (depth === 0) { a = j; break; } depth--; }
     }
   }
@@ -159,10 +179,14 @@ function enclosing(lines, i, col) {
 }
 
 // The note names the key's kind and first 4 characters, and the variables the line itself names (EXPO_PUBLIC_…): no other text.
-const note = (k, n) => `<${n ? `line ${n} ` : 'line '}hidden: holds an AI key — ${k.kind} ${k.shown}` +
-  (k.names?.length ? `; the line names ${[...new Set(k.names)].join(', ')}` : '') + '>';
-// The safety net on a line that is shown: any key shape or named value still in it makes it hidden too.
-const net = (l) => { const r = analyze(l, null), k = r.found.find((f) => f.tag !== 'reference'); return k && { ...k, names: r.names }; };
+const note = (k, n) => `<${n ? `line ${n} ` : 'line '}hidden: ` + (k.raw ? 'key-shaped text>' : `holds an AI key — ${k.kind} ${k.shown}` +
+  (k.names?.length ? `; the line names ${[...new Set(k.names)].join(', ')}` : '') + '>');
+// The safety net on a line that is shown: any key shape or named value still in it makes it hidden too, and so does
+// any text the search's sk- pattern matches that the finder could not place (`all`: the whole line, its path included).
+const net = (l, all = l) => {
+  const r = analyze(l, null), k = r.found.find((f) => f.tag !== 'reference');
+  return k ? { ...k, names: r.names } : RAW.test(all) ? { raw: true } : null;
+};
 
 // A search line `path:line:text` (a match) or `path-line-text` (a line around it). A path may hold -12- or :3:
 // itself (db/migrations/2024-01-15-seed.sql), so the first split whose path is a real file wins.
@@ -207,10 +231,10 @@ if (mode === 'show') {
       const p = where[i];
       if (p) {
         if (!files.has(p.path)) files.set(p.path, hiddenLines(readFileSync(p.path, 'utf8').split('\n')));
-        const k = files.get(p.path).get(p.n - 1) ?? net(p.rest);
+        const k = files.get(p.path).get(p.n - 1) ?? net(p.rest, l);
         console.log(k ? l.slice(0, p.head) + note(k, p.n) : l);
       } else {
-        const k = hiddenText.get(i) ?? net(body[i]);
+        const k = hiddenText.get(i) ?? net(body[i], l);
         const mark = diff && /^[-+ ]/.test(l) && body[i] !== '' && body[i] === l.slice(1) ? l[0] : '';
         console.log(k ? mark + note(k) : l);
       }
@@ -218,7 +242,7 @@ if (mode === 'show') {
   }
 } else if (mode === 'code' || mode === 'history') {
   const input = readFileSync(0, 'utf8').split('\n');
-  let commit = '', file = '', pending = null, prev = null;
+  let commit = '', file = '', message = false, pending = null, prev = null;
   for (const l of input) {
     if (mode === 'code') {
       const m = splitSearch(l);
@@ -236,12 +260,16 @@ if (mode === 'show') {
       pending = r.next; prev = { path: m.path, n: m.n };
       continue;
     }
-    if (l.startsWith('commit ')) { commit = l.slice(7).trim(); pending = null; continue; }
-    if (l.startsWith('diff --git ')) { file = l.replace(/^diff --git a\/.* b\//, ''); pending = null; continue; }
-    if (l.startsWith('+++ ') || l.startsWith('--- ')) continue;
-    if (l[0] !== '+' && l[0] !== '-') { pending = null; continue; }
-    const r = analyze(l.slice(1), pending);
-    for (const k of r.found) say(line(`${commit || 'diff'} ${file} ${l[0] === '+' ? 'added' : 'removed'}`, k));
+    if (l.startsWith('commit ')) { commit = l.slice(7).trim(); file = ''; message = true; pending = null; continue; }
+    if (l.startsWith('diff --git ')) { file = l.replace(/^diff --git a\/.* b\//, ''); message = false; pending = null; continue; }
+    // the message, indented by --format='…%n%w(0,4,4)%B', between the commit line and its first diff
+    const inMessage = message && commit && l.startsWith('    ');
+    if (!inMessage && (l.startsWith('+++ ') || l.startsWith('--- '))) continue;
+    if (!inMessage && l[0] !== '+' && l[0] !== '-') { pending = null; continue; }
+    const where = inMessage ? `${commit} message` : `${commit || 'diff'} ${file} ${l[0] === '+' ? 'added' : 'removed'}`;
+    const r = analyze(l.slice(inMessage ? 4 : 1), pending);
+    for (const k of r.found) say(line(where, k));
+    if (!r.found.length && RAW.test(l)) say(`${where}  key-shaped text`);   // the search matched it; the finder cannot place it
     pending = r.next;
   }
 } else {
