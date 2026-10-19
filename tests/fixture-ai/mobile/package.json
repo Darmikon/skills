@@ -1,0 +1,2 @@
+{ "name": "shop-app", "private": true, "main": "index.js",
+  "dependencies": { "expo": "^54.0.0", "react-native": "^0.81.0" } }

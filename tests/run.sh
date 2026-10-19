@@ -16,6 +16,11 @@ if [ ! -d "$CACHE/node_modules" ]; then
   cp "$HERE/fixture/package.json" "$CACHE/" && (cd "$CACHE" && npm install --silent >/dev/null 2>&1)
 fi
 
+# The AI library for the scan ai cases, in the same cache
+if [ ! -d "$CACHE/node_modules/@anthropic-ai/sdk" ]; then
+  (cd "$CACHE" && npm install --silent --no-save @anthropic-ai/sdk@0.135.0 >/dev/null 2>&1)
+fi
+
 g() { git -c user.name="Test User" -c user.email="test@example.com" "$@"; }
 
 # A fresh project with its own git repo and a bare "remote". Sets P and R.
@@ -117,6 +122,26 @@ case_scan_branch() {
 only_in() { (cd "$P" && git status --porcelain --untracked-files=all | awk '{print $2}' | grep -vE "$1" | grep -q .) && return 1 || return 0; }
 # The first existing file in the log whose name matches the pattern.
 file_from_log() { grep -oE "/[^][() \`<>\"']*$1" "$LOG" | while read -r f; do [ -f "$f" ] && { echo "$f"; break; }; done; }
+
+# Lays tests/fixture-ai over the project and commits it on main.
+plant_ai() {
+  cp -R "$HERE/fixture-ai/." "$P/"
+  (cd "$P" && g add -A && g commit -qm "feat: support answers, review labels and the app's chat" && git push -q origin main)
+}
+
+# The 63 checklist ids of scan ai.
+AI_IDS=$(for p in A:9 B:11 C:5 D:5 E:8 F:3 G:12 M:10; do for i in $(seq 1 "${p#*:}"); do printf '%s%s ' "${p%:*}" "$i"; done; done)
+
+# Every id is the first cell of a row in a table section of the findings file.
+has_all_ids() {
+  node -e '
+    const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8"));
+    const rows = (j.page.sections || []).filter((s) => s.block === "table").flatMap((s) => s.rows || []);
+    const seen = new Set(rows.map((r) => String(r[0]).replace(/`/g, "").trim()));
+    const missing = process.argv.slice(2).filter((id) => !seen.has(id));
+    if (missing.length) { console.error("missing ids: " + missing.join(" ")); process.exit(1); }
+  ' "$1" $AI_IDS
+}
 
 case_domain_model() {
   fresh domain_model
@@ -390,7 +415,51 @@ case_who() {
   check "changes nothing" clean
 }
 
-CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup to_plan to_spec"
+case_scan_ai() {
+  fresh scan_ai; plant_ai
+  ask "/scan ai deep"
+  local f; f=$(file_from_log "scan-ai-[0-9-]+\\.json")
+  check "writes the findings file" test -n "$f"
+  check "the table has all 63 ids" has_all_ids "$f"
+  check "finds the catch-all retry" says "(sleep\\(0\\)|support\\.ts)"
+  check "finds the empty tool result" says "(is_error|tools\\.ts)"
+  check "finds Promise.all" says "Promise\\.all"
+  check "finds the key in the app" says "mobile/src/api/claude\\.ts"
+  check "never shows the key in full" bash -c "! grep -q 'api03-FAKE' '$LOG' && ! grep -q 'api03-FAKE' '$f' && ! grep -q 'api03-FAKE' '${f%.json}.html'"
+  check "draws a page" says "scan-ai-[0-9-]+\\.html"
+  check "changes nothing" clean
+}
+
+case_scan_ai_none() {
+  fresh scan_ai_none
+  ask "/scan llm deep"
+  check "says there are no AI calls" says "(no|not|нет|не на).{0,60}(AI|ИИ|LLM|model|модел)|(AI|ИИ|LLM).{0,60}(none|not found|нет|не найден)"
+  check "draws no page" bash -c "! grep -qE 'scan-ai-[0-9-]+\\.html' '$LOG'"
+  check "changes nothing" clean
+}
+
+case_fix_ai() {
+  fresh fix_ai; plant_ai
+  local head; head=$(cd "$P" && git rev-parse HEAD)
+  ask "/scan ai deep"
+  ask -c "/fix ai deep"
+  check "shows a plan and waits (nothing changed yet)" clean
+  ask -c "да, первую группу делай. Из второй обсуждаем первую находку."
+  check "model ids in one place" bash -c "[ \$(grep -rl 'claude-sonnet-5-5' '$P/src' | wc -l) -le 1 ]"
+  check "tool errors go back as is_error" grep -q "is_error" "$P/src/llm/tools.ts"
+  check "still type-checks" bash -c "cd '$P' && npx tsc --noEmit"
+  check "hands the big ones to brainstorming" says "brainstorming"
+  check "does not commit" head_is "$head"
+}
+
+case_scan_menu_ai() {
+  fresh scan_menu_ai; plant_ai
+  ask "/scan"
+  check "suggests scan ai" says "/scan ai"
+  check "changes nothing" clean
+}
+
+CASES="scan_comments scan_unused scan_asks scan_branch fix_comments ask_what_is_it how why zoom_out pin commit push_after_rebase push_teammate merge rebase cleanup show_my_branches explore verify update_plans handoff feature compare history error who domain_model domain_model_decision grill_me grill_with_docs to_questionnaire mockup to_plan to_spec scan_ai scan_ai_none fix_ai scan_menu_ai"
 for c in $CASES; do run_case "$c"; done
 
 echo
