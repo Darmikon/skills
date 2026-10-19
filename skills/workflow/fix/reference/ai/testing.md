@@ -32,7 +32,7 @@ it('routes classify to cheap model', () => expect(pickModel('classify', 'hi')).t
 
 ## Failure-path with MSW
 
-MSW starts in a Vitest `setupFiles` module, at its top level, not in a `beforeAll`: under msw 3 an SDK client made at import time (`export const anthropic = new Anthropic(…)`, failures.md §2) keeps the `fetch` it found then, and a `beforeAll` in the test file comes after that import, so its calls reach the real API. The other way out is a client created lazily, on first use.
+MSW starts in a Vitest `setupFiles` module, at its top level, not in a `beforeAll`: with msw 2 and 3 alike, an SDK client made at import time (`export const anthropic = new Anthropic(…)`, failures.md §2) keeps the `fetch` it found then, and a `beforeAll` in the test file comes after that import, so its calls reach the real API. The other way out is a client created lazily, on first use.
 
 ```ts
 // test/msw.ts — in vitest.config.ts: test: { setupFiles: ['./test/msw.ts'] }; runs before each test file's imports

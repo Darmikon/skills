@@ -106,7 +106,7 @@ Client must not retry on top of this:
 ```ts
 export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 0 });
 ```
-Tests with msw 3: a client made at import time keeps the `fetch` it found then, so MSW must start before this module loads (`testing.md`, failure-path tests).
+Tests with msw 2 and 3 alike: a client made at import time keeps the `fetch` it found then, so MSW must start before this module loads (`testing.md`, failure-path tests).
 Keep the SDK's timeout (10 minutes by default; for a call that is not streamed it also refuses a `max_tokens` too large to finish in that time). A timeout shorter than the answer turns every long call into retries; stream long answers instead.
 Alternative: keep SDK retries (`maxRetries: 2`) and write NO own loop — only app-level fallbacks. Never both.
 
@@ -192,7 +192,9 @@ export async function streamAnswer(
 ) {
   return callWithRetry(async () => {
     let ui: { error: unknown } | undefined;
+    let connected = false;                                // the response has arrived; a failure before it is not a broken stream
     const stream = anthropic.messages.stream(params);
+    stream.on('connect', () => { connected = true; });
     stream.on('text', (t) => { try { onText(t); } catch (e) { ui ??= { error: e }; } });   // a bug in our UI code is not a broken stream
     try {
       const final = await stream.finalMessage();          // SDK accumulates input_json deltas
@@ -202,7 +204,8 @@ export async function streamAnswer(
     } catch (e) {
       if (ui) throw ui.error;                             // a UI error wins, even when the stream also broke
       // A socket/body failure mid-stream comes out of MessageStream as a plain AnthropicError, not an APIError.
-      if (e instanceof AnthropicError && !(e instanceof APIError)) throw new StreamBroken(e);
+      // Before the response (no credentials, a bad option) the same class means a setup error: thrown as it is, once.
+      if (connected && e instanceof AnthropicError && !(e instanceof APIError)) throw new StreamBroken(e);
       throw e;
     }
   }, { onRetry });
