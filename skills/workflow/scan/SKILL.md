@@ -1,7 +1,7 @@
 ---
 name: scan
-description: 'Look for problems in a whole project without changing it, and show them on one page. Commands: architecture, unused, security, performance, docs, comments, todo, tests. By default it reviews what the current branch changed; `deep` scans the whole project. With no argument it suggests which fits.'
-argument-hint: '[architecture · unused · security · performance · docs · comments · todo · tests · pin <command> · unpin <command>] [folder or area] [deep]'
+description: 'Look for problems in a whole project without changing it, and show them on one page. Commands: architecture, unused, security, performance, docs, comments, todo, tests, ai. By default it reviews what the current branch changed; `deep` scans the whole project. With no argument it suggests which fits.'
+argument-hint: '[architecture · unused · security · performance · docs · comments · todo · tests · ai · pin <command> · unpin <command>] [folder or area] [deep]'
 disable-model-invocation: true
 ---
 
@@ -21,9 +21,10 @@ A scan looks at a project, changes nothing in it, and shows what it found on one
 | `comments [folder]` | lying comments, stale TODOs, dead code, repeats | [comments.md](reference/comments.md) |
 | `todo [folder]` | the TODO part of `comments` alone | [comments.md](reference/comments.md) |
 | `tests [folder]` | untested parts, weak and flaky tests | [tests.md](reference/tests.md) |
+| `ai [folder]` | what code that calls an AI model is missing for production: failures, watching, tests, answer quality, cost, several agents, security | [ai.md](reference/ai.md) |
 
 - **No argument:** read [menu.md](reference/menu.md) and suggest. Never start a scan on your own.
-- **A command first** (`doc`, `comment` work too): read its reference and follow it with this file. The rest is the folder or area.
+- **A command first** (`doc`, `comment`, `llm` for `ai` work too): read its reference and follow it with this file. The rest is the folder or area.
 - **A plain question** ("is this secure?"): if one command fits, name it and ask once before running it.
 - **`pin` / `unpin`:** read [pin.md](reference/pin.md).
 - **`deep`**, "full", "полный" anywhere in the argument: the whole project, in full.

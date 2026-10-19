@@ -5,6 +5,7 @@ Look quickly, then suggest. Look only at what is cheap: `git log --oneline -30 -
 - The user does not know this project yet, or it has no notes of its own → say that `/ask what-is-it` gives the first look (it is not a scan), then go on.
 - Recent history keeps coming back to the same files → `architecture`, scoped to that area.
 - `package.json` and `node_modules/` at the root → `unused`.
+- An AI library in a manifest (`@anthropic-ai/sdk`, `openai`, `ai`, `langchain`, `@langchain/*`; Python: `anthropic`, `openai`, `langchain`), at the root or in a folder with its own manifest → `ai`.
 - Logins, payments, uploads or webhooks → `security`.
 - A database or list endpoints → `performance`.
 - A `docs/` folder, or a `README`, `CLAUDE.md` or `AGENTS.md` longer than a page → `docs`.
