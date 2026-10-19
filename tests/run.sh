@@ -143,6 +143,23 @@ has_all_ids() {
   ' "$1" $AI_IDS
 }
 
+# A finding in the findings file whose kind is the id or its area letter, with a place on the path,
+# and, when a rank is given, that rank. Usage: has_finding <json> <id> <path> [rank]
+has_finding() {
+  node -e '
+    const [file, id, path, rank] = process.argv.slice(1);
+    const j = JSON.parse(require("fs").readFileSync(file, "utf8"));
+    const hit = (j.findings || []).find((x) =>
+      [id, id[0]].includes(String(x.kind).trim()) &&
+      (x.places || []).some((p) => String(p.path || "").replace(/^\.\//, "").endsWith(path)) &&
+      (!rank || x.rank === rank));
+    if (!hit) { console.error("no " + id + (rank ? " " + rank : "") + " finding on " + path); process.exit(1); }
+  ' "$@"
+}
+
+# No Anthropic key beyond its first characters in the log or in the given files.
+no_key() { ! grep -qE 'sk-ant-[A-Za-z0-9]' "$LOG" "$@"; }
+
 case_domain_model() {
   fresh domain_model
   ask "In this shop an order that is paid but not shipped yet is a 'pending order'. Not 'open order', not 'unshipped order'. Let's stick to that word."
@@ -421,10 +438,11 @@ case_scan_ai() {
   local f; f=$(file_from_log "scan-ai-[0-9-]+\\.json")
   check "writes the findings file" test -n "$f"
   check "the table has all 63 ids" has_all_ids "$f"
-  check "finds the catch-all retry" says "(sleep\\(0\\)|support\\.ts)"
-  check "finds the empty tool result" says "(is_error|tools\\.ts)"
+  check "finds the catch-all retry (A3 on support.ts)" has_finding "$f" A3 src/llm/support.ts
+  check "finds the empty tool result (A7 on tools.ts)" has_finding "$f" A7 src/llm/tools.ts
   check "finds Promise.all" says "Promise\\.all"
   check "finds the key in the app" says "mobile/src/api/claude\\.ts"
+  check "the app's key is a Critical G1" has_finding "$f" G1 mobile/src/api/claude.ts Critical
   check "never shows the key beyond its first characters" bash -c "test -s '$f' && test -s '${f%.json}.html' && ! grep -qE 'sk-ant-[A-Za-z0-9]' '$LOG' '$f' '${f%.json}.html'"
   check "draws a page" says "scan-ai-[0-9-]+\\.html"
   check "changes nothing" clean
@@ -441,6 +459,7 @@ case_scan_ai_none() {
 case_fix_ai() {
   fresh fix_ai; plant_ai
   local head; head=$(cd "$P" && git rev-parse HEAD)
+  local start="$WORK/fix_ai/start"; touch "$start"
   ask "/scan ai deep"
   ask -c "/fix ai deep"
   check "shows a plan and waits (nothing changed yet)" clean
@@ -450,6 +469,9 @@ case_fix_ai() {
   check "still type-checks" bash -c "cd '$P' && npx tsc --noEmit"
   check "hands the big ones to brainstorming" says "brainstorming"
   check "does not commit" head_is "$head"
+  local handed; handed=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'fix-ai-*.json' -newer "$start" 2>/dev/null)
+  # shellcheck disable=SC2086
+  check "never shows the key beyond its first characters" no_key $handed
 }
 
 case_scan_menu_ai() {

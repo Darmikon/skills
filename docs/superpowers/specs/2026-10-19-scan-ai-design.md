@@ -173,13 +173,13 @@ Nothing extra: a router, the batches API or multi-agent orchestration is propose
 - `src/llm/support.ts`: a retry loop that catches everything and retries with no delay (A1–A3), SDK retries left on (A4), model id as a literal, also in a second file (E2), no `max_tokens` choice (E7).
 - `src/llm/tools.ts`: a tool runner that returns empty content on error (A7).
 - `src/llm/batch.ts`: a fan-out with `Promise.all` (A8).
-- `mobile/src/api/claude.ts`: a fake key `sk-ant-api03-FAKE…` in an `EXPO_PUBLIC_*` value in client code (G1, G2).
+- `mobile/src/api/claude.ts`: `EXPO_PUBLIC_ANTHROPIC_KEY` read in client code, with a fake key `sk-ant-api03-FAKE…` as its fallback literal (G1: the build bundles the variable's value, whatever the literal is). The literal stays fake (the mask tags it `placeholder`): a real-looking key would trip GitHub's secret scanning on push.
 
 Cases in `tests/run.sh`:
 
-1. `scan_ai`: `/scan ai deep`. Finds each planted problem with its file; the findings file's table has every id of the appendix; the log never contains the full fake key; a page is drawn; the project is unchanged.
+1. `scan_ai`: `/scan ai deep`. The findings file has an A3 (or A) finding on `src/llm/support.ts`, an A7 (or A) finding on `src/llm/tools.ts` and a `Critical` G1 (or G) finding on `mobile/src/api/claude.ts`; the log names `Promise.all` and the app file; the findings file's table has every id of the appendix; the log, the findings file and the page never contain `sk-ant-` followed by a letter or digit; a page is drawn; the project is unchanged.
 2. `scan_ai_none`: `/scan ai deep` on the plain fixture. Says there are no AI calls; no page; unchanged.
-3. `fix_ai`: `/fix ai deep`. A plan with two groups; nothing changed before the answer. After "да": the model ids are in one place, the tool error is an `is_error` result, the second group went to `brainstorming` (the log names it), nothing committed.
+3. `fix_ai`: `/fix ai deep`. A plan with two groups; nothing changed before the answer. After "да": the model ids are in one place, the tool error is an `is_error` result, the code still type-checks, the second group went to `brainstorming` (the log names it), nothing committed, and neither the log nor a `fix-ai-*.json` hand-over file made during the case contains `sk-ant-` followed by a letter or digit.
 4. `scan_menu_ai`: `/scan` on the planted fixture suggests `ai`.
 
 ## Independent verification
