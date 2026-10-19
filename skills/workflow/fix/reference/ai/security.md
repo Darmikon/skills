@@ -25,19 +25,39 @@ The tool dispatcher is where your own agent's guard lives (for apps you build �
 
 ```ts
 // llm/tools.ts — TOOLS, ownsOrder, audit and redact are the project's own
+import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-const OUTPUT_ROOT = '/workspace/output/';
+const OUTPUT_ROOT = '/workspace/output';
 const DENY = ['/etc', '/secrets', path.join(os.homedir(), '.aws'), path.join(os.homedir(), '.ssh')];
+
+// Where a write really lands: `..` resolved and every symlink followed in the part of the path that exists (the rest,
+// a file or folder not made yet, added back). A dangling symlink throws, and the guard denies it.
+function realTarget(p: string): string {
+  let dir = path.resolve(p);
+  const tail: string[] = [];
+  for (;;) {
+    try { fs.lstatSync(dir); break; } catch { /* not there yet */ }
+    const up = path.dirname(dir);
+    if (up === dir) break;
+    tail.unshift(path.basename(dir));
+    dir = up;
+  }
+  return path.join(fs.realpathSync(dir), ...tail);
+}
+const realOr = (p: string) => { try { return fs.realpathSync(p); } catch { return path.resolve(p); } };
+const inside = (p: string, dir: string) => p === dir || p.startsWith(dir + path.sep);   // not /etcetera for /etc
 
 export type Ctx = { userId: string; untrustedInContext: boolean };
 
 const guards: Record<string, (input: any, ctx: Ctx) => string | null> = {
   write_file: ({ path: p }) => {
-    const r = path.resolve(p ?? '');                       // kills ../../ tricks
-    if (DENY.some((d) => r.startsWith(d))) return 'denied path';
-    if (!r.startsWith(OUTPUT_ROOT)) return 'write outside permitted path';
+    if (typeof p !== 'string' || !p) return 'path required';
+    let r: string;
+    try { r = realTarget(p); } catch { return 'path cannot be resolved'; }   // kills ../../ tricks and symlinks out
+    if (DENY.some((d) => inside(r, realOr(d)))) return 'denied path';
+    if (!inside(r, realOr(OUTPUT_ROOT))) return 'write outside permitted path';
     return null;
   },
   refund: ({ amount, orderId }, ctx) => {
@@ -72,7 +92,7 @@ Rules to check:
 ## 4. Secrets
 - Only from env / secret manager (AWS Secrets Manager, GCP Secret Manager, Vault, Doppler). Validate at boot (`ConfigService.getOrThrow`).
 - Never in repo, never in client bundles (`NEXT_PUBLIC_*`, `EXPO_PUBLIC_*`, RN `.env` via `react-native-config` = shipped to users).
-- Scan history without printing a key: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node "<skills folder>/scan/scripts/mask-keys.mjs" history` (`KEYS` and the mask as the scan's `ai` reference §5 gives them), or `gitleaks git --redact` (`gitleaks detect --redact` before gitleaks 8.19). Found ⇒ **rotate**, deleting the commit isn't enough.
+- Scan history without printing a key: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node "<skills folder>/scan/scripts/mask-keys.mjs" history` and the commit messages with `--format='commit %h %ad%n%w(0,4,4)%B'` and no `-p -G` (`KEYS` and the mask as the scan's `ai` reference §5 gives them), or `gitleaks git --redact -v` (`gitleaks detect --redact -v` before gitleaks 8.19; without `-v` it prints only how many leaks it found, or write them with `--report-path <tmp>/gitleaks.json`). Found ⇒ **rotate**, deleting the commit isn't enough.
 - Add `gitleaks`/`trufflehog` to pre-commit or CI.
 
 ## 5. Claude Code projects (`.claude/settings.json`)
@@ -81,26 +101,31 @@ If the repo is worked on by Claude Code agents, check:
 ```json
 {
   "permissions": {
-    "deny": ["Read(./.env)", "Read(./.env.*)", "Read(./secrets/**)", "Bash(curl:*)", "Bash(rm -rf:*)"],
+    "deny": ["Read(**/.env)", "Read(**/.env.*)", "Read(**/secrets/**)", "Bash(curl:*)", "Bash(rm -rf:*)"],
     "ask": ["Bash(git push:*)"]
   },
   "hooks": {
     "PreToolUse": [
-      { "matcher": "Write|Edit|Bash", "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.mjs"], "onFailure": "block" }] }
+      { "matcher": "Write|Edit|NotebookEdit|Bash", "hooks": [{ "type": "command", "command": "node", "args": ["${CLAUDE_PROJECT_DIR}/.claude/hooks/guard.mjs"], "onFailure": "block" }] }
     ]
   }
 }
 ```
 The hook runs in Claude's current directory, which follows every `cd`; a relative path (`node .claude/hooks/guard.mjs`) is not found after `cd src`, and a hook that fails without `onFailure: "block"` lets the write through. `${CLAUDE_PROJECT_DIR}` stays at the project root, and `onFailure: "block"` (Claude Code 2.1.295 or later) makes a guard that cannot run refuse the call. Confirm both in the hooks docs (code.claude.com/docs/en/hooks).
+`Read(./.env)` covers only the `.env` in the current directory; `**/` reaches `apps/api/.env` too. Bash deny rules match the command text: `/usr/bin/curl …` or `sh -c 'curl …'` pass them, and the permissions docs say they are not a security boundary; the sandbox's network allowlist is what enforces it.
 
 ```js
 // .claude/hooks/guard.mjs — reads hook event JSON from stdin
 import path from 'node:path';
 import fs from 'node:fs';
 const ev = JSON.parse(fs.readFileSync(0, 'utf8'));
-const p = ev.tool_input?.file_path ? path.resolve(ev.tool_input.file_path) : null;
-const blocked = p && (/\.env|secrets|\.aws|\.ssh/.test(p));
-// Bash calls carry no file_path, so for them this hook only audits. The `Read(./.env)` deny rules above already stop
+const file = ev.tool_input?.file_path ?? ev.tool_input?.notebook_path;   // NotebookEdit names its file notebook_path
+const p = file ? path.resolve(file) : null;
+// Judge the path from the project root, segment by segment and in any case (.ENV is the same file on macOS):
+// a project that lives in ~/dev/my-secrets-app is not blocked as a whole, apps/api/.env and ../.ssh/x are.
+const rel = p && path.relative(process.env.CLAUDE_PROJECT_DIR ?? process.cwd(), p);
+const blocked = !!rel && /(^|[\\/])(\.env[^\\/]*|secrets)([\\/]|$)|(^|[\\/])\.(aws|ssh)([\\/]|$)/i.test(rel);
+// Bash calls carry no file_path, so for them this hook only audits. The `Read(**/.env)` deny rules above already stop
 // `cat .env` and other named reads; to block more, check `ev.tool_input.command` here or use the sandbox's `denyRead`.
 fs.appendFileSync(path.join(process.env.CLAUDE_PROJECT_DIR ?? '.', '.claude/audit.log'), JSON.stringify({ t: Date.now(), tool: ev.tool_name, path: p, result: blocked ? 'BLOCKED' : 'allowed' }) + '\n');
 if (blocked) {

@@ -48,8 +48,10 @@ afterAll(() => server.close());
 ```
 
 ```ts
-// llm (LlmService), firstText, runTool, ModelRefused, RetryBudgetExhausted: llm/ (failures.md); it/expect: vitest globals
-import { http, HttpResponse } from 'msw';                 // msw 3 also has them at 'msw/http'
+// llm (LlmService), firstText, runTool, callWithRetry, ModelRefused, RetryBudgetExhausted: llm/ (failures.md)
+import { it, expect } from 'vitest';                       // or `globals: true` in vitest.config.ts
+import Anthropic, { APIConnectionTimeoutError } from '@anthropic-ai/sdk';
+import { http, HttpResponse, delay } from 'msw';          // msw 3 also has them at 'msw/http'
 import { server } from './msw';
 
 const URL = 'https://api.anthropic.com/v1/messages';
@@ -60,7 +62,7 @@ const ok = (text = 'hi', stop_reason = 'end_turn') => HttpResponse.json({
 });
 const rateLimited = () => HttpResponse.json(
   { type: 'error', error: { type: 'rate_limit_error', message: 'slow down' } },
-  { status: 429, headers: { 'retry-after': '0' } },
+  { status: 429, headers: { 'retry-after': '0.01' } },   // 10 ms; a 0 is ignored (no 0 ms loop) and the full backoff runs
 );
 
 it('429 then success → retries and succeeds', async () => {
@@ -92,16 +94,28 @@ it('always 429 → RetryBudgetExhausted after maxAttempts', async () => {
   expect(n).toBe(5);   // maxAttempts
 });
 
+it('timeout → retried, then RetryBudgetExhausted with the timeout as lastError', async () => {
+  server.use(http.post(URL, async () => { await delay('infinite'); return ok(); }));   // never answers
+  const client = new Anthropic({ apiKey: 'test', maxRetries: 0, timeout: 50 });           // a test client: 50 ms, not 10 minutes
+  const err = await callWithRetry(
+    () => client.messages.create({ model: 'test', max_tokens: 10, messages: [{ role: 'user', content: 'x' }] }),
+    { maxAttempts: 2 },                                                                    // one backoff, 1–2 s
+  ).catch((e) => e);
+  expect(err).toBeInstanceOf(RetryBudgetExhausted);
+  expect(err.lastError).toBeInstanceOf(APIConnectionTimeoutError);
+});
+
 it('tool throws → tool_result with is_error', async () => {
   const r = await runTool({ type: 'tool_use', id: 't1', name: 'broken', input: {} } as any, { userId: 'user-1', untrustedInContext: false });
   expect(r).toMatchObject({ is_error: true, tool_use_id: 't1' });
 });
 ```
-Use `vi.useFakeTimers()` or `retry-after: 0` so backoff doesn't slow the suite. Also cover: batch with one failing item keeps the rest; `Promise.allSettled` in orchestrator; security guard denies `../` paths.
+Use `vi.useFakeTimers()` or a tiny `retry-after` (`0.01`) so backoff doesn't slow the suite. Also cover: batch with one failing item keeps the rest; `Promise.allSettled` in orchestrator; security guard denies `../` paths.
 
 ## Integration — test the seam
 ```ts
 // server, URL and ok: the block above; service and db are the project's own
+import { it, expect } from 'vitest';
 it('LLM JSON → parser → saved order', async () => {
   server.use(http.post(URL, () => ok(JSON.stringify({ orderId: '123', amount: 50 }))));
   await service.handleRefundRequest('user-1', 'refund order 123');

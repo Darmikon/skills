@@ -3,7 +3,7 @@
 ## 🔴 Rule zero: no API key in the app
 Anything in the bundle is public: `.env` via `react-native-config`, `EXPO_PUBLIC_*`, `app.config.js` extra, hardcoded strings. Anyone can unzip the IPA/APK and use your key.
 
-Detect: in the app package, grep for `@anthropic-ai/sdk` and `api.anthropic.com`; find keys and key variables only through the scan's mask, which never prints one: `git grep -nIE -A1 --untracked "$KEYS" -- <app folder> | node "<skills folder>/scan/scripts/mask-keys.mjs" code`, and its git-ignored env files: `git grep -nIE -A1 --untracked --no-exclude-standard "$KEYS" -- '<app folder>/.env*' '<app folder>/**/.env*' | node "<skills folder>/scan/scripts/mask-keys.mjs" code` (`KEYS` as the scan's `ai` reference §5 gives it). Read `app.json` / `app.config.*` (their `extra`) only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>`.
+Detect: in the app package, grep for `@anthropic-ai/sdk` and `api.anthropic.com`; find keys and key variables only through the scan's mask, which never prints one: `git grep -nIE -A1 --untracked "$KEYS" -- <app folder> | node "<skills folder>/scan/scripts/mask-keys.mjs" code`, and its git-ignored env files: `git grep -nIE -A1 --untracked --no-exclude-standard "$KEYS" -- '<app folder>/.env*' '<app folder>/**/.env*' '<app folder>/*.env' '<app folder>/**/*.env' | node "<skills folder>/scan/scripts/mask-keys.mjs" code` (`KEYS` as the scan's `ai` reference §5 gives it). Read `app.json` / `app.config.*` (their `extra`) only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>`.
 Fix: app → **own backend** (auth'd) → Claude. Backend applies everything from failures.md (retry, telemetry, guards, rate limit per user). If a key shipped: rotate it.
 
 ## Client ↔ backend resilience
@@ -17,14 +17,16 @@ export class TemporaryError extends Error {
 export class RefusedError extends Error {}
 export class TimeoutError extends Error {}           // our time limit ran out (a screen's cancel stays an AbortError)
 
-async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
+// `read` gets the response inside the time limit: the limit and the screen's cancel cover the body too, not only the headers.
+async function fetchWithTimeout<T>(url: string, init: RequestInit, ms: number, read: (res: Response) => Promise<T>): Promise<T> {
   const ctrl = new AbortController();
   let timedOut = false;
   const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, ms);
   const onAbort = () => ctrl.abort();                 // the screen's own cancel still works
   if (init.signal?.aborted) ctrl.abort(); else init.signal?.addEventListener('abort', onAbort, { once: true });
   try {
-    return await fetch(url, { ...init, signal: ctrl.signal });
+    const res = await fetch(url, { ...init, signal: ctrl.signal });
+    return await read(res);                           // an abort now also stops res.json()
   } catch (e) {
     if (timedOut) throw new TimeoutError(`No response in ${ms} ms`);
     throw e;
@@ -35,21 +37,21 @@ async function fetchWithTimeout(url: string, init: RequestInit, ms: number) {
 }
 
 export async function ask(question: string, signal?: AbortSignal) {
-  const res = await fetchWithTimeout(`${API}/support/ask`, {
+  return fetchWithTimeout(`${API}/support/ask`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${await getToken()}` },
     body: JSON.stringify({ question }),
     signal,
-  }, 30_000);
-
-  if (res.status === 503 || res.status === 429) {
-    const n = Number(res.headers.get('retry-after') ?? 2);
-    const retryAfter = Number.isNaN(n) ? 2 : n;       // an HTTP-date is NaN as a number: fall back to 2 s
-    throw new TemporaryError(retryAfter);          // UI: "busy, retrying…" + backoff, max 2–3
-  }
-  if (res.status === 422) throw new RefusedError(); // UI: friendly "can't help with that"
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
-  return res.json();
+  }, 30_000, async (res) => {
+    if (res.status === 503 || res.status === 429) {
+      const n = Number(res.headers.get('retry-after') ?? 2);
+      const retryAfter = Number.isNaN(n) ? 2 : n;     // an HTTP-date is NaN as a number: fall back to 2 s
+      throw new TemporaryError(retryAfter);           // UI: "busy, retrying…" + backoff, max 2–3
+    }
+    if (res.status === 422) throw new RefusedError(); // UI: friendly "can't help with that"
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  });
 }
 ```
 - Timeouts + `AbortController` (cancel on screen unmount).

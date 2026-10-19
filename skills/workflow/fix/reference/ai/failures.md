@@ -51,7 +51,8 @@ export function isRetriable(e: unknown): boolean {
   }
   // A mid-stream `event: error` is an APIError with no HTTP status; its type says whether a retry can help.
   // (APIUserAbortError also has no status and type null, so a user's cancel is not retried.)
-  if (e instanceof APIError && e.status === undefined) return e.type === 'overloaded_error' || e.type === 'api_error' || e.type === 'timeout_error';
+  if (e instanceof APIError && e.status === undefined)
+    return e.type === 'overloaded_error' || e.type === 'api_error' || e.type === 'timeout_error' || e.type === 'rate_limit_error';   // as 529, 500, 408, 429
   if (e instanceof APIError) return !!e.status && (RETRIABLE.has(e.status) || e.status >= 500);
   return false;                                        // unknown ⇒ treat as terminal, fail loud
 }
@@ -60,7 +61,7 @@ export function retryAfterMs(e: unknown): number | null {
   if (!(e instanceof APIError)) return null;
   const raw = header(e, 'retry-after');
   const sec = Number(raw);
-  return raw && !Number.isNaN(sec) ? sec * 1000 : null;
+  return raw && !Number.isNaN(sec) && sec > 0 ? sec * 1000 : null;   // 0, negative or an HTTP-date: our own backoff, never a 0 ms loop
 }
 ```
 
@@ -138,7 +139,8 @@ import { dispatchTool, type Ctx } from './tools';   // the dispatcher and its gu
 export async function runTool(toolUse: Anthropic.ToolUseBlock, ctx: Ctx): Promise<Anthropic.ToolResultBlockParam> {
   try {
     const result = await dispatchTool(toolUse.name, toolUse.input, ctx);
-    return { type: 'tool_result', tool_use_id: toolUse.id, content: JSON.stringify(result) };
+    // JSON.stringify(undefined) is undefined: a tool that returns nothing still answers ("null"), never a missing content
+    return { type: 'tool_result', tool_use_id: toolUse.id, content: JSON.stringify(result ?? null) };
   } catch (e) {
     return {
       type: 'tool_result',
@@ -165,8 +167,9 @@ export async function processBatch<I>(items: I[], build: (i: I) => Anthropic.Mes
     try {
       const resp = assertNotRefused(await callWithRetry(() => anthropic.messages.create(build(item))));
       const block = resp.content.find((b) => b.type === 'text');
-      if (resp.stop_reason === 'max_tokens' || !block || block.type !== 'text') {   // one item's answer, not a bug: the rest go on
-        out.push({ item, status: 'failed', error: resp.stop_reason === 'max_tokens' ? 'cut off at max_tokens (thinking counts toward it)' : 'no text in the answer' });
+      const cut = resp.stop_reason === 'max_tokens' || resp.stop_reason === 'model_context_window_exceeded';
+      if (cut || !block || block.type !== 'text') {   // one item's answer, not a bug: the rest go on
+        out.push({ item, status: 'failed', error: cut ? `cut off: ${resp.stop_reason} (thinking counts toward max_tokens)` : 'no text in the answer' });
         continue;
       }
       out.push({ item, status: 'ok', text: block.text });
@@ -256,8 +259,12 @@ const batch = await anthropic.messages.batches.create({
 const status = await anthropic.messages.batches.retrieve(batch.id);
 if (status.processing_status === 'ended') {
   for await (const row of await anthropic.messages.batches.results(batch.id)) {
-    if (row.result.type === 'succeeded') save(row.custom_id, row.result.message);
-    else markFailed(row.custom_id, row.result.type);    // errored | canceled | expired
+    if (row.result.type === 'succeeded') {             // a 200 can still be a refusal or a cut-off answer: not a good row
+      const { stop_reason } = row.result.message;
+      if (stop_reason === 'refusal') markFailed(row.custom_id, 'refused');
+      else if (stop_reason === 'max_tokens' || stop_reason === 'model_context_window_exceeded') markFailed(row.custom_id, 'cut off');
+      else save(row.custom_id, row.result.message);
+    } else markFailed(row.custom_id, row.result.type);  // errored | canceled | expired
   }
 }
 ```

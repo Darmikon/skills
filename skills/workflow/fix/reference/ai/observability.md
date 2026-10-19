@@ -45,7 +45,7 @@ export async function traced<T extends Anthropic.Message>(step: string, model: s
       tokens.add(u.output_tokens, { step, model, kind: 'output' });
       return resp;
     } catch (e: any) {
-      errors.add(1, { step, model, status: String(e?.status ?? 'unknown') });
+      errors.add(1, { step, model, status: String(e?.status ?? e?.lastError?.status ?? 'unknown') });   // RetryBudgetExhausted: the last try's
       span.recordException(e);
       span.setStatus({ code: SpanStatusCode.ERROR });
       throw e;
@@ -197,6 +197,10 @@ import { LangfuseSpanProcessor } from '@langfuse/otel';
 export const langfuseSpanProcessor = new LangfuseSpanProcessor({
   environment: process.env.NODE_ENV ?? 'development',
   // exportMode: 'immediate',   // serverless / short-lived workers
+  // Langfuse v5+ exports only its own spans, spans with gen_ai.* attributes and known LLM instrumentations: the HTTP,
+  // NestJS and DB spans and the plain llm.* spans of `traced()` are dropped. To see them in Langfuse too (more noise),
+  // export everything, or compose with `isDefaultExportSpan` from '@langfuse/otel':
+  // shouldExportSpan: () => true,
 });
 
 export const otelSdk = new NodeSDK({
@@ -205,9 +209,10 @@ export const otelSdk = new NodeSDK({
 });
 otelSdk.start();
 ```
-4. `src/main.ts` — **first line**, before anything else:
+4. `src/main.ts` — **first line**, before anything else (Sentry's `./instrument`, when used, comes right after it):
 ```ts
 import './instrumentation';
+import './instrument';        // Sentry, after your own OpenTelemetry (see Sentry below)
 import { NestFactory } from '@nestjs/core';
 // ...
 app.enableShutdownHooks();   // so OnApplicationShutdown can flush
@@ -248,7 +253,7 @@ export function tracedGeneration(step: string, model: string, input: unknown, ca
 ```
 Tools: same with `{ asType: 'tool' }`; the whole agent loop: `{ asType: 'agent' }` as parent. Plug `tracedGeneration` into `LlmService.create` instead of / next to the plain OTel wrapper.
 
-7. Verify: send one real request → in Langfuse see one trace: HTTP span → agent → generation(s) → tool(s), with tokens and cost filled. If cost is 0, add/check the model price definition in Langfuse settings.
+7. Verify: send one real request → in Langfuse see one trace: agent → generation(s) → tool(s), with tokens and cost filled. The HTTP span shows as its parent only with `shouldExportSpan` (step 3); without it the agent sits at the trace root, under the same trace id as the HTTP request (the one Sentry and the logs carry). If cost is 0, add/check the model price definition in Langfuse settings.
 
 Self-host: Langfuse ships a Docker Compose setup — use it when data must stay in-house (regulated customers).
 
@@ -288,12 +293,18 @@ Backend (NestJS):
 npm i @sentry/nestjs
 ```
 ```ts
-// src/instrument.ts — imported first in main.ts
+// src/instrument.ts — imported in main.ts before anything else but your own OpenTelemetry (`./instrumentation`, Path A/B)
 import * as Sentry from '@sentry/nestjs';
-Sentry.init({ dsn: process.env.SENTRY_DSN, tracesSampleRate: 0.1, environment: process.env.NODE_ENV });
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.NODE_ENV,
+  // With your own NodeSDK (Path A/B): no tracesSampleRate, so Sentry makes no second set of spans, and
+  // openTelemetryIntegration() ties Sentry's errors to your active trace. Sentry alone: tracesSampleRate: 0.1, no integration.
+  integrations: [Sentry.openTelemetryIntegration()],
+});
 ```
 Add `SentryModule.forRoot()` to `AppModule` and the Sentry global exception filter. Capture `RetryBudgetExhausted` and unexpected 4xx; don't page on `ModelRefused` (log it, count it).
-⚠️ Sentry's Node SDK sets up its own OpenTelemetry. If you also run a NodeSDK (Path A/B), follow Sentry's "custom OpenTelemetry setup" docs so there's one tracer provider — two competing setups = missing spans.
+⚠️ One tracer provider (B11). Sentry 11 (`@sentry/node`, `@sentry/nestjs`) no longer sets up OpenTelemetry unless `enableOpenTelemetrySetup` is on (off by default; leave it off next to your own provider). With your own NodeSDK: start it before `Sentry.init`, leave `tracesSampleRate` (and `tracesSampler`) unset, add `Sentry.openTelemetryIntegration()`. Sentry 8–10 set up their own OpenTelemetry instead: there the same setup is `skipOpenTelemetrySetup: true` and Sentry's "custom OpenTelemetry setup" docs for that major. Two competing setups = missing or doubled spans. Check docs.sentry.io for the installed major.
 
 Mobile (RN/Expo): `@sentry/react-native` via its wizard (`npx @sentry/wizard -i reactNative`); upload source maps in CI; pass the backend trace id (response header) into the Sentry scope so app and backend events link.
 
@@ -318,7 +329,7 @@ Build these once tracing is live:
 Alerts: p95 over the reliability floor · error rate > X% for 5 min · daily cost > budget · cache hit ratio drops sharply (someone put a timestamp before the breakpoint).
 
 ## Done when
-- [ ] One request = one trace with nested HTTP → LLM → tool spans
+- [ ] One request = one trace (one trace id) with nested HTTP → LLM → tool spans (in Langfuse the HTTP span only with `shouldExportSpan`)
 - [ ] Every generation has model, tokens (incl. cache), cost
 - [ ] Spans flushed on shutdown / end of serverless invocation
 - [ ] Errors in Sentry carry the trace id
