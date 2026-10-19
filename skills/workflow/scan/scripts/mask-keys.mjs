@@ -1,13 +1,13 @@
 #!/usr/bin/env node
 // Says where AI keys are without ever printing one: every match is masked to its first 4 characters and "…".
-//   KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY'
+//   KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(^|[^A-Za-z0-9])sk-[A-Za-z0-9_-]{0,19}([^A-Za-z0-9_-]|$)|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY'
 //   code:    git grep -nIE -A1 --untracked "$KEYS" | node mask-keys.mjs code
 //            (ignored files: add --no-exclude-standard -- '.env*' '**/.env*' '*.env' '**/*.env'
 //             '.claude/settings.local.json' '**/.claude/settings.local.json')
 //   history: git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node mask-keys.mjs history
 //            git diff -G "$KEYS" <base> | node mask-keys.mjs history   (uncommitted and branch changes: "diff")
-//   show:    node mask-keys.mjs show <file>     (the file, numbered, every string and value masked)
-//            any-search | node mask-keys.mjs show   (the lines, masked the same way)
+//   show:    node mask-keys.mjs show <file>     (the file as it is, numbered; every line of a statement that holds a key hidden whole)
+//            any-search-or-diff | node mask-keys.mjs show   (the same for search output and diffs)
 import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
@@ -15,6 +15,7 @@ import { createHash } from 'node:crypto';
 // (after a letter or digit it is part of a longer word, unless that is an escape such as \n or a %20)
 const KEY = /(?<=^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2})sk-(?:(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|[A-Za-z0-9_-]{20,})/g;
 // A variable that names an AI key: ANTHROPIC_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, …
+const PIECE = /(?<=^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2})sk-[A-Za-z0-9_-]{0,19}(?![A-Za-z0-9_-])/g;
 const NAME = /\b([A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY)\b/g;
 const ONLY_NAME = /^[A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY$/;
 // A string literal, or one left open at the end of the line (it goes on below).
@@ -46,6 +47,8 @@ function analyze(text, pending) {
     found.push({ kind, shown: mask(v), tag: t ?? tag(v, prefix), length: v.length, id: idOf(v), start });
   };
   const keys = [...text.matchAll(KEY)];
+  // a short piece of a key: "sk-", "sk-a", "sk-an" … (the rest put together elsewhere)
+  for (const p of text.matchAll(PIECE)) if (!keys.some((k) => p.index >= k.index && p.index < k.index + k[0].length)) keys.push(Object.assign(p, { piece: true }));
   const inKey = (i) => keys.some((k) => i >= k.index && i < k.index + k[0].length);
   let next = null;
 
@@ -61,7 +64,7 @@ function analyze(text, pending) {
     const after = text.slice(m.index + m[0].length), open = text[m.index - 1];
     const prefix = m[1] ? `sk-${m[1]}-` : 'sk-';
     // a bare prefix: nothing after the prefix (or the prefix and a version part such as api03-); the rest is elsewhere
-    const bare = m[1] !== undefined && /^([a-z]+\d+-)?$/.test(m[0].slice(prefix.length));
+    const bare = m.piece || (m[1] !== undefined && /^([a-z]+\d+-)?$/.test(m[0].slice(prefix.length)));
     const plus = /^\$\{/.test(after) || /^["'`]?\s*\+/.test(after) || /^["'`]\s*["'`]/.test(after);   // + rest, ${rest}, "a" "b"
     const stillOpen = /["'`]/.test(open ?? '') && !after.includes(open);                                // the string goes on below
     const t = stillOpen ? 'split, looks real'
@@ -93,57 +96,73 @@ function analyze(text, pending) {
     if (!has && /^[\])"'`]*\s*$/.test(after)) next = { name: m[1], op: false };   // the name ends the line
     if (!has) named.push(m[1]);
   });
-  return { found, named, next };
+  return { found, named, next, names: names.map((m) => m[1]) };
 }
 
-// ---------- showing: every string and every value-like token masked, the code around them kept ----------
+// ---------- showing: the text as it is, every line of a key statement hidden whole ----------
 
-// A token that is plainly code: a dotted name without digits (client.messages.create), or a file path.
-// Shapes that stay readable in `show` because no key has them: a model id, a URL with no user, query or fragment,
-// a header name, a MIME type, a date. Never anything with sk- in it, an upper-case letter (base64, mixed-case
-// tokens), a run of 24 letters and digits (hex), or a run of 16 that mixes letters and digits.
-const SAFE = [
-  /^(claude|gpt|o\d|chatgpt|text-embedding)[\w.:-]*$/,
-  /^https?:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[A-Za-z0-9._~%-]*)*$/,
-  /^[a-z]{1,16}(-[a-z]{1,16}){0,4}$/,
-  /^(application|text|image|audio|video|multipart)\/[a-z0-9.+-]{1,40}$/,
-  /^\d{4}-\d{2}-\d{2}$/,
-];
-const randomish = (v) => (v.match(/[A-Za-z0-9]{16,}/g) ?? []).some((r) => r.length >= 24 || (/\d/.test(r) && /[A-Za-z]/.test(r)));
-const safe = (v) => v.length <= 80 && !/sk-/i.test(v) && !/[A-Z]/.test(v) && !randomish(v) && SAFE.some((re) => re.test(v));
+// A line that goes on below: it ends in an operator, an opening bracket, a backslash, or inside a string.
+const CONT_END = /(\+|,|\(|\[|\{|\\|=|:|\?\?|\|\||\.concat\()\s*$/;
+// A line that goes on from above: it starts with +, a . (a method), ?? or ||, or a bare string literal.
+const CONT_START = /^\s*(\+|\.|\?\?|\|\||["'`])/;
+const comment = (l) => /^\s*(\/\/|#|\*|\/\*)/.test(l);
+const openAtEnd = (l) => !comment(l) && [...l.matchAll(QUOTED)].some((q) => q[3] === '' && q.index + q[0].length === l.length);
+const goesOn = (l) => !comment(l) && (CONT_END.test(l) || openAtEnd(l));
 
-const codeLike = (t) => /^[A-Za-z_$]+(\.[A-Za-z_$]+)*\(?$/.test(t) || /^(\.{0,2}\/)?[\w@.-]+(\/[\w@.-]+)+\.[a-z]{1,5}$/.test(t);
-
-// Returns the line masked and the name whose value is on the next line.
-function strong(text, pending) {
-  const r = analyze(text, pending);
-  const all = pending && (pending.op || /^\s*(\?\?|\|\||or\b|,)/.test(text));   // the line holds a value named on the line above
-  const spans = r.found.filter((f) => f.tag !== 'reference').map((f) => [f.start, f.start + f.length]), kept = [];
-  for (const q of text.matchAll(QUOTED)) {
-    const start = q.index + 1, end = start + q[2].length;
-    const specifier = /(\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)$/.test(text.slice(0, q.index));
-    if ((specifier || ONLY_NAME.test(q[2])) && !/sk-/.test(q[2])) kept.push([start, end]);   // an import specifier or a variable's name
-    else if (safe(q[2])) kept.push([start, end]);                         // a model id, URL, header name, MIME type or date
-    else if (q[2].length > 4) spans.push([start, end]);
+// The lines to hide in a list of lines: Map(line index -> the key it holds, for the note).
+function hiddenLines(lines) {
+  const keyAt = new Map();
+  let pending = null;
+  lines.forEach((l, i) => {
+    const r = analyze(l, pending);
+    pending = r.next;
+    const k = r.found.find((f) => f.tag !== 'reference');               // a reference points elsewhere: nothing to hide
+    if (k) keyAt.set(i, { ...k, names: r.names });
+  });
+  const hide = new Map();
+  const put = (i, k) => { if (!hide.has(i)) hide.set(i, keyAt.get(i) ?? { ...k, names: [] }); };
+  for (const [i, k] of keyAt) {
+    put(i, k);
+    if (k.tag === 'split, looks real' || k.tag === 'prefix only') {   // a bracketed list or call holding a piece: hidden whole
+      const span = enclosing(lines, i, k.start);
+      if (span) for (let j = span[0]; j <= span[1]; j++) put(j, k);
+    }
   }
-  for (const k of text.matchAll(KEY)) spans.push([k.index, k.index + k[0].length]);
-  let rest = text;                                                       // the text outside the strings, same positions
-  for (const [a, b] of [...spans, ...kept]) rest = rest.slice(0, a) + ' '.repeat(b - a) + rest.slice(b);
-  for (const t of rest.matchAll(all ? /[^\s"'`,;()[\]{}]{5,}/g : /[A-Za-z0-9_\-+/.$]{12,}/g))
-    if (all || !(codeLike(t[0]) || safe(t[0]))) spans.push([t.index, t.index + t[0].length]);
-  for (const t of rest.matchAll(/(?<![=!<>:])(?:=|:)\s*([A-Za-z0-9_\-+/=.$]{8,})/g)) {   // a bare value after = or :
-    const v = t[1], start = t.index + t[0].length - v.length;
-    if (!REFERENCE.test(v) && !codeLike(v) && !safe(v)) spans.push([start, start + v.length]);
+  for (const [i, k] of [...hide]) {                                      // the statement around it, both ways
+    let a = i, b = i;
+    while (a > 0 && lines[a - 1].trim() && (goesOn(lines[a - 1]) || CONT_START.test(lines[a]))) put(--a, k);
+    while (b < lines.length - 1 && lines[b + 1].trim() && (goesOn(lines[b]) || CONT_START.test(lines[b + 1]))) put(++b, k);
   }
-  const merged = [];
-  for (const sp of spans.sort((x, y) => x[0] - y[0])) {
-    const last = merged[merged.length - 1];
-    if (last && sp[0] <= last[1]) last[1] = Math.max(last[1], sp[1]); else merged.push([...sp]);
-  }
-  let out = text;
-  for (const [a, b] of merged.reverse()) out = out.slice(0, a) + mask(text.slice(a, b)) + out.slice(b);
-  return { text: out, next: r.next };
+  return hide;
 }
+
+// The [ or ( that encloses position `col` of line `i`, and the line of its match: [first, last], within 40 lines.
+function enclosing(lines, i, col) {
+  let depth = 0, a = -1, b = -1;
+  for (let j = i, c = col - 1; j >= Math.max(0, i - 40) && a < 0; j--, c = (lines[j] ?? '').length - 1) {
+    for (; c >= 0; c--) {
+      const ch = lines[j][c];
+      if (ch === ')' || ch === ']') depth++;
+      else if (ch === '(' || ch === '[') { if (depth === 0) { a = j; break; } depth--; }
+    }
+  }
+  if (a < 0) return null;
+  depth = 0;
+  for (let j = i, c = col; j < Math.min(lines.length, i + 40) && b < 0; j++, c = 0) {
+    for (; c < lines[j].length; c++) {
+      const ch = lines[j][c];
+      if (ch === '(' || ch === '[') depth++;
+      else if (ch === ')' || ch === ']') { if (depth === 0) { b = j; break; } depth--; }
+    }
+  }
+  return [a, b < 0 ? Math.min(lines.length - 1, i + 40) : b];
+}
+
+// The note names the key's kind and first 4 characters, and the variables the line itself names (EXPO_PUBLIC_…): no other text.
+const note = (k, n) => `<${n ? `line ${n} ` : 'line '}hidden: holds an AI key — ${k.kind} ${k.shown}` +
+  (k.names?.length ? `; the line names ${[...new Set(k.names)].join(', ')}` : '') + '>';
+// The safety net on a line that is shown: any key shape or named value still in it makes it hidden too.
+const net = (l) => { const r = analyze(l, null), k = r.found.find((f) => f.tag !== 'reference'); return k && { ...k, names: r.names }; };
 
 // A search line `path:line:text` (a match) or `path-line-text` (a line around it). A path may hold -12- or :3:
 // itself (db/migrations/2024-01-15-seed.sql), so the first split whose path is a real file wins.
@@ -163,16 +182,40 @@ const say = (s) => { if (!out.has(s)) { out.add(s); console.log(s); } };
 const mode = process.argv[2];
 if (mode === 'show') {
   const file = process.argv[3];
-  const text = readFileSync(file ?? 0, 'utf8').replace(/\n$/, '');
-  let pending = null;
-  text.split('\n').forEach((l, i) => {
-    // piped search output: a path:line: (or path-line-) prefix is kept only when the path is a real file
-    const p = file ? null : splitSearch(l);
-    const keep = p && !p.missing && !/sk-/.test(p.path) ? p.head : 0;
-    const r = strong(l.slice(keep), pending);
-    console.log(file ? `${String(i + 1).padStart(6)}\t${r.text}` : l.slice(0, keep) + r.text);
-    pending = r.next;
-  });
+  const lines = readFileSync(file ?? 0, 'utf8').replace(/\n$/, '').split('\n');
+  if (file) {
+    const hide = hiddenLines(lines);
+    lines.forEach((l, i) => {
+      const k = hide.get(i) ?? net(l);
+      console.log(`${String(i + 1).padStart(6)}\t${k ? note(k, i + 1) : l}`);
+    });
+  } else {
+    // Search output (path:line:text) is judged against its file; anything else (a diff, a log) as one text.
+    const files = new Map(), body = [], where = [];
+    let diff = false;
+    lines.forEach((l, i) => {
+      const p = splitSearch(l);
+      if (p && !p.missing && !/sk-/.test(p.path)) { where[i] = p; return; }
+      if (/^diff --git /.test(l)) diff = true;
+      const header = diff && /^(diff --git |index |--- |\+\+\+ |@@ |new file|deleted file|similarity|rename )/.test(l);
+      body[i] = header ? '' : diff && /^[-+ ]/.test(l) ? l.slice(1) : l;
+    });
+    const textIdx = lines.map((_, i) => i).filter((i) => !where[i]);
+    const textHide = hiddenLines(textIdx.map((i) => body[i]));
+    const hiddenText = new Map(textIdx.map((i, n) => [i, textHide.get(n)]));
+    lines.forEach((l, i) => {
+      const p = where[i];
+      if (p) {
+        if (!files.has(p.path)) files.set(p.path, hiddenLines(readFileSync(p.path, 'utf8').split('\n')));
+        const k = files.get(p.path).get(p.n - 1) ?? net(p.rest);
+        console.log(k ? l.slice(0, p.head) + note(k, p.n) : l);
+      } else {
+        const k = hiddenText.get(i) ?? net(body[i]);
+        const mark = diff && /^[-+ ]/.test(l) && body[i] !== '' && body[i] === l.slice(1) ? l[0] : '';
+        console.log(k ? mark + note(k) : l);
+      }
+    });
+  }
 } else if (mode === 'code' || mode === 'history') {
   const input = readFileSync(0, 'utf8').split('\n');
   let commit = '', file = '', pending = null, prev = null;
@@ -184,6 +227,7 @@ if (mode === 'show') {
       const follows = prev && prev.path === m.path && prev.n + 1 === m.n;
       const r = analyze(m.rest, follows ? pending : null);
       r.found.forEach((k) => say(line(here, k)));
+      if (r.found.length && r.names.length) say(`${here}  the line names ${[...new Set(r.names)].join(', ')}`);
       if (!r.found.length && m.sep === ':') {                 // a line grep matched: it is listed whatever the finder made of it
         if (r.named.length) say(`${here}  ${r.named[0]} named, no value here`);
         else if (r.next) say(`${here}  ${r.next.name} named, its value on the next line`);
