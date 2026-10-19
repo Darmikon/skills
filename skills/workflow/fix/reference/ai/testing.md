@@ -34,7 +34,7 @@ it('routes classify to cheap model', () => expect(pickModel('classify', 'hi')).t
 ```ts
 // llm (LlmService), firstText, runTool, ModelRefused, RetryBudgetExhausted: llm/ (failures.md); beforeAll/it/expect: vitest globals
 import { setupServer } from 'msw/node';
-import { http, HttpResponse } from 'msw';
+import { http, HttpResponse } from 'msw';                 // msw 3 also has them at 'msw/http'
 
 const URL = 'https://api.anthropic.com/v1/messages';
 const ok = (text = 'hi', stop_reason = 'end_turn') => HttpResponse.json({
@@ -48,7 +48,9 @@ const rateLimited = () => HttpResponse.json(
 );
 
 const server = setupServer();
-beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));   // no accidental real calls
+// No accidental real calls. Check the installed major first: msw 3 renamed the option, and the old name is silently ignored there.
+beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));      // msw 3
+// beforeAll(() => server.listen({ onUnhandledRequest: 'error' })); // msw 2
 afterEach(() => server.resetHandlers());
 afterAll(() => server.close());
 

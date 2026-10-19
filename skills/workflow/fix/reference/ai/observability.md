@@ -249,7 +249,7 @@ import { PeriodicExportingMetricReader } from '@opentelemetry/sdk-metrics';
 export const otelSdk = new NodeSDK({
   serviceName: 'support-api',
   traceExporter: new OTLPTraceExporter(),          // OTEL_EXPORTER_OTLP_ENDPOINT / _HEADERS from env
-  metricReader: new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() }),
+  metricReaders: [new PeriodicExportingMetricReader({ exporter: new OTLPMetricExporter() })],   // `metricReader` (one) is deprecated
   instrumentations: [getNodeAutoInstrumentations()],
 });
 ```

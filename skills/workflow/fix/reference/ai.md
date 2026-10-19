@@ -27,15 +27,19 @@ The plan of ../SKILL.md step 2, in two numbered groups with one numbering across
 - **I fix these:** one line per change: the file and line, what changes, the finding's id.
 - **We discuss these:** one line per finding: title, rank, id.
 
-If a group is empty, leave it out of the plan and out of the question. End with: "Do I go ahead with the first group? Answer yes, or yes except some numbers. Which of the second group do we design a fix for? Numbers, all, or none."
+A key appears in the plan only as its first 4 characters and `…`, never more. If a group is empty, leave it out of the plan and out of the question. End with: "Do I go ahead with the first group? Answer yes, or yes except some numbers. Which of the second group do we design a fix for? Numbers, all, or none."
 
 ## 3. The first group
 
 Steps 3 to 5 of ../SKILL.md. Write each fix from the matching file in `reference/ai/`, adapted to the project's names, paths and framework. Before writing code, check the version of the library in the project against its current docs (Context7 or the vendor's docs); the examples were written for `@anthropic-ai/sdk` 0.135. Python: the same fix in Python, written from the library's docs; the examples are TypeScript.
 
+A file that holds a key (a place of a G1 or G2 finding, or a file the scan's code pipeline lists with a match) is read only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>` (the scan's mask, section 5 of its `ai` reference); change it with a command that does not print the key's line, and leave that line as it is (moving a key is G1 or G2, a discuss finding).
+
+Nothing extra: a router, the batches API or multi-agent orchestration is proposed only when a finding shows the need.
+
 ## 4. The second group
 
-For the findings chosen from it, do [handoff.md](handoff.md) section 2 "Hand over" (its section 1 is replaced by the answer to the plan): when `brainstorming` is available, it gets them; otherwise the plan made here, as handoff.md says, is the hand-over. The last message you write in the turn, whether it holds the skill's first question or the plan, starts with the report of the first group (section 5) and then says the findings went to `brainstorming` (the name is not translated) or, without the skill, that they went to the plan below. If the user declined the first group, the report says so, and the hand-over still goes ahead. Add to the topic, per finding, the `reference/ai/` files and sections that cover it (from the table below, as paths `<skills folder>/fix/reference/ai/<file>`, with `<skills folder>` as ../SKILL.md defines it), and the line "Check every package version against its current docs before writing code."
+For the findings chosen from it, do [handoff.md](handoff.md) section 2 "Hand over" (its section 1 is replaced by the answer to the plan): when `brainstorming` is available, it gets them; otherwise the plan made here, as handoff.md says, is the hand-over. The last message you write in the turn, whether it holds the skill's first question or the plan, starts with the report of the first group (section 5) and then says the findings went to `brainstorming` (the name is not translated) or, without the skill, that they went to the plan below. If the user declined the first group, the report says so, and the hand-over still goes ahead. Add to the topic, per finding, the `reference/ai/` files and sections that cover it (from the table below, as paths `<skills folder>/fix/reference/ai/<file>`, with `<skills folder>` as ../SKILL.md defines it), and the line "Check every package version against its current docs before writing code." In the hand-over file and the topic a key appears only as its first 4 characters and `…`; add to the topic the line "A key appears only as its first 4 characters and `…`: read a file that holds one only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>`, never Read, cat or `git show` it."
 
 | Ids | Example code |
 |---|---|
@@ -44,6 +48,7 @@ For the findings chosen from it, do [handoff.md](handoff.md) section 2 "Hand ove
 | A8 | `failures.md` §4 |
 | A9, E6 | `failures.md` §5 |
 | E4 | `failures.md` §6 |
+| E7 | `failures.md` §6–7 |
 | E5 | `failures.md` §7 |
 | E1–E3 | `failures.md` §8 |
 | F1–F3 | `failures.md` §9 |
@@ -57,4 +62,4 @@ None chosen: skip this step.
 
 ## 5. The report
 
-The report of ../SKILL.md step 5, then which findings went to the design step. A leaked key (G1 or G2 found in history or in client code): always "Rotate the key; removing it from the code or history is not enough", whatever was approved.
+The report of ../SKILL.md step 5, then which findings went to the design step. A leaked key (G1 or G2 found in history or in client code): always "Rotate the key; removing it from the code or history is not enough", whatever was approved. A key appears in the report only as its first 4 characters and `…`.

@@ -41,6 +41,7 @@ const guards: Record<string, (input: any, ctx: Ctx) => string | null> = {
     return null;
   },
   refund: ({ amount, orderId }, ctx) => {
+    if (typeof amount !== 'number' || !(amount > 0)) return 'refund amount must be a positive number';   // also NaN, missing, negative
     if (amount > 100) return 'refunds > $100 require human approval';
     if (!ownsOrder(ctx.userId, orderId)) return 'order not owned by user';
     return null;

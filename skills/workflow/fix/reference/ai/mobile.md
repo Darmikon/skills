@@ -43,7 +43,8 @@ export async function ask(question: string, signal?: AbortSignal) {
   }, 30_000);
 
   if (res.status === 503 || res.status === 429) {
-    const retryAfter = Number(res.headers.get('retry-after') ?? 2);
+    const n = Number(res.headers.get('retry-after') ?? 2);
+    const retryAfter = Number.isNaN(n) ? 2 : n;       // an HTTP-date is NaN as a number: fall back to 2 s
     throw new TemporaryError(retryAfter);          // UI: "busy, retrying…" + backoff, max 2–3
   }
   if (res.status === 422) throw new RefusedError(); // UI: friendly "can't help with that"
@@ -63,7 +64,7 @@ export async function ask(question: string, signal?: AbortSignal) {
 
 ## Tests
 - Unit: Jest (RN default) + `@testing-library/react-native` for the chat UI states (loading, streaming, error, refused).
-- Mock network: MSW (`msw/native`) — test 503→retry, 422→refusal UI, timeout.
+- Mock network: MSW, through `@msw/react-native` (msw 3) or `msw/native` (msw 2); check the installed major and the package's current docs (`@msw/react-native` was still marked experimental at port time) — test 503→retry, 422→refusal UI, timeout.
 - E2E: Maestro flows against a backend with mocked LLM (see testing.md).
 
 ## Security extras

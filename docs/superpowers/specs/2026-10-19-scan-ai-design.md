@@ -143,6 +143,8 @@ The second group: hand over as `fix/reference/handoff.md` says (`brainstorming` 
 
 A leaked key: the report always says "Rotate the key; removing it from history is not enough", whatever was approved.
 
+Keys: a key appears only as its first 4 characters and `…` in the plan, the hand-over file, the `brainstorming` topic and the report, and the topic tells `brainstorming` the same. A file that holds a key is read only through the scan's mask (`mask-keys.mjs show`), and the key's line is left as it is.
+
 Nothing extra: a router, the batches API or multi-agent orchestration is proposed only when a finding shows the need.
 
 ## What changes from the source

@@ -22,7 +22,7 @@ Adapt names/paths to the repo. All snippets assume `@anthropic-ai/sdk`. Model ID
 // llm/errors.ts
 import { APIError, APIConnectionError } from '@anthropic-ai/sdk';
 
-// What @anthropic-ai/sdk itself retries: 408, 409, 429 and every 5xx (529 = overloaded).
+// What @anthropic-ai/sdk itself retries: 408, 409, 429 and every 5xx (529 = overloaded); it also obeys an `x-should-retry` header from the API, which wins over the status.
 export const RETRIABLE = new Set([408, 409, 429, 500, 502, 503, 504, 529]);
 export const TERMINAL = new Set([400, 401, 403, 404]);
 
@@ -95,8 +95,9 @@ export async function callWithRetry<T>(
 
 Client must not retry on top of this:
 ```ts
-export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 0, timeout: 60_000 });
+export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 0 });
 ```
+Keep the SDK's timeout (10 minutes by default; for a call that is not streamed it also refuses a `max_tokens` too large to finish in that time). A timeout shorter than the answer turns every long call into retries; stream long answers instead.
 Alternative: keep SDK retries (`maxRetries: 2`) and write NO own loop — only app-level fallbacks. Never both.
 
 Anti-patterns to flag: `catch (e) { /* retry */ }` without classification · `sleep(0)` / no delay · nested retry loops · `let resp = null` used after loop.
@@ -205,7 +206,7 @@ Broken mid-stream ⇒ the whole request is retried; never pass partial output or
 // `anthropic` is the client from §2, MODELS is llm/models.ts; TOOLS, SYSTEM_PROMPT and userMessage are the project's own
 const resp = await anthropic.messages.create({
   model: MODELS.default,
-  max_tokens: 1024,
+  max_tokens: 1024,                                      // sized to the answer this call gives (E7)
   tools: TOOLS,                                          // stable → cached (tools come before system)
   system: [
     { type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } },   // breakpoint
@@ -227,7 +228,7 @@ const batch = await anthropic.messages.batches.create({
   requests: reviews.map((r) => ({
     custom_id: r.id,
     params: { model: MODELS.cheap, max_tokens: 64, system: CACHED_SYSTEM, messages: [{ role: 'user', content: r.text }] },
-  })),
+  })),                                                   // a label needs few tokens: max_tokens set for what the call returns (E7)
 });
 
 // later (cron/poller)
