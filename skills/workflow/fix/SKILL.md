@@ -1,7 +1,7 @@
 ---
 name: fix
-description: 'Fix what /scan found, after the user approves a numbered plan. docs, comments, todo, unused and tests change files and leave them uncommitted; security, performance and architecture hand the findings to brainstorming. By default it fixes what the current branch changed; `deep` the whole project. Reuses a fresh scan or runs one first.'
-argument-hint: '[docs · comments · todo · unused · tests · security · performance · architecture · pin <command> · unpin <command>] [folder or area] [deep]'
+description: 'Fix what /scan found, after the user approves a numbered plan. docs, comments, todo, unused and tests change files and leave them uncommitted; security, performance and architecture hand the findings to brainstorming; ai fixes the small things itself and hands the big ones to brainstorming. By default it fixes what the current branch changed; `deep` the whole project. Reuses a fresh scan or runs one first.'
+argument-hint: '[docs · comments · todo · unused · tests · security · performance · architecture · ai · pin <command> · unpin <command>] [folder or area] [deep]'
 disable-model-invocation: true
 ---
 
@@ -19,9 +19,10 @@ disable-model-invocation: true
 | `unused [folder]` | what nothing uses; packages used but not listed | [unused.md](reference/unused.md) |
 | `tests [folder]` | missing, weak and flaky tests; test files only | [tests.md](reference/tests.md) |
 | `security`, `performance`, `architecture` | hand the findings to `brainstorming` | [handoff.md](reference/handoff.md) |
+| `ai [folder]` | small, local gaps in code that calls an AI model; the big ones go to `brainstorming` | [ai.md](reference/ai.md) |
 
 - **No argument:** list the commands, each with whether a fresh scan exists here; suggest the one with the most findings. Start nothing.
-- **A command first:** read its reference and follow it with this file.
+- **A command first** (`llm` works for `ai`): read its reference and follow it with this file.
 - **A prompt pasted from a scan page** (`Project:` … `Found by: /scan <command>`): `/fix <command>` limited to those findings; skip step 1.
 - **`pin` / `unpin`:** read `pin.md` in the `scan` skill's `reference/` folder.
 
