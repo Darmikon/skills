@@ -510,11 +510,23 @@ case_scan_ai_none() {
   check "changes nothing" clean
 }
 
+# What the shared node_modules holds: every entry two levels down (scoped packages too) with its mtime, so an install
+# into an existing scope or a --no-save reinstall shows, and the hidden lock file npm keeps there.
+mods_print() {
+  (find "$CACHE/node_modules" -mindepth 1 -maxdepth 2 -not -path '*/node_modules/.cache*' -exec stat -f '%N %m' {} + | sort
+   cat "$CACHE/node_modules/.package-lock.json" 2>/dev/null) | shasum
+}
+installs_nothing() {
+  (cd "$P" && git diff --quiet -- package.json mobile/package.json) &&
+    ! (cd "$P" && git status --porcelain --untracked-files=all) | grep -qE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)$' &&
+    [ "$(mods_print)" = "$1" ]
+}
+
 case_fix_ai() {
   fresh fix_ai; plant_ai
   check "type-checks before the fix (the environment works)" bash -c "cd '$P' && npx tsc --noEmit"
   local head; head=$(cd "$P" && git rev-parse HEAD)
-  local mods; mods=$(ls -a "$CACHE/node_modules" | shasum)               # the shared node_modules (P links to it)
+  local mods; mods=$(mods_print)                                           # the shared node_modules (P links to it)
   local start="$WORK/fix_ai/start"; touch "$start"
   TRANSCRIPT="$OUT/fix_ai.jsonl"
   ask "/scan ai deep"
@@ -528,7 +540,7 @@ case_fix_ai() {
   local handed; handed=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'fix-ai-*.json' -newer "$start" 2>/dev/null)
   check "hands the big ones to brainstorming (names it, writes the hand-over file)" bash -c "[ -n '$handed' ] && grep -qi brainstorming '$LOG'"
   check "leaves the discuss items alone (the sleep(0) retry, the app's key)" bash -c "grep -q 'sleep(0)' '$P/src/llm/support.ts' && grep -q 'EXPO_PUBLIC_ANTHROPIC_KEY' '$P/mobile/src/api/claude.ts'"
-  check "installs nothing" bash -c "cd '$P' && git diff --quiet -- package.json mobile/package.json && ! git status --porcelain --untracked-files=all | grep -qE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)\$' && [ \"\$(ls -a '$CACHE/node_modules' | shasum)\" = '$mods' ]"
+  check "installs nothing" installs_nothing "$mods"
   check "does not commit" head_is "$head"
   # shellcheck disable=SC2086
   check "never shows the key (log, hand-over file)" no_key $handed
