@@ -2,8 +2,10 @@
 // Says where AI keys are without ever printing one: every match is masked to its first 4 characters and "…".
 //   KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY'
 //   code:    git grep -nIE -A1 --untracked "$KEYS" | node mask-keys.mjs code
-//            (ignored .env files: add --no-exclude-standard -- '.env*' '**/.env*')
+//            (ignored files: add --no-exclude-standard -- '.env*' '**/.env*' '*.env' '**/*.env'
+//             '.claude/settings.local.json' '**/.claude/settings.local.json')
 //   history: git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node mask-keys.mjs history
+//            git diff -G "$KEYS" <base> | node mask-keys.mjs history   (uncommitted and branch changes: "diff")
 //   show:    node mask-keys.mjs show <file>     (the file, numbered, every string and value masked)
 //            any-search | node mask-keys.mjs show   (the lines, masked the same way)
 import { readFileSync, existsSync } from 'node:fs';
@@ -55,10 +57,16 @@ function analyze(text, pending) {
   }
 
   for (const m of keys) {
-    const after = text.slice(m.index + m[0].length);
-    // a key built from pieces: "<prefix>" + rest, `<prefix>${rest}`, "<prefix>" "rest", or a string open at the end of the line
-    const split = /^\$\{/.test(after) || /^["'`]\s*(\+|["'`]|\\?$)/.test(after) || after === '' || /^\s*\+/.test(after);
-    add(kindOf(m[1]), m[0], m.index, m[1] ? `sk-${m[1]}-` : 'sk-', split ? 'split, looks real' : undefined);
+    const after = text.slice(m.index + m[0].length), open = text[m.index - 1];
+    const prefix = m[1] ? `sk-${m[1]}-` : 'sk-';
+    // a bare prefix: nothing after the prefix (or the prefix and a version part such as api03-); the rest is elsewhere
+    const bare = m[1] !== undefined && /^([a-z]+\d+-)?$/.test(m[0].slice(prefix.length));
+    const plus = /^\$\{/.test(after) || /^["'`]?\s*\+/.test(after) || /^["'`]\s*["'`]/.test(after);   // + rest, ${rest}, "a" "b"
+    const stillOpen = /["'`]/.test(open ?? '') && !after.includes(open);                                // the string goes on below
+    const t = stillOpen ? 'split, looks real'
+      : bare ? (plus || /^["'`]\s*(,|$)/.test(after) ? 'split, looks real' : 'prefix only')         // ["prefix", rest].join, prefix⏎ rest
+      : plus ? 'split, looks real' : undefined;                                                          // a whole key: tagged by its body
+    add(kindOf(m[1]), m[0], m.index, prefix, t);
   }
 
   const names = [...text.matchAll(NAME)];
@@ -160,7 +168,7 @@ if (mode === 'show') {
     if (l.startsWith('+++ ') || l.startsWith('--- ')) continue;
     if (l[0] !== '+' && l[0] !== '-') { pending = null; continue; }
     const r = analyze(l.slice(1), pending);
-    for (const k of r.found) say(line(`${commit} ${file} ${l[0] === '+' ? 'added' : 'removed'}`, k));
+    for (const k of r.found) say(line(`${commit || 'diff'} ${file} ${l[0] === '+' ? 'added' : 'removed'}`, k));
     pending = r.next;
   }
 } else {

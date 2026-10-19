@@ -26,6 +26,8 @@ function repo() {
     envValue: rnd(40), slashy: b64(44), fallback: rnd(32), orFallback: rnd(30), pyDefault: rnd(36),
     nextLine: rnd(40), yamlBlock: rnd(40), ignored: `${ANT}api03-${rnd(93)}AA`, ignoredValue: rnd(40),
     splitRest: rnd(80), pySplitRest: rnd(80), azure: rnd(32), pydantic: rnd(36), union: rnd(30), trailing: rnd(40),
+    envWhole: `${ANT}api03-${rnd(93)}AA`, pyWhole: `${ANT}api03-${rnd(93)}AA`, jsonWhole: `${PROJ}${rnd(60)}`,
+    tsWhole: `${ANT}api03-${rnd(93)}AA`, joinRest: rnd(80), uncommitted: `${ANT}api03-${rnd(93)}AA`, local: rnd(40),
     opNext: rnd(34), lettersOnly: "qwertyuiopasdfghjklzxcvbnmQWERTY", hex: randomBytes(20).toString("hex"),
   };
   mkdirSync(join(dir, "src"));
@@ -57,26 +59,40 @@ function repo() {
     s.hex,
     "`;",
   ].join("\n"));
+  writeFileSync(join(dir, "src/d.ts"), [
+    `const whole = "${s.tsWhole}"`,
+    `const joined = ["${ANT}api03-", "${s.joinRest}"].join("");`,
+    `if (k.startsWith("${ANT}")) throw new Error("not an Anthropic key");`,
+  ].join("\n"));
+  writeFileSync(join(dir, "keys.env"), `CLIENT_ANTHROPIC=${s.envWhole}\n`);
+  writeFileSync(join(dir, "client.py"), `CLIENT = "${s.pyWhole}"\n`);
+  writeFileSync(join(dir, "last.json"), `{\n  "name": "x",\n  "key": "${s.jsonWhole}"\n}\n`);
   writeFileSync(join(dir, "settings.py"), `class S(BaseSettings):\n    ANTHROPIC_API_KEY: str = "${s.pydantic}"\n\nKEY = ("${ANT}api03-"\n       "${s.pySplitRest}")\n`);
   writeFileSync(join(dir, "src/b.py"), `key = os.getenv("OPENAI_API_KEY", "${s.pyDefault}")\nother = os.environ["ANTHROPIC_API_KEY"]\n`);
   writeFileSync(join(dir, ".env.example"), `ANTHROPIC_API_KEY=your-key-here\nOPENAI_API_KEY="${s.envValue}"\nNEXT_PUBLIC_OPENAI_API_KEY=${s.slashy}\n`);
   writeFileSync(join(dir, "config.json"), `{\n  "ANTHROPIC_API_KEY":\n    "${s.nextLine}",\n  "other": 1\n}\n`);
   writeFileSync(join(dir, "ci.yml"), `env:\n  ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}\n  OPENAI_API_KEY: >\n    ${s.yamlBlock}\n  REF: \${ANTHROPIC_API_KEY}\n  OPENAI_KEY: ${s.lettersOnly}\n`);
-  writeFileSync(join(dir, ".gitignore"), ".env\n");
+  writeFileSync(join(dir, ".gitignore"), ".env\n.claude/settings.local.json\n");
+  mkdirSync(join(dir, ".claude"));
+  writeFileSync(join(dir, ".claude/settings.local.json"), `{\n  "env": { "ANTHROPIC_API_KEY": "${s.local}" }\n}\n`);
+  writeFileSync(join(dir, "gone.ts"), `export const K = "${s.uncommitted}";\n`);
   writeFileSync(join(dir, ".env"), `ANTHROPIC_API_KEY=${s.ignored}\nOPENAI_API_KEY=${s.ignoredValue}\n`);
   writeFileSync(join(dir, "old.py"), `old = "${s.gone}"\n`);
   sh("git", ["init", "-q"]);
   git("add", "-A"); git("commit", "-qm", "one");
   git("rm", "-q", "old.py"); git("commit", "-qm", "two");
+  git("rm", "-q", "gone.ts");                                            // removed, not committed yet
   const code = sh("node", [MASK, "code"], sh("git", ["grep", "-nIE", "-A1", "--untracked", KEYS]));
   const ignored = sh("node", [MASK, "code"],
-    sh("git", ["grep", "-nIE", "-A1", "--untracked", "--no-exclude-standard", KEYS, "--", ".env*", "**/.env*"]));
+    sh("git", ["grep", "-nIE", "-A1", "--untracked", "--no-exclude-standard", KEYS, "--", ".env*", "**/.env*", "*.env", "**/*.env",
+      ".claude/settings.local.json", "**/.claude/settings.local.json"]));
+  const diff = sh("node", [MASK, "history"], sh("git", ["diff", "-G", KEYS, "HEAD"]));
   const history = sh("node", [MASK, "history"],
     sh("git", ["log", "--all", "-p", "-G", KEYS, "--format=commit %h %ad", "--date=short"]));
-  const files = ["src/a.ts", "src/b.py", "src/c.ts", "settings.py", ".env.example", "config.json", "ci.yml", ".env"];
+  const files = [".claude/settings.local.json", "src/a.ts", "src/b.py", "src/c.ts", "src/d.ts", "keys.env", "client.py", "last.json", "settings.py", ".env.example", "config.json", "ci.yml", ".env"];
   const show = files.map((f) => sh("node", [MASK, "show", f])).join("\n");
   const piped = sh("node", [MASK, "show"], sh("git", ["grep", "-n", "-A1", "--untracked", "--no-exclude-standard", "-e", "=", "-e", ":"]));
-  return { s, code, ignored, history, show, piped };
+  return { s, code, ignored, history, show, piped, diff };
 }
 
 // No 5 characters in a row of a secret appear in the output beyond its first 4.
@@ -89,7 +105,7 @@ const r = repo();
 
 test("nothing beyond the first 4 characters of a key or value is ever printed", () => {
   for (const [name, secret] of Object.entries(r.s))
-    for (const out of ["code", "ignored", "history", "show", "piped"]) assert.equal(leaks(secret, r[out]), null, `${name} in ${out}`);
+    for (const out of ["code", "ignored", "history", "show", "piped", "diff"]) assert.equal(leaks(secret, r[out]), null, `${name} in ${out}`);
 });
 
 test("each key shape is found, named and tagged", () => {
@@ -97,28 +113,28 @@ test("each key shape is found, named and tagged", () => {
   assert.match(code, /^src\/a\.ts:1  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
   assert.match(code, /^src\/a\.ts:2  Anthropic key  sk-a….*placeholder$/m);
   assert.match(code, /^src\/a\.ts:3  Anthropic key  sk-a….*placeholder$/m);
-  assert.match(code, /^src\/a\.ts:4  OpenAI key \(legacy\)  sk-.….*looks real$/m);
+  assert.match(code, /^src\/a\.ts:4  OpenAI key \(legacy\)  sk-.….*\)  looks real$/m);
   assert.match(code, /^src\/a\.ts:5  ANTHROPIC_API_KEY named, no value here$/m);
   assert.doesNotMatch(code, /src\/a\.ts:6/);
-  assert.match(code, /^src\/a\.ts:7  OpenAI key  sk-s….*looks real$/m);
-  assert.match(code, /^src\/a\.ts:8  OpenAI key  sk-a….*looks real$/m);
+  assert.match(code, /^src\/a\.ts:7  OpenAI key  sk-s….*\)  looks real$/m);
+  assert.match(code, /^src\/a\.ts:8  OpenAI key  sk-a….*\)  looks real$/m);
   assert.doesNotMatch(code, /old\.py/);
 });
 
 test("values: assigned, with + / =, a fallback literal, the next line, a YAML block; references stay references", () => {
   const { code } = r;
   assert.match(code, /^\.env\.example:1  ANTHROPIC_API_KEY value  your….*placeholder$/m);
-  assert.match(code, /^\.env\.example:2  OPENAI_API_KEY value  .{4}….*looks real$/m);
-  assert.match(code, /^\.env\.example:3  NEXT_PUBLIC_OPENAI_API_KEY value  .{4}…  \(44 chars.*looks real$/m);
-  assert.match(code, /^src\/a\.ts:9  ANTHROPIC_API_KEY value  .{4}….*looks real$/m);
-  assert.match(code, /^src\/a\.ts:10  EXPO_PUBLIC_ANTHROPIC_KEY value  .{4}….*looks real$/m);
-  assert.match(code, /^src\/b\.py:1  OPENAI_API_KEY value  .{4}….*looks real$/m);
-  assert.match(code, /^ci\.yml:6  OPENAI_KEY value  qwer…  \(32 chars.*looks real$/m);
+  assert.match(code, /^\.env\.example:2  OPENAI_API_KEY value  .{4}….*\)  looks real$/m);
+  assert.match(code, /^\.env\.example:3  NEXT_PUBLIC_OPENAI_API_KEY value  .{4}…  \(44 chars.*\)  looks real$/m);
+  assert.match(code, /^src\/a\.ts:9  ANTHROPIC_API_KEY value  .{4}….*\)  looks real$/m);
+  assert.match(code, /^src\/a\.ts:10  EXPO_PUBLIC_ANTHROPIC_KEY value  .{4}….*\)  looks real$/m);
+  assert.match(code, /^src\/b\.py:1  OPENAI_API_KEY value  .{4}….*\)  looks real$/m);
+  assert.match(code, /^ci\.yml:6  OPENAI_KEY value  qwer…  \(32 chars.*\)  looks real$/m);
   assert.match(code, /^src\/b\.py:2  ANTHROPIC_API_KEY named, no value here$/m);
-  assert.match(code, /^config\.json:3  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(code, /^config\.json:3  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*\)  looks real$/m);
   assert.doesNotMatch(code, /config\.json:2 .*\(0 chars/);
   assert.match(code, /^ci\.yml:2  ANTHROPIC_API_KEY value  \$\{\{….*reference$/m);
-  assert.match(code, /^ci\.yml:4  OPENAI_API_KEY value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(code, /^ci\.yml:4  OPENAI_API_KEY value  .{4}…  \(40 chars.*\)  looks real$/m);
   assert.match(code, /^ci\.yml:5  ANTHROPIC_API_KEY named, no value here$/m);
   assert.doesNotMatch(code, /^\.env:/m);
 });
@@ -128,15 +144,26 @@ test("split keys, typed assignments, a value after a trailing = or before a ?? o
   assert.match(code, /^src\/c\.ts:2  Anthropic key  sk-a….*split, looks real$/m);
   assert.match(code, /^src\/c\.ts:4  Anthropic key  sk-a….*split, looks real$/m);
   assert.match(code, /^settings\.py:4  Anthropic key  sk-a….*split, looks real$/m);
-  assert.match(code, /^src\/c\.ts:5  AZURE_OPENAI_API_KEY value  .{4}…  \(32 chars.*looks real$/m);
-  assert.match(code, /^src\/c\.ts:6  OPENAI_API_KEY value  .{4}…  \(30 chars.*looks real$/m);
+  assert.match(code, /^src\/c\.ts:5  AZURE_OPENAI_API_KEY value  .{4}…  \(32 chars.*\)  looks real$/m);
+  assert.match(code, /^src\/c\.ts:6  OPENAI_API_KEY value  .{4}…  \(30 chars.*\)  looks real$/m);
   assert.doesNotMatch(code, /src\/c\.ts:[56] .*strin…/);
-  assert.match(code, /^src\/c\.ts:8  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(code, /^src\/c\.ts:8  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*\)  looks real$/m);
   assert.match(code, /^src\/c\.ts:9  ANTHROPIC_API_KEY named, no value here$/m);
-  assert.match(code, /^src\/c\.ts:10  ANTHROPIC_API_KEY value  .{4}…  \(34 chars.*looks real$/m);
-  assert.match(code, /^settings\.py:2  ANTHROPIC_API_KEY value  .{4}…  \(36 chars.*looks real$/m);
+  assert.match(code, /^src\/c\.ts:10  ANTHROPIC_API_KEY value  .{4}…  \(34 chars.*\)  looks real$/m);
+  assert.match(code, /^settings\.py:2  ANTHROPIC_API_KEY value  .{4}…  \(36 chars.*\)  looks real$/m);
   assert.match(history, /src\/c\.ts added  AZURE_OPENAI_API_KEY value/);
   assert.match(history, /src\/c\.ts added  ANTHROPIC_API_KEY value  .{4}…  \(40 chars/);
+});
+
+test("a whole key at the end of a line is not split; a bare prefix is split or prefix only, never a placeholder", () => {
+  const { code } = r;
+  assert.match(code, /^keys\.env:1  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(code, /^client\.py:1  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(code, /^last\.json:3  OpenAI key  sk-p…  \(68 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(code, /^src\/d\.ts:1  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.match(code, /^src\/d\.ts:2  Anthropic key  sk-a…  \(13 chars, id [0-9a-f]{8}\)  split, looks real$/m);
+  assert.match(code, /^src\/d\.ts:3  Anthropic key  sk-a…  \(7 chars, id [0-9a-f]{8}\)  prefix only$/m);
+  assert.doesNotMatch(code, /^(keys\.env:1|client\.py:1|last\.json:3|src\/d\.ts:1) .*split/m);
 });
 
 test("show keeps the code readable: names, calls and import specifiers stay", () => {
@@ -145,14 +172,20 @@ test("show keeps the code readable: names, calls and import specifiers stay", ()
 });
 
 test("ignored .env files are found only by the --no-exclude-standard search", () => {
-  assert.match(r.ignored, /^\.env:1  Anthropic key  sk-a….*looks real$/m);
-  assert.match(r.ignored, /^\.env:2  OPENAI_API_KEY value  .{4}….*looks real$/m);
+  assert.match(r.ignored, /^\.env:1  Anthropic key  sk-a….*\)  looks real$/m);
+  assert.match(r.ignored, /^\.env:2  OPENAI_API_KEY value  .{4}….*\)  looks real$/m);
+});
+
+test("ignored .claude/settings.local.json is screened; a key removed in uncommitted changes is found", () => {
+  assert.match(r.ignored, /^\.claude\/settings\.local\.json:2  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*\)  looks real$/m);
+  assert.doesNotMatch(r.code, /settings\.local/);
+  assert.match(r.diff, /^diff gone\.ts removed  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
 });
 
 test("history finds a key that was deleted", () => {
-  assert.match(r.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d old\.py removed  OpenAI key  sk-p….*looks real$/m);
-  assert.match(r.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d old\.py added  OpenAI key  sk-p….*looks real$/m);
-  assert.match(r.history, /config\.json added  ANTHROPIC_API_KEY value  .{4}….*looks real$/m);
+  assert.match(r.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d old\.py removed  OpenAI key  sk-p….*\)  looks real$/m);
+  assert.match(r.history, /^[0-9a-f]+ \d{4}-\d\d-\d\d old\.py added  OpenAI key  sk-p….*\)  looks real$/m);
+  assert.match(r.history, /config\.json added  ANTHROPIC_API_KEY value  .{4}….*\)  looks real$/m);
 });
 
 test("show masks keys and values but keeps references and the code around them", () => {
