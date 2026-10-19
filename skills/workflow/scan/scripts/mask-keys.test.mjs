@@ -25,6 +25,8 @@ function repo() {
     svcacct: `sk-svcacct-${rnd(60)}`, admin: `sk-admin-${rnd(60)}`,
     envValue: rnd(40), slashy: b64(44), fallback: rnd(32), orFallback: rnd(30), pyDefault: rnd(36),
     nextLine: rnd(40), yamlBlock: rnd(40), ignored: `${ANT}api03-${rnd(93)}AA`, ignoredValue: rnd(40),
+    splitRest: rnd(80), pySplitRest: rnd(80), azure: rnd(32), pydantic: rnd(36), union: rnd(30), trailing: rnd(40),
+    opNext: rnd(34), lettersOnly: "qwertyuiopasdfghjklzxcvbnmQWERTY", hex: randomBytes(20).toString("hex"),
   };
   mkdirSync(join(dir, "src"));
   writeFileSync(join(dir, "src/a.ts"), [
@@ -39,10 +41,27 @@ function repo() {
     `const f = process.env.ANTHROPIC_API_KEY ?? "${s.fallback}";`,
     `const g = process.env.EXPO_PUBLIC_ANTHROPIC_KEY || '${s.orFallback}';`,
   ].join("\n"));
+  writeFileSync(join(dir, "src/c.ts"), [
+    `import Anthropic from "@anthropic-ai/sdk";`,
+    `const k1 = "${ANT}api03-" +`,
+    `  "${s.splitRest}";`,
+    "const k2 = `" + ANT + "api03-${suffix}`;",
+    `const AZURE_OPENAI_API_KEY: string = "${s.azure}";`,
+    `const OPENAI_API_KEY: string | undefined = process.env.OPENAI_API_KEY ?? "${s.union}";`,
+    `const ANTHROPIC_API_KEY =`,
+    `  "${s.trailing}";`,
+    `const k3 = process.env.ANTHROPIC_API_KEY`,
+    `  ?? "${s.opNext}";`,
+    `const resp = await client.messages.create({ model: MODELS.default, max_tokens: 1024 });`,
+    "const t = `",
+    s.hex,
+    "`;",
+  ].join("\n"));
+  writeFileSync(join(dir, "settings.py"), `class S(BaseSettings):\n    ANTHROPIC_API_KEY: str = "${s.pydantic}"\n\nKEY = ("${ANT}api03-"\n       "${s.pySplitRest}")\n`);
   writeFileSync(join(dir, "src/b.py"), `key = os.getenv("OPENAI_API_KEY", "${s.pyDefault}")\nother = os.environ["ANTHROPIC_API_KEY"]\n`);
   writeFileSync(join(dir, ".env.example"), `ANTHROPIC_API_KEY=your-key-here\nOPENAI_API_KEY="${s.envValue}"\nNEXT_PUBLIC_OPENAI_API_KEY=${s.slashy}\n`);
   writeFileSync(join(dir, "config.json"), `{\n  "ANTHROPIC_API_KEY":\n    "${s.nextLine}",\n  "other": 1\n}\n`);
-  writeFileSync(join(dir, "ci.yml"), `env:\n  ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}\n  OPENAI_API_KEY: >\n    ${s.yamlBlock}\n  REF: \${ANTHROPIC_API_KEY}\n`);
+  writeFileSync(join(dir, "ci.yml"), `env:\n  ANTHROPIC_API_KEY: \${{ secrets.ANTHROPIC_API_KEY }}\n  OPENAI_API_KEY: >\n    ${s.yamlBlock}\n  REF: \${ANTHROPIC_API_KEY}\n  OPENAI_KEY: ${s.lettersOnly}\n`);
   writeFileSync(join(dir, ".gitignore"), ".env\n");
   writeFileSync(join(dir, ".env"), `ANTHROPIC_API_KEY=${s.ignored}\nOPENAI_API_KEY=${s.ignoredValue}\n`);
   writeFileSync(join(dir, "old.py"), `old = "${s.gone}"\n`);
@@ -54,7 +73,7 @@ function repo() {
     sh("git", ["grep", "-nIE", "-A1", "--untracked", "--no-exclude-standard", KEYS, "--", ".env*", "**/.env*"]));
   const history = sh("node", [MASK, "history"],
     sh("git", ["log", "--all", "-p", "-G", KEYS, "--format=commit %h %ad", "--date=short"]));
-  const files = ["src/a.ts", "src/b.py", ".env.example", "config.json", "ci.yml", ".env"];
+  const files = ["src/a.ts", "src/b.py", "src/c.ts", "settings.py", ".env.example", "config.json", "ci.yml", ".env"];
   const show = files.map((f) => sh("node", [MASK, "show", f])).join("\n");
   const piped = sh("node", [MASK, "show"], sh("git", ["grep", "-n", "-A1", "--untracked", "--no-exclude-standard", "-e", "=", "-e", ":"]));
   return { s, code, ignored, history, show, piped };
@@ -91,9 +110,10 @@ test("values: assigned, with + / =, a fallback literal, the next line, a YAML bl
   assert.match(code, /^\.env\.example:1  ANTHROPIC_API_KEY value  your….*placeholder$/m);
   assert.match(code, /^\.env\.example:2  OPENAI_API_KEY value  .{4}….*looks real$/m);
   assert.match(code, /^\.env\.example:3  NEXT_PUBLIC_OPENAI_API_KEY value  .{4}…  \(44 chars.*looks real$/m);
-  assert.match(code, /^src\/a\.ts:9  ANTHROPIC_API_KEY fallback value  .{4}….*looks real$/m);
-  assert.match(code, /^src\/a\.ts:10  EXPO_PUBLIC_ANTHROPIC_KEY fallback value  .{4}….*looks real$/m);
-  assert.match(code, /^src\/b\.py:1  OPENAI_API_KEY fallback value  .{4}….*looks real$/m);
+  assert.match(code, /^src\/a\.ts:9  ANTHROPIC_API_KEY value  .{4}….*looks real$/m);
+  assert.match(code, /^src\/a\.ts:10  EXPO_PUBLIC_ANTHROPIC_KEY value  .{4}….*looks real$/m);
+  assert.match(code, /^src\/b\.py:1  OPENAI_API_KEY value  .{4}….*looks real$/m);
+  assert.match(code, /^ci\.yml:6  OPENAI_KEY value  qwer…  \(32 chars.*looks real$/m);
   assert.match(code, /^src\/b\.py:2  ANTHROPIC_API_KEY named, no value here$/m);
   assert.match(code, /^config\.json:3  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*looks real$/m);
   assert.doesNotMatch(code, /config\.json:2 .*\(0 chars/);
@@ -101,6 +121,27 @@ test("values: assigned, with + / =, a fallback literal, the next line, a YAML bl
   assert.match(code, /^ci\.yml:4  OPENAI_API_KEY value  .{4}…  \(40 chars.*looks real$/m);
   assert.match(code, /^ci\.yml:5  ANTHROPIC_API_KEY named, no value here$/m);
   assert.doesNotMatch(code, /^\.env:/m);
+});
+
+test("split keys, typed assignments, a value after a trailing = or before a ?? on the next line", () => {
+  const { code, history } = r;
+  assert.match(code, /^src\/c\.ts:2  Anthropic key  sk-a….*split, looks real$/m);
+  assert.match(code, /^src\/c\.ts:4  Anthropic key  sk-a….*split, looks real$/m);
+  assert.match(code, /^settings\.py:4  Anthropic key  sk-a….*split, looks real$/m);
+  assert.match(code, /^src\/c\.ts:5  AZURE_OPENAI_API_KEY value  .{4}…  \(32 chars.*looks real$/m);
+  assert.match(code, /^src\/c\.ts:6  OPENAI_API_KEY value  .{4}…  \(30 chars.*looks real$/m);
+  assert.doesNotMatch(code, /src\/c\.ts:[56] .*strin…/);
+  assert.match(code, /^src\/c\.ts:8  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(code, /^src\/c\.ts:9  ANTHROPIC_API_KEY named, no value here$/m);
+  assert.match(code, /^src\/c\.ts:10  ANTHROPIC_API_KEY value  .{4}…  \(34 chars.*looks real$/m);
+  assert.match(code, /^settings\.py:2  ANTHROPIC_API_KEY value  .{4}…  \(36 chars.*looks real$/m);
+  assert.match(history, /src\/c\.ts added  AZURE_OPENAI_API_KEY value/);
+  assert.match(history, /src\/c\.ts added  ANTHROPIC_API_KEY value  .{4}…  \(40 chars/);
+});
+
+test("show keeps the code readable: names, calls and import specifiers stay", () => {
+  assert.match(r.show, /^     1\timport Anthropic from "@anthropic-ai\/sdk";$/m);
+  assert.match(r.show, /^    11\tconst resp = await client\.messages\.create\(\{ model: MODELS\.default, max_tokens: 1024 \}\);$/m);
 });
 
 test("ignored .env files are found only by the --no-exclude-standard search", () => {

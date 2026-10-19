@@ -4,21 +4,19 @@
 //   code:    git grep -nIE -A1 --untracked "$KEYS" | node mask-keys.mjs code
 //            (ignored .env files: add --no-exclude-standard -- '.env*' '**/.env*')
 //   history: git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node mask-keys.mjs history
-//   show:    node mask-keys.mjs show <file>     (the file, numbered, with every key masked)
-//            any-search | node mask-keys.mjs show   (the lines, with every key masked)
-import { readFileSync } from 'node:fs';
+//   show:    node mask-keys.mjs show <file>     (the file, numbered, every string and value masked)
+//            any-search | node mask-keys.mjs show   (the lines, masked the same way)
+import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 // sk-ant-, sk-proj-, sk-svcacct-, sk-admin-, and any other sk- key of 20 or more characters (legacy OpenAI keys)
 const KEY = /(?<![A-Za-z0-9])sk-(?:(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|[A-Za-z0-9_-]{20,})/g;
-// A variable that names an AI key: ANTHROPIC_API_KEY, OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, …
-const NAME = String.raw`\b([A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY)\b`;
-// NAME = value, NAME: value, "NAME": "value"; group 2 the separator, group 3 a quoted value, group 4 a bare one
-const ASSIGN = new RegExp(NAME + String.raw`["']?[ \t]*(:|=(?!=))[ \t]*(?:["'\`]([^"'\`\n]*)["'\`]|([^\s"'\`,;)}\]]*))`, 'dg');
-// a literal used when the variable is empty: NAME ?? "value", NAME || 'value', getenv("NAME", "value"), NAME") or "value"
-const FALLBACK = new RegExp(NAME + String.raw`["'\`\]]*\)?[ \t]*(?:\?\?|\|\||,|\bor\b)[ \t]*(["'\`])((?:(?!\2)[^\n])*)\2`, 'dg');
-const NAMED = new RegExp(NAME);
-// a value that only points somewhere else
+// A variable that names an AI key: ANTHROPIC_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, …
+const NAME = /\b([A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY)\b/g;
+const ONLY_NAME = /^[A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY$/;
+// A string literal, or one left open at the end of the line (it goes on below).
+const QUOTED = /(["'`])((?:\\.|(?!\1)[^\\])*)(\1|$)/g;
+// A value that only points somewhere else.
 const REFERENCE = /^(\$|process\.env|os\.environ|os\.getenv|import\.meta\.env)/;
 
 const mask = (v) => `${v.slice(0, 4)}…`;
@@ -36,36 +34,92 @@ function tag(value, prefix) {
   return placeholder ? 'placeholder' : 'looks real';
 }
 
-// One line: the keys in it, the line with them masked, and the name whose value is on the next line (or null).
-// A value is left as it is only when it is a reference or shorter than 8 characters; sk- keys are always masked.
-// `from` skips a search prefix (path:line:) before the value of a pending name.
-function analyze(text, pending, from = 0) {
-  const found = [], spans = [];
-  const value = (kind, v, start, prefix = '') => {
-    if (v === undefined || v === '') return;
-    found.push({ kind, shown: mask(v), tag: tag(v, prefix), length: v.length, id: idOf(v), start });
-    if (prefix || (!REFERENCE.test(v) && v.length >= 8)) spans.push([start, start + v.length]);
+// ---------- finding (code and history): what is where, and the name whose value is on the next line ----------
+
+function analyze(text, pending) {
+  const found = [], named = [];
+  const add = (kind, v, start, prefix = '', t) => {
+    if (!v || found.some((f) => f.start === start)) return;
+    found.push({ kind, shown: mask(v), tag: t ?? tag(v, prefix), length: v.length, id: idOf(v), start });
   };
+  const keys = [...text.matchAll(KEY)];
+  const inKey = (i) => keys.some((k) => i >= k.index && i < k.index + k[0].length);
   let next = null;
-  if (pending) {
-    const m = text.slice(from).match(/^(\s*)(?:(["'`])((?:(?!\2).)*)\2|([^\s,;]+))/);
-    if (m) value(`${pending} value`, m[3] ?? m[4], from + m[1].length + (m[2] ? 1 : 0));
+
+  // pending.op: the line above ended in an operator (=, :, ??, …); otherwise it ended with the name, and the value
+  // counts only when this line goes on with an operator (NAME⏎ ?? "value")
+  if (pending && !/^\s*[A-Za-z_][\w.]*\s*[:=]/.test(text) && (pending.op || /^\s*(\?\?|\|\||or\b|,)/.test(text))) {
+    const q = [...text.matchAll(QUOTED)][0], b = text.match(/^\s*([^\s,;]+)/);
+    if (q) add(`${pending.name} value`, q[2], q.index + 1);
+    else if (b && pending.op) add(`${pending.name} value`, b[1], b.index + b[0].length - b[1].length);
   }
-  for (const m of text.matchAll(KEY)) value(kindOf(m[1]), m[0], m.index, m[1] ? `sk-${m[1]}-` : 'sk-');
-  const isKey = (start) => spans.some(([a, b]) => start >= a && start < b);
-  for (const m of text.matchAll(ASSIGN)) {
-    const quoted = m[3] !== undefined, v = (quoted ? m[3] : m[4]) ?? '', start = m.indices[quoted ? 3 : 4][0];
-    const rest = text.slice(m.index + m[0].length);
-    if (m[2] === ':' && !quoted && /^([|>][-+]?)?\s*$/.test(v + rest)) { next = m[1]; continue; }   // "NAME":⏎ "value", or a YAML block
-    if (!isKey(start)) value(`${m[1]} value`, v, start);
+
+  for (const m of keys) {
+    const after = text.slice(m.index + m[0].length);
+    // a key built from pieces: "<prefix>" + rest, `<prefix>${rest}`, "<prefix>" "rest", or a string open at the end of the line
+    const split = /^\$\{/.test(after) || /^["'`]\s*(\+|["'`]|\\?$)/.test(after) || after === '' || /^\s*\+/.test(after);
+    add(kindOf(m[1]), m[0], m.index, m[1] ? `sk-${m[1]}-` : 'sk-', split ? 'split, looks real' : undefined);
   }
-  for (const m of text.matchAll(FALLBACK)) {
-    const start = m.indices[3][0];
-    if (!isKey(start) && !found.some((f) => f.start === start)) value(`${m[1]} fallback value`, m[3], start);
+
+  const names = [...text.matchAll(NAME)];
+  names.forEach((m, n) => {
+    let from = m.index + m[0].length;
+    const before = text[m.index - 1];
+    if (before && /["'`]/.test(before) && text[from] === before) from++;    // the name's own closing quote
+    const end = n + 1 < names.length ? names[n + 1].index : text.length;  // up to the next name
+    const after = text.slice(from, end);
+    let has = false;
+    for (const q of after.matchAll(QUOTED)) {                           // every literal after the name is its value
+      const start = from + q.index + 1;
+      if (!q[2] || ONLY_NAME.test(q[2]) || inKey(start)) { has ||= inKey(start); continue; }
+      add(`${m[1]} value`, q[2], start); has = true;
+    }
+    const bare = after.match(/^\s*(:|=(?!=))\s*([^\s"'`,;)}\]{(\[<>|][^\s"'`,;)}\]]*)(.*)$/);   // NAME=value, NAME: value
+    if (bare && !has) {
+      const typed = bare[1] === ':' && /^\s*(\||=(?!=)|\[\])/.test(bare[3]);  // NAME: string = …, a type, not a value
+      const start = from + bare[0].length - bare[3].length - bare[2].length;
+      if (!typed && !inKey(start)) { add(`${m[1]} value`, bare[2], start); has = true; }
+    }
+    if (!has && /^[\])"'`]*(\s*(\?\?|\|\||=(?!=)|:|,|\(|\bor\b|[|>][-+]?))+\s*$/.test(after)) { next = { name: m[1], op: true }; has = true; }
+    if (!has && /^[\])"'`]*\s*$/.test(after)) next = { name: m[1], op: false };   // the name ends the line
+    if (!has) named.push(m[1]);
+  });
+  return { found, named, next };
+}
+
+// ---------- showing: every string and every value-like token masked, the code around them kept ----------
+
+// A token that is plainly code: a dotted name without digits (client.messages.create), or a file path.
+const codeLike = (t) => /^[A-Za-z_$]+(\.[A-Za-z_$]+)*\(?$/.test(t) || /^(\.{0,2}\/)?[\w@.-]+(\/[\w@.-]+)+\.[a-z]{1,5}$/.test(t);
+
+// Returns the line masked and the name whose value is on the next line.
+function strong(text, pending) {
+  const r = analyze(text, pending);
+  const all = pending && (pending.op || /^\s*(\?\?|\|\||or\b|,)/.test(text));   // the line holds a value named on the line above
+  const spans = r.found.filter((f) => f.tag !== 'reference').map((f) => [f.start, f.start + f.length]), kept = [];
+  for (const q of text.matchAll(QUOTED)) {
+    const start = q.index + 1, end = start + q[2].length;
+    const specifier = /(\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)$/.test(text.slice(0, q.index));
+    if ((specifier || ONLY_NAME.test(q[2])) && !/sk-/.test(q[2])) kept.push([start, end]);   // an import specifier or a variable's name
+    else if (q[2].length > 4) spans.push([start, end]);
   }
-  let masked = text;
-  for (const [a, b] of spans.sort((x, y) => y[0] - x[0])) masked = masked.slice(0, a) + mask(text.slice(a, b)) + masked.slice(b);
-  return { found, masked, next };
+  for (const k of text.matchAll(KEY)) spans.push([k.index, k.index + k[0].length]);
+  let rest = text;                                                       // the text outside the strings, same positions
+  for (const [a, b] of [...spans, ...kept]) rest = rest.slice(0, a) + ' '.repeat(b - a) + rest.slice(b);
+  for (const t of rest.matchAll(all ? /[^\s"'`,;()[\]{}]{5,}/g : /[A-Za-z0-9_\-+/.$]{12,}/g))
+    if (all || !codeLike(t[0])) spans.push([t.index, t.index + t[0].length]);
+  for (const t of rest.matchAll(/(?<![=!<>:])(?:=|:)\s*([A-Za-z0-9_\-+/=.$]{8,})/g)) {   // a bare value after = or :
+    const v = t[1], start = t.index + t[0].length - v.length;
+    if (!REFERENCE.test(v) && !codeLike(v)) spans.push([start, start + v.length]);
+  }
+  const merged = [];
+  for (const sp of spans.sort((x, y) => x[0] - y[0])) {
+    const last = merged[merged.length - 1];
+    if (last && sp[0] <= last[1]) last[1] = Math.max(last[1], sp[1]); else merged.push([...sp]);
+  }
+  let out = text;
+  for (const [a, b] of merged.reverse()) out = out.slice(0, a) + mask(text.slice(a, b)) + out.slice(b);
+  return { text: out, next: r.next };
 }
 
 const line = (where, k) => `${where}  ${k.kind}  ${k.shown}  (${k.length} chars, id ${k.id})  ${k.tag}`;
@@ -78,10 +132,12 @@ if (mode === 'show') {
   const text = readFileSync(file ?? 0, 'utf8').replace(/\n$/, '');
   let pending = null;
   text.split('\n').forEach((l, i) => {
-    const prefix = file ? 0 : (l.match(/^[^\s:]*?[:-]\d+[:-]/)?.[0].length ?? 0);   // piped search output: path:line:
-    const r = analyze(l, pending, prefix);
+    // piped search output: a path:line: (or path-line-) prefix is kept only when the path is a real file
+    const p = file ? null : l.match(/^([^\s:]+?)([:-])(\d+)\2/);
+    const keep = p && existsSync(p[1]) && !/sk-/.test(p[1]) ? p[0].length : 0;
+    const r = strong(l.slice(keep), pending);
+    console.log(file ? `${String(i + 1).padStart(6)}\t${r.text}` : l.slice(0, keep) + r.text);
     pending = r.next;
-    console.log(file ? `${String(i + 1).padStart(6)}\t${r.masked}` : r.masked);
   });
 } else if (mode === 'code' || mode === 'history') {
   const input = readFileSync(0, 'utf8').split('\n');
@@ -94,8 +150,8 @@ if (mode === 'show') {
       const follows = prev && prev.path === m[1] && prev.n + 1 === Number(m[2]);
       const r = analyze(m[3], follows ? pending : null);
       r.found.forEach((k) => say(line(here, k)));
-      if (!r.found.length && !r.next && NAMED.test(m[3]) && l.slice(m[1].length + m[2].length + 1)[0] === ':')
-        say(`${here}  ${m[3].match(NAMED)[1]} named, no value here`);
+      if (!r.found.length && r.named.length && l.slice(m[1].length + m[2].length + 1)[0] === ':')
+        say(`${here}  ${r.named[0]} named, no value here`);
       pending = r.next; prev = { path: m[1], n: Number(m[2]) };
       continue;
     }
