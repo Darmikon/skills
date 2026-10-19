@@ -11,15 +11,21 @@ CACHE="$HERE/.cache"
 WORK=$(mktemp -d "${TMPDIR:-/tmp}/skill-tests-XXXX")
 mkdir -p "$OUT" "$CACHE"
 
-# node_modules for the fixture, installed once
-if [ ! -d "$CACHE/node_modules" ]; then
+# node_modules for the fixture and the AI library for the scan ai cases, installed once into a shared cache.
+# Only this step runs npm there, one run at a time (a lock), and a package counts as installed only when its
+# package.json is there: an interrupted npm install can leave a folder moved aside (.sdk-XXXX) or half there.
+has_pkg() { [ -f "$CACHE/node_modules/$1/package.json" ]; }
+LOCK="$CACHE/.install-lock"
+for _ in $(seq 1 300); do mkdir "$LOCK" 2>/dev/null && break; sleep 1; done
+if ! has_pkg typescript || ! has_pkg @types/node; then
   cp "$HERE/fixture/package.json" "$CACHE/" && (cd "$CACHE" && npm install --silent >/dev/null 2>&1)
 fi
-
-# The AI library for the scan ai cases, in the same cache
-if [ ! -d "$CACHE/node_modules/@anthropic-ai/sdk" ]; then
+find "$CACHE/node_modules/@anthropic-ai" -maxdepth 1 -name '.sdk-*' -exec rm -rf {} + 2>/dev/null   # leftovers of a cut install
+if ! has_pkg @anthropic-ai/sdk; then
   (cd "$CACHE" && npm install --silent --no-save @anthropic-ai/sdk@0.135.0 >/dev/null 2>&1)
 fi
+rmdir "$LOCK" 2>/dev/null
+has_pkg @anthropic-ai/sdk && has_pkg typescript || echo "warning: the node_modules cache is incomplete; type checks will fail" >&2
 
 g() { git -c user.name="Test User" -c user.email="test@example.com" "$@"; }
 
@@ -501,7 +507,9 @@ case_scan_ai_none() {
 
 case_fix_ai() {
   fresh fix_ai; plant_ai
+  check "type-checks before the fix (the environment works)" bash -c "cd '$P' && npx tsc --noEmit"
   local head; head=$(cd "$P" && git rev-parse HEAD)
+  local mods; mods=$(ls -a "$CACHE/node_modules" | shasum)               # the shared node_modules (P links to it)
   local start="$WORK/fix_ai/start"; touch "$start"
   TRANSCRIPT="$OUT/fix_ai.jsonl"
   ask "/scan ai deep"
@@ -514,7 +522,7 @@ case_fix_ai() {
   local handed; handed=$(find "${TMPDIR:-/tmp}" -maxdepth 1 -name 'fix-ai-*.json' -newer "$start" 2>/dev/null)
   check "hands the big ones to brainstorming (names it, writes the hand-over file)" bash -c "[ -n '$handed' ] && grep -qi brainstorming '$LOG'"
   check "leaves the discuss items alone (the sleep(0) retry, the app's key)" bash -c "grep -q 'sleep(0)' '$P/src/llm/support.ts' && grep -q 'EXPO_PUBLIC_ANTHROPIC_KEY' '$P/mobile/src/api/claude.ts'"
-  check "installs nothing" bash -c "cd '$P' && git diff --quiet -- package.json mobile/package.json && ! git status --porcelain --untracked-files=all | grep -qE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)\$'"
+  check "installs nothing" bash -c "cd '$P' && git diff --quiet -- package.json mobile/package.json && ! git status --porcelain --untracked-files=all | grep -qE '(package-lock\.json|yarn\.lock|pnpm-lock\.yaml|bun\.lockb?)\$' && [ \"\$(ls -a '$CACHE/node_modules' | shasum)\" = '$mods' ]"
   check "does not commit" head_is "$head"
   # shellcheck disable=SC2086
   check "never shows the key (log, hand-over file)" no_key $handed
