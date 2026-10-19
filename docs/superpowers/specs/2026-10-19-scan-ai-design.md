@@ -1,22 +1,22 @@
-# scan llm and fix llm
+# scan ai and fix ai
 
 ## Goal
 
 Port the `agentic-sentinel` skill (found in `~/Downloads/agentic-sentinel`) into the scan family as a new command pair:
 
-- `/scan llm` finds what a project that calls an AI model (Claude, OpenAI, Vercel AI SDK, LangChain) is missing for production, changes nothing, and shows it on the scan page.
-- `/fix llm` fixes the small, local findings itself after a yes, and hands the big ones to `brainstorming`.
+- `/scan ai` finds what a project that calls an AI model (Claude, OpenAI, Vercel AI SDK, LangChain) is missing for production, changes nothing, and shows it on the scan page.
+- `/fix ai` fixes the small, local findings itself after a yes, and hands the big ones to `brainstorming`.
 
 Every best practice in the source skill is kept. The source mixes looking and changing, triggers on its own, writes its report as chat text, and has contradictions and bugs in its examples; the port fixes all of that (see "What changes from the source").
 
-`ai` works as another name for the command (`/scan ai`, `/fix ai`), the way `doc` works for `docs`.
+The command is `ai`. `llm` is accepted as another name (`/scan llm`, `/fix llm`), the way `doc` works for `docs`.
 
 ## Where the files live
 
 ```
-skills/workflow/scan/reference/llm.md       how to find the AI surface, the numbered checklist, the page
-skills/workflow/fix/reference/llm.md        the direct/discuss rule, the plan, the hand-over
-skills/workflow/fix/reference/llm/
+skills/workflow/scan/reference/ai.md       how to find the AI surface, the numbered checklist, the page
+skills/workflow/fix/reference/ai.md        the direct/discuss rule, the plan, the hand-over
+skills/workflow/fix/reference/ai/
   failures.md       errors, retry, refusal, tool results, batch isolation, streaming, caching,
                     batches API, model config and router, multi-agent, NestJS module   (from backend-ts.md)
   observability.md  wrappers, cost, default stacks, setup playbook, dashboards, alerts  (from observability.md)
@@ -29,14 +29,14 @@ The content of the five source reference files is carried over in full, with the
 
 Also changed:
 
-- `scan/SKILL.md` and `fix/SKILL.md`: a `llm` row in the commands table, `llm` in `description` and `argument-hint`.
-- `scan/reference/menu.md`: suggest `llm` when the root manifest or a workspace manifest lists an AI library (`@anthropic-ai/sdk`, `openai`, `ai`, `langchain`, `@langchain/*`; Python: `anthropic`, `openai`, `langchain`).
-- `README.md` (the scan and fix rows) and `skills/workflow/README.md` (the scan and fix paragraphs, with a line "`llm` is ported from `agentic-sentinel`").
-- `tests/run.sh`, `tests/fixture-llm/` (see "Tests").
+- `scan/SKILL.md` and `fix/SKILL.md`: an `ai` row in the commands table, `ai` in `description` and `argument-hint`.
+- `scan/reference/menu.md`: suggest `ai` when the root manifest or a workspace manifest lists an AI library (`@anthropic-ai/sdk`, `openai`, `ai`, `langchain`, `@langchain/*`; Python: `anthropic`, `openai`, `langchain`).
+- `README.md` (the scan and fix rows) and `skills/workflow/README.md` (the scan and fix paragraphs, with a line "`ai` is ported from `agentic-sentinel`").
+- `tests/run.sh`, `tests/fixture-ai/` (see "Tests").
 
 `plugin.json`, the install-all line and the links in `~/.claude/skills/` need no change: `scan` and `fix` are already there. The folder in `~/Downloads` is not touched.
 
-## scan llm
+## scan ai
 
 It follows `scan/SKILL.md` like every scan: manual only, the branch by default, `deep` for the whole project, the quick/deep question when the branch has no changes, observe and never change, the project's words, proof, the page, the ending.
 
@@ -91,7 +91,7 @@ A key found in code or history is shown as its first 4 characters and `…`, eve
 
 ### 6. The page
 
-The findings file has `command: "llm"`, the shared fields, and per finding `kind` = the item id (`A2`) and `rank`. Sections:
+The findings file has `command: "ai"`, the shared fields, and per finding `kind` = the item id (`A2`) and `rank`. Sections:
 
 1. `cards`: the findings, most serious first. Quick scan: the top 5 as cards, the rest as `lines`.
 2. `table`: every item of the appendix, always all of them, even on a quick or branch scan: id, item, mark, place or reason.
@@ -102,9 +102,9 @@ The findings file has `command: "llm"`, the shared fields, and per finding `kind
 
 ### 7. The ending
 
-Chat: a line per `Critical` and `High` finding, one line counting the rest, the questions (numbered), the top pick, then the shared ending lines. If the user answers a question, the item's mark changes in the findings file (in `<tmp>`), a new finding is added when the answer shows a gap, and the page is drawn again. Closing question: "What do we fix first?" A picked item gets `/fix llm` to copy.
+Chat: a line per `Critical` and `High` finding, one line counting the rest, the questions (numbered), the top pick, then the shared ending lines. If the user answers a question, the item's mark changes in the findings file (in `<tmp>`), a new finding is added when the answer shows a gap, and the page is drawn again. Closing question: "What do we fix first?" A picked item gets `/fix ai` to copy.
 
-## fix llm
+## fix ai
 
 It follows `fix/SKILL.md` step 1 (the findings) like every fix.
 
@@ -127,9 +127,9 @@ End: "Do I go ahead with the first group? Answer yes, or yes except some numbers
 
 ### The work
 
-The first group: `fix/SKILL.md` steps 3 to 5, using the matching file in `fix/reference/llm/` adapted to the project's names, paths and framework. Before writing code, check the library version in the project against current docs (Context7 or the vendor's docs). Python: the same fix, written in Python from the library's docs; the examples are TypeScript.
+The first group: `fix/SKILL.md` steps 3 to 5, using the matching file in `fix/reference/ai/` adapted to the project's names, paths and framework. Before writing code, check the library version in the project against current docs (Context7 or the vendor's docs). Python: the same fix, written in Python from the library's docs; the examples are TypeScript.
 
-The second group: hand over as `fix/reference/handoff.md` says, adding to the topic the paths of the `fix/reference/llm/` files that cover each finding and the instruction to check package versions against current docs.
+The second group: hand over as `fix/reference/handoff.md` says, adding to the topic the paths of the `fix/reference/ai/` files that cover each finding and the instruction to check package versions against current docs.
 
 A leaked key: the report always says "Rotate the key; removing it from history is not enough", whatever was approved.
 
@@ -137,14 +137,14 @@ Nothing extra: a router, the batches API or multi-agent orchestration is propose
 
 ## What changes from the source
 
-1. Looking and changing are split into `scan llm` and `fix llm`.
+1. Looking and changing are split into `scan ai` and `fix ai`.
 2. It no longer starts on its own; `/scan` with no argument suggests it.
 3. The report is the scan page; ranks are the scan words.
 4. Contradictions: every item gets a mark and a place on the page (the table); "order by severity" is rank first, area second.
 5. Items that cannot be seen from the code are `not checked` with a question, never guessed.
 6. The `ai` package is matched by name, not by a word search.
 7. Keys are never shown in full.
-8. The full secret search is left to `/scan security`, the plain test gaps to `/scan tests`; `scan llm` checks only what is specific to AI code.
+8. The full secret search is left to `/scan security`, the plain test gaps to `/scan tests`; `scan ai` checks only what is specific to AI code.
 9. Example bugs fixed:
    - `security.md`: the tool guard uses `os.homedir()` without importing `os`.
    - `backend-ts.md` §3 calls `dispatchTool(name, input)`, `security.md` defines `dispatchTool(name, input, ctx)`: one signature, the context passed through `runTool`.
@@ -156,7 +156,7 @@ Nothing extra: a router, the batches API or multi-agent orchestration is propose
 
 ## Tests
 
-`tests/fixture-llm/` is laid over a fresh copy of `tests/fixture/` by a helper `plant_llm`, and committed as one commit on `main` (so the cases use `deep`). Its `package.json` adds `@anthropic-ai/sdk`; `run.sh` installs it into `tests/.cache/` when it is missing there, so the type check passes before any fix. It plants:
+`tests/fixture-ai/` is laid over a fresh copy of `tests/fixture/` by a helper `plant_ai`, and committed as one commit on `main` (so the cases use `deep`). Its `package.json` adds `@anthropic-ai/sdk`; `run.sh` installs it into `tests/.cache/` when it is missing there, so the type check passes before any fix. It plants:
 
 - `src/llm/support.ts`: a retry loop that catches everything and retries with no delay (A1–A3), SDK retries left on (A4), model id as a literal, also in a second file (E2), no `max_tokens` choice (E7).
 - `src/llm/tools.ts`: a tool runner that returns empty content on error (A7).
@@ -165,18 +165,18 @@ Nothing extra: a router, the batches API or multi-agent orchestration is propose
 
 Cases in `tests/run.sh`:
 
-1. `scan_llm`: `/scan llm deep`. Finds each planted problem with its file; the findings file's table has every id of the appendix; the log never contains the full fake key; a page is drawn; the project is unchanged.
-2. `scan_llm_none`: `/scan llm deep` on the plain fixture. Says there are no AI calls; no page; unchanged.
-3. `fix_llm`: `/fix llm deep`. A plan with two groups; nothing changed before the answer. After "да": the model ids are in one place, the tool error is an `is_error` result, the second group went to `brainstorming` (the log names it), nothing committed.
-4. `scan_menu_llm`: `/scan` on the planted fixture suggests `llm`.
+1. `scan_ai`: `/scan ai deep`. Finds each planted problem with its file; the findings file's table has every id of the appendix; the log never contains the full fake key; a page is drawn; the project is unchanged.
+2. `scan_ai_none`: `/scan ai deep` on the plain fixture. Says there are no AI calls; no page; unchanged.
+3. `fix_ai`: `/fix ai deep`. A plan with two groups; nothing changed before the answer. After "да": the model ids are in one place, the tool error is an `is_error` result, the second group went to `brainstorming` (the log names it), nothing committed.
+4. `scan_menu_ai`: `/scan` on the planted fixture suggests `ai`.
 
 ## Independent verification
 
-After the build, a fresh subagent that did not write the port compares the source with the port item by item: every checklist item, every rule, every code example, every playbook step, every table row of the five reference files. It reports anything missing, changed in meaning, or still buggy, and runs `bash tests/run.sh llm`. Fix and run a new auditor until one reports clean.
+After the build, a fresh subagent that did not write the port compares the source with the port item by item: every checklist item, every rule, every code example, every playbook step, every table row of the five reference files. It reports anything missing, changed in meaning, or still buggy, and runs `bash tests/run.sh _ai`. Fix and run a new auditor until one reports clean.
 
 ## Appendix: the checklist
 
-Default rank when missing in brackets. `failures.md`, `observability.md` and the others are the files in `fix/reference/llm/`.
+Default rank when missing in brackets. `failures.md`, `observability.md` and the others are the files in `fix/reference/ai/`.
 
 **A. Failures** (`failures.md` §1–5)
 - A1 Errors classified: retriable (429, 529, 5xx, connection, timeout, plus what the SDK retries) vs terminal (400, 401, 403, 404); unknown ⇒ terminal [High]
