@@ -28,6 +28,7 @@ function repo() {
     splitRest: rnd(80), pySplitRest: rnd(80), azure: rnd(32), pydantic: rnd(36), union: rnd(30), trailing: rnd(40),
     envWhole: `${ANT}api03-${rnd(93)}AA`, pyWhole: `${ANT}api03-${rnd(93)}AA`, jsonWhole: `${PROJ}${rnd(60)}`,
     tsWhole: `${ANT}api03-${rnd(93)}AA`, joinRest: rnd(80), uncommitted: `${ANT}api03-${rnd(93)}AA`, local: rnd(40),
+    dated: `${ANT}api03-${rnd(93)}AA`, escaped: `${ANT}api03-${rnd(93)}AA`, percent: `${PROJ}${rnd(60)}`,
     opNext: rnd(34), lettersOnly: "qwertyuiopasdfghjklzxcvbnmQWERTY", hex: randomBytes(20).toString("hex"),
   };
   mkdirSync(join(dir, "src"));
@@ -64,6 +65,15 @@ function repo() {
     `const joined = ["${ANT}api03-", "${s.joinRest}"].join("");`,
     `if (k.startsWith("${ANT}")) throw new Error("not an Anthropic key");`,
   ].join("\n"));
+  mkdirSync(join(dir, "db/migrations"), { recursive: true });
+  writeFileSync(join(dir, "db/migrations/2024-01-15-seed.sql"), `INSERT INTO settings VALUES ('anthropic', '${s.dated}');\n`);
+  writeFileSync(join(dir, "escaped.json"), `{ "msg": "key:\\n${s.escaped}", "url": "https://x.example/auth?h=Bearer%20${s.percent}" }\n`);
+  writeFileSync(join(dir, "app.ts"), [
+    `const res = await fetch("https://api.anthropic.com/v1/messages", {`,
+    `  headers: { "x-api-key": KEY, "anthropic-version": "2023-06-01", "content-type": "application/json" },`,
+    `  body: JSON.stringify({ model: "claude-haiku-5-5", max_tokens: 512 }),`,
+    `});`,
+  ].join("\n"));
   writeFileSync(join(dir, "keys.env"), `CLIENT_ANTHROPIC=${s.envWhole}\n`);
   writeFileSync(join(dir, "client.py"), `CLIENT = "${s.pyWhole}"\n`);
   writeFileSync(join(dir, "last.json"), `{\n  "name": "x",\n  "key": "${s.jsonWhole}"\n}\n`);
@@ -87,16 +97,28 @@ function repo() {
     sh("git", ["grep", "-nIE", "-A1", "--untracked", "--no-exclude-standard", KEYS, "--", ".env*", "**/.env*", "*.env", "**/*.env",
       ".claude/settings.local.json", "**/.claude/settings.local.json"]));
   const diff = sh("node", [MASK, "history"], sh("git", ["diff", "-G", KEYS, "HEAD"]));
+  const diffShown = sh("node", [MASK, "show"], sh("git", ["diff", "HEAD"]));
+  // key shapes dressed as safe shapes: a model id, a URL path, a header, a MIME type
+  const wrapped = [];
+  for (let i = 0; i < 300; i++) {
+    const k = [rnd(20 + (i % 80)), randomBytes(16 + (i % 16)).toString("hex"), b64(40), `${ANT}api03-${rnd(93)}AA`, `${PROJ}${rnd(48)}`][i % 5];
+    s[`w${i}`] = k;
+    wrapped.push(`const w${i} = ["claude-${k}", "https://hooks.example.com/services/${k}", "x-${k}", "application/${k}", "${k}"];`);
+  }
+  writeFileSync(join(dir, "wrapped.ts"), wrapped.join("\n"));
+  const wrappedShown = sh("node", [MASK, "show", "wrapped.ts"]);
   const history = sh("node", [MASK, "history"],
     sh("git", ["log", "--all", "-p", "-G", KEYS, "--format=commit %h %ad", "--date=short"]));
-  const files = [".claude/settings.local.json", "src/a.ts", "src/b.py", "src/c.ts", "src/d.ts", "keys.env", "client.py", "last.json", "settings.py", ".env.example", "config.json", "ci.yml", ".env"];
+  const files = ["app.ts", "escaped.json", "db/migrations/2024-01-15-seed.sql", ".claude/settings.local.json", "src/a.ts", "src/b.py", "src/c.ts", "src/d.ts", "keys.env", "client.py", "last.json", "settings.py", ".env.example", "config.json", "ci.yml", ".env"];
   const show = files.map((f) => sh("node", [MASK, "show", f])).join("\n");
   const piped = sh("node", [MASK, "show"], sh("git", ["grep", "-n", "-A1", "--untracked", "--no-exclude-standard", "-e", "=", "-e", ":"]));
-  return { s, code, ignored, history, show, piped, diff };
+  return { s, code, ignored, history, show, piped, diff, diffShown, wrappedShown };
 }
 
 // No 5 characters in a row of a secret appear in the output beyond its first 4.
+// The ids (8 hex of a hash) and commit hashes are dropped first: a hex secret can share 5 characters with them by chance.
 function leaks(secret, text) {
+  text = text.replace(/id [0-9a-f]{8}\b/g, "id").replace(/^[0-9a-f]{7,40} /gm, "");
   for (let i = 1; i + 5 <= secret.length; i++) if (text.includes(secret.slice(i, i + 5))) return secret.slice(0, 4) + "…@" + i;
   return null;
 }
@@ -105,7 +127,7 @@ const r = repo();
 
 test("nothing beyond the first 4 characters of a key or value is ever printed", () => {
   for (const [name, secret] of Object.entries(r.s))
-    for (const out of ["code", "ignored", "history", "show", "piped", "diff"]) assert.equal(leaks(secret, r[out]), null, `${name} in ${out}`);
+    for (const out of ["code", "ignored", "history", "show", "piped", "diff", "diffShown", "wrappedShown"]) assert.equal(leaks(secret, r[out]), null, `${name} in ${out}`);
 });
 
 test("each key shape is found, named and tagged", () => {
@@ -115,7 +137,7 @@ test("each key shape is found, named and tagged", () => {
   assert.match(code, /^src\/a\.ts:3  Anthropic key  sk-a….*placeholder$/m);
   assert.match(code, /^src\/a\.ts:4  OpenAI key \(legacy\)  sk-.….*\)  looks real$/m);
   assert.match(code, /^src\/a\.ts:5  ANTHROPIC_API_KEY named, no value here$/m);
-  assert.doesNotMatch(code, /src\/a\.ts:6/);
+  assert.match(code, /^src\/a\.ts:6  key-shaped text$/m);
   assert.match(code, /^src\/a\.ts:7  OpenAI key  sk-s….*\)  looks real$/m);
   assert.match(code, /^src\/a\.ts:8  OpenAI key  sk-a….*\)  looks real$/m);
   assert.doesNotMatch(code, /old\.py/);
@@ -180,6 +202,28 @@ test("ignored .claude/settings.local.json is screened; a key removed in uncommit
   assert.match(r.ignored, /^\.claude\/settings\.local\.json:2  ANTHROPIC_API_KEY value  .{4}…  \(40 chars.*\)  looks real$/m);
   assert.doesNotMatch(r.code, /settings\.local/);
   assert.match(r.diff, /^diff gone\.ts removed  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+});
+
+test("a path with -NN- in it, an escaped or %-encoded key, and a matched line the finder cannot read", () => {
+  const { code } = r;
+  assert.match(code, /^db\/migrations\/2024-01-15-seed\.sql:1  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+  assert.doesNotMatch(code, /^db\/migrations\/2024:/m);
+  assert.match(code, /^escaped\.json:1  Anthropic key  sk-a…  \(108 chars/m);
+  assert.match(code, /^escaped\.json:1  OpenAI key  sk-p…  \(68 chars/m);
+});
+
+test("show reads a diff: headers and +/- lines stay, keys are masked", () => {
+  assert.match(r.diffShown, /^diff --git a\/gone\.ts b\/gone\.ts$/m);
+  assert.match(r.diffShown, /^-export const K = "sk-a…";$/m);
+});
+
+test("safe shapes stay readable: model ids, URLs, header names, MIME types, dates; no key ever looks safe", () => {
+  assert.match(r.show, /fetch\("https:\/\/api\.anthropic\.com\/v1\/messages", \{/);
+  assert.match(r.show, /headers: \{ "x-api-key": KEY, "anthropic-version": "2023-06-01", "content-type": "application\/json" \}/);
+  assert.match(r.show, /model: "claude-haiku-5-5", max_tokens: 512/);
+  const shown = r.wrappedShown.trimEnd().split("\n");
+  assert.equal(shown.length, 300);
+  for (const l of shown) assert.equal((l.match(/…/g) ?? []).length, 5, l.slice(0, 60));   // all five literals masked
 });
 
 test("history finds a key that was deleted", () => {

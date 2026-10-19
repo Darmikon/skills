@@ -12,7 +12,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 
 // sk-ant-, sk-proj-, sk-svcacct-, sk-admin-, and any other sk- key of 20 or more characters (legacy OpenAI keys)
-const KEY = /(?<![A-Za-z0-9])sk-(?:(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|[A-Za-z0-9_-]{20,})/g;
+// (after a letter or digit it is part of a longer word, unless that is an escape such as \n or a %20)
+const KEY = /(?<=^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2})sk-(?:(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|[A-Za-z0-9_-]{20,})/g;
 // A variable that names an AI key: ANTHROPIC_API_KEY, OPENAI_API_KEY, AZURE_OPENAI_API_KEY, EXPO_PUBLIC_ANTHROPIC_KEY, …
 const NAME = /\b([A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY)\b/g;
 const ONLY_NAME = /^[A-Z0-9_]*(?:ANTHROPIC|OPENAI)[A-Z0-9_]*KEY$/;
@@ -98,6 +99,19 @@ function analyze(text, pending) {
 // ---------- showing: every string and every value-like token masked, the code around them kept ----------
 
 // A token that is plainly code: a dotted name without digits (client.messages.create), or a file path.
+// Shapes that stay readable in `show` because no key has them: a model id, a URL with no user, query or fragment,
+// a header name, a MIME type, a date. Never anything with sk- in it, an upper-case letter (base64, mixed-case
+// tokens), a run of 24 letters and digits (hex), or a run of 16 that mixes letters and digits.
+const SAFE = [
+  /^(claude|gpt|o\d|chatgpt|text-embedding)[\w.:-]*$/,
+  /^https?:\/\/[A-Za-z0-9.-]+(:\d+)?(\/[A-Za-z0-9._~%-]*)*$/,
+  /^[a-z]{1,16}(-[a-z]{1,16}){0,4}$/,
+  /^(application|text|image|audio|video|multipart)\/[a-z0-9.+-]{1,40}$/,
+  /^\d{4}-\d{2}-\d{2}$/,
+];
+const randomish = (v) => (v.match(/[A-Za-z0-9]{16,}/g) ?? []).some((r) => r.length >= 24 || (/\d/.test(r) && /[A-Za-z]/.test(r)));
+const safe = (v) => v.length <= 80 && !/sk-/i.test(v) && !/[A-Z]/.test(v) && !randomish(v) && SAFE.some((re) => re.test(v));
+
 const codeLike = (t) => /^[A-Za-z_$]+(\.[A-Za-z_$]+)*\(?$/.test(t) || /^(\.{0,2}\/)?[\w@.-]+(\/[\w@.-]+)+\.[a-z]{1,5}$/.test(t);
 
 // Returns the line masked and the name whose value is on the next line.
@@ -109,16 +123,17 @@ function strong(text, pending) {
     const start = q.index + 1, end = start + q[2].length;
     const specifier = /(\bfrom\s*|\bimport\s*\(?\s*|\brequire\s*\(\s*)$/.test(text.slice(0, q.index));
     if ((specifier || ONLY_NAME.test(q[2])) && !/sk-/.test(q[2])) kept.push([start, end]);   // an import specifier or a variable's name
+    else if (safe(q[2])) kept.push([start, end]);                         // a model id, URL, header name, MIME type or date
     else if (q[2].length > 4) spans.push([start, end]);
   }
   for (const k of text.matchAll(KEY)) spans.push([k.index, k.index + k[0].length]);
   let rest = text;                                                       // the text outside the strings, same positions
   for (const [a, b] of [...spans, ...kept]) rest = rest.slice(0, a) + ' '.repeat(b - a) + rest.slice(b);
   for (const t of rest.matchAll(all ? /[^\s"'`,;()[\]{}]{5,}/g : /[A-Za-z0-9_\-+/.$]{12,}/g))
-    if (all || !codeLike(t[0])) spans.push([t.index, t.index + t[0].length]);
+    if (all || !(codeLike(t[0]) || safe(t[0]))) spans.push([t.index, t.index + t[0].length]);
   for (const t of rest.matchAll(/(?<![=!<>:])(?:=|:)\s*([A-Za-z0-9_\-+/=.$]{8,})/g)) {   // a bare value after = or :
     const v = t[1], start = t.index + t[0].length - v.length;
-    if (!REFERENCE.test(v) && !codeLike(v)) spans.push([start, start + v.length]);
+    if (!REFERENCE.test(v) && !codeLike(v) && !safe(v)) spans.push([start, start + v.length]);
   }
   const merged = [];
   for (const sp of spans.sort((x, y) => x[0] - y[0])) {
@@ -128,6 +143,17 @@ function strong(text, pending) {
   let out = text;
   for (const [a, b] of merged.reverse()) out = out.slice(0, a) + mask(text.slice(a, b)) + out.slice(b);
   return { text: out, next: r.next };
+}
+
+// A search line `path:line:text` (a match) or `path-line-text` (a line around it). A path may hold -12- or :3:
+// itself (db/migrations/2024-01-15-seed.sql), so the first split whose path is a real file wins.
+function splitSearch(l) {
+  const cands = [];
+  for (let i = 0; i < l.length; i++) {
+    const m = /^([:-])(\d+)\1/.exec(l.slice(i));
+    if (m && i > 0) cands.push({ path: l.slice(0, i), sep: m[1], n: Number(m[2]), rest: l.slice(i + m[0].length), head: i + m[0].length });
+  }
+  return cands.find((c) => existsSync(c.path)) ?? (cands.length ? { ...cands[0], missing: true } : null);
 }
 
 const line = (where, k) => `${where}  ${k.kind}  ${k.shown}  (${k.length} chars, id ${k.id})  ${k.tag}`;
@@ -141,8 +167,8 @@ if (mode === 'show') {
   let pending = null;
   text.split('\n').forEach((l, i) => {
     // piped search output: a path:line: (or path-line-) prefix is kept only when the path is a real file
-    const p = file ? null : l.match(/^([^\s:]+?)([:-])(\d+)\2/);
-    const keep = p && existsSync(p[1]) && !/sk-/.test(p[1]) ? p[0].length : 0;
+    const p = file ? null : splitSearch(l);
+    const keep = p && !p.missing && !/sk-/.test(p.path) ? p.head : 0;
     const r = strong(l.slice(keep), pending);
     console.log(file ? `${String(i + 1).padStart(6)}\t${r.text}` : l.slice(0, keep) + r.text);
     pending = r.next;
@@ -152,15 +178,18 @@ if (mode === 'show') {
   let commit = '', file = '', pending = null, prev = null;
   for (const l of input) {
     if (mode === 'code') {
-      const m = l.match(/^(.*?)[:-](\d+)[:-](.*)$/);   // a match (path:line:) or the line after it (path-line-)
+      const m = splitSearch(l);
       if (!m) { pending = null; continue; }
-      const here = `${m[1]}:${m[2]}`;
-      const follows = prev && prev.path === m[1] && prev.n + 1 === Number(m[2]);
-      const r = analyze(m[3], follows ? pending : null);
+      const here = `${m.path}:${m.n}`;
+      const follows = prev && prev.path === m.path && prev.n + 1 === m.n;
+      const r = analyze(m.rest, follows ? pending : null);
       r.found.forEach((k) => say(line(here, k)));
-      if (!r.found.length && r.named.length && l.slice(m[1].length + m[2].length + 1)[0] === ':')
-        say(`${here}  ${r.named[0]} named, no value here`);
-      pending = r.next; prev = { path: m[1], n: Number(m[2]) };
+      if (!r.found.length && m.sep === ':') {                 // a line grep matched: it is listed whatever the finder made of it
+        if (r.named.length) say(`${here}  ${r.named[0]} named, no value here`);
+        else if (r.next) say(`${here}  ${r.next.name} named, its value on the next line`);
+        else say(`${here}  key-shaped text`);
+      }
+      pending = r.next; prev = { path: m.path, n: m.n };
       continue;
     }
     if (l.startsWith('commit ')) { commit = l.slice(7).trim(); pending = null; continue; }
