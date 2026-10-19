@@ -76,7 +76,7 @@ Every item has a fixed id. The full list is in the appendix; the reference holds
 - `n/a`: does not apply, with why (the project type, or the feature is absent: no tools ⇒ the tool items are `n/a`).
 - `not checked`: cannot be seen from the code (dashboards exist, data residency, judge calibrated), or outside the branch on a branch scan. Never a guess.
 
-Which sections matter most by type (from the source): Backend all; Mobile G first, then M; Web frontend G (no key in the client bundle, `NEXT_PUBLIC_*` leaks), E6, C4 with Playwright; CLI / worker A, B, E (batches), F.
+Which sections matter most by type (from the source): Backend all, preferring one wrapper that every call goes through (`failures.md` §10); Mobile G first, then M; Web frontend G (no key in the client bundle, `NEXT_PUBLIC_*` leaks), E6, C4 with Playwright; CLI / worker A, B, E (batches), F.
 
 Every `partial` and `missing` item is a finding.
 
@@ -90,12 +90,12 @@ Order: rank first; among equals, by area: security (G, M9–M10), failures (A), 
 
 A key is shown only as its first 4 characters and `…`, everywhere: page, chat, findings file, temp files, and what the session reads. Only one mask, `scan/scripts/mask-keys.mjs`, looks at key-shaped text, in one pipeline for the code and one for history:
 
-- The code: `git grep -nIE --untracked "$KEYS" | <mask> code`, with `KEYS='sk-(ant-|proj-|[A-Za-z0-9]{20})|(ANTHROPIC|OPENAI)_API_KEY'`.
+- The code: `git grep -nIE -A1 --untracked "$KEYS" | <mask> code`, with `KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY'`, and the same with `--no-exclude-standard -- '.env*' '**/.env*'` for the ignored env files.
 - History: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | <mask> history` (on a branch scan `<base>..HEAD`); only the `+` and `-` lines of each diff and the commit ids are kept.
 
-The mask matches `sk-ant-`, `sk-proj-`, legacy `sk-` keys of 20 or more letters and digits, and values assigned to `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`. It tags each match `placeholder` (shorter than 20 characters after the prefix; contains `xxx`, `your`, `example`, `placeholder`, `fake`, `dummy` or `<`; one repeated character; or a reference instead of a value) or `looks real`, and prints it masked to its first 4 characters and `…`, with its length and an id (8 hex characters of a hash, the same in code and history). A file with a match is read only through `<mask> show <path>`, and every other search that prints code lines is piped through `<mask> show`. There is no other way to look: never Read, cat, grep without the mask, or `git show` a line that holds a key.
+The mask matches `sk-ant-`, `sk-proj-`, `sk-svcacct-` and `sk-admin-` keys, any other `sk-` key of 20 or more characters (legacy OpenAI), and the value given to a variable whose name holds `ANTHROPIC` or `OPENAI` and ends in `KEY`: assigned, a `??`/`||` fallback literal, or a JSON value on the next line. It tags each match `looks real`, `placeholder` (shorter than 20 characters after the prefix; contains `xxx`, `your`, `example`, `placeholder`, `fake`, `dummy` or `<`; one repeated character) or `reference` (`$…`, `${{ … }}`, `process.env…`, `os.environ…`), and prints it masked to its first 4 characters and `…`, with its length and an id (8 hex characters of a hash, the same in code and history). A file with a match, and any ignored `.env*` file, is read only through `<mask> show <path>`, which masks every key and every value of 8 or more characters and leaves references; every other search that prints code lines is piped through `<mask> show`. There is no other way to look: never Read, cat, grep without the mask, or `git show` a line that holds a key. A deep scan's subagent gets the keys section word for word and the mask's path, or does no work that touches keys.
 
-A placeholder is not a key. A `looks real` key that ever reached history is leaked: the direction is "rotate it". An `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` variable that holds an AI key is G1 `Critical` whatever the literal next to it is: the build puts the value in the app. The page's `facts` say that the full secret search is `/scan security`.
+A placeholder or a reference is not a key. A `looks real` key that ever reached history is leaked: the direction is "rotate it". An `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` variable, or the `extra` of `app.json` / `app.config.*`, that holds an AI key is G1 `Critical` whatever the literal next to it is: the build puts the value in the app. The page's `facts` say that the full secret search is `/scan security`.
 
 ### 6. The page
 
@@ -219,7 +219,7 @@ Default rank when missing in brackets. `failures.md`, `observability.md` and the
 - C2 Failure-path tests with a mocked API: 429 then success, 400 no retry, refusal, timeout, budget exhausted, tool error [High]
 - C3 Integration tests at the seams: LLM output → parser → DB or tool [Medium]
 - C4 E2E: supertest (backend), Maestro or Detox (mobile), Playwright (web) [Low]
-- C5 Tests never hit the real API by default (MSW set to error on an unhandled request: `onUnhandledFrame` on msw 3, `onUnhandledRequest` on msw 2) [High]
+- C5 Tests never hit the real API by default (MSW set to error on an unhandled request: `onUnhandledFrame` on msw 3, `onUnhandledRequest` on msw 2; started before the SDK client is made: a Vitest `setupFiles` module, or a lazy client) [High]
 
 **D. Evals** (`testing.md` §Evals)
 - D1 A fixed eval set per LLM feature (20–50 cases to start), seeded from real failures [Medium]
@@ -265,6 +265,6 @@ Default rank when missing in brackets. `failures.md`, `observability.md` and the
 - M5 A per-user rate limit on the backend [High]
 - M6 Sentry for React Native, tagged with the backend trace id from a response header [Low]
 - M7 Client metrics: time to first token, total time, error shown to the user [Low]
-- M8 Tests: UI states (loading, streaming, error, refused), mocked network (`@msw/react-native` (msw 3) or `msw/native` (msw 2)), Maestro flows on a mocked backend [Medium]
+- M8 Tests: UI states (loading, streaming, error, refused), mocked network (msw 2 `msw/native` or a mocked `fetch`; msw 3 has no published React Native package yet), Maestro flows on a mocked backend [Medium]
 - M9 Tokens in Keychain or Keystore, not AsyncStorage [High]
 - M10 No prompts or answers in device logs in release builds [Medium]

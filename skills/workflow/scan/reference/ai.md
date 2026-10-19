@@ -74,7 +74,7 @@ The rank in brackets is the default when the item is missing. `Critical` is data
 - C2 Failure-path tests with a mocked API: 429 then success, 400 no retry, refusal, timeout, budget exhausted, tool error [High]
 - C3 Integration tests at the seams: LLM output → parser → DB or tool [Medium]
 - C4 E2E: supertest (backend), Maestro or Detox (mobile), Playwright (web) [Low]
-- C5 Tests never hit the real API by default (MSW set to error on an unhandled request: `onUnhandledFrame` on msw 3, `onUnhandledRequest` on msw 2) [High]
+- C5 Tests never hit the real API by default (MSW set to error on an unhandled request: `onUnhandledFrame` on msw 3, `onUnhandledRequest` on msw 2; started before the SDK client is made: a Vitest `setupFiles` module, or a lazy client) [High]
 
 **D. Evals** (`testing.md` §Evals)
 - D1 A fixed eval set per LLM feature (20–50 cases to start), seeded from real failures [Medium]
@@ -120,11 +120,11 @@ The rank in brackets is the default when the item is missing. `Critical` is data
 - M5 A per-user rate limit on the backend [High]
 - M6 Sentry for React Native, tagged with the backend trace id from a response header [Low]
 - M7 Client metrics: time to first token, total time, error shown to the user [Low]
-- M8 Tests: UI states (loading, streaming, error, refused), mocked network (`@msw/react-native` (msw 3) or `msw/native` (msw 2)), Maestro flows on a mocked backend [Medium]
+- M8 Tests: UI states (loading, streaming, error, refused), mocked network (msw 2 `msw/native` or a mocked `fetch`; msw 3 has no published React Native package yet), Maestro flows on a mocked backend [Medium]
 - M9 Tokens in Keychain or Keystore, not AsyncStorage [High]
 - M10 No prompts or answers in device logs in release builds [Medium]
 
-What matters most by type: Backend: every section; most fixes land here. Mobile: G first (a key in the app is `Critical`), then M. Web frontend: G (no key in the client bundle, `NEXT_PUBLIC_*` leaks), E6, and C4 with Playwright. CLI / worker: A, B, E (batches above all), F. Items that do not fit the type are `n/a`.
+What matters most by type: Backend: every section; most fixes land here; prefer one wrapper that every call goes through (`failures.md` §10). Mobile: G first (a key in the app is `Critical`), then M. Web frontend: G (no key in the client bundle, `NEXT_PUBLIC_*` leaks), E6, and C4 with Playwright. CLI / worker: A, B, E (batches above all), F. Items that do not fit the type are `n/a`.
 
 ## 4. The findings
 
@@ -138,15 +138,17 @@ Nothing extra: a router (E3), the batches API (E5) and several agents (F1) are f
 
 ## 5. Keys
 
-A key is shown only as its first 4 characters and `…`, with its kind ("Anthropic key"), everywhere: the chat, the page, the findings file, the temp files, and what this session reads. Only the mask looks at key-shaped text. With `KEYS='sk-(ant-|proj-|[A-Za-z0-9]{20})|(ANTHROPIC|OPENAI)_API_KEY'` and `<mask>` = `node "<skills folder>/scan/scripts/mask-keys.mjs"` (the skills folder as scan/SKILL.md defines it):
+A key is shown only as its first 4 characters and `…`, with its kind ("Anthropic key"), everywhere: the chat, the page, the findings file, the temp files, and what this session reads. Only the mask looks at key-shaped text. With `KEYS='sk-(ant-|proj-|svcacct-|admin-|[A-Za-z0-9_-]{20})|(ANTHROPIC|OPENAI)[A-Z0-9_]*KEY'` and `<mask>` = `node "<skills folder>/scan/scripts/mask-keys.mjs"` (the skills folder as scan/SKILL.md defines it):
 
-- The code: `git grep -nIE --untracked "$KEYS" | <mask> code` (on a branch scan, add `-- <the branch files>`). Each match (`sk-ant-`, `sk-proj-`, a legacy `sk-` key of 20 or more letters and digits, a value assigned to `ANTHROPIC_API_KEY` or `OPENAI_API_KEY`) comes out as `path:line`, kind, the first 4 characters and `…`, its length, an id (the same key has the same id in the code and in history) and a tag: `placeholder` (shorter than 20 characters after the prefix; contains `xxx`, `your`, `example`, `placeholder`, `fake`, `dummy` or `<`; one repeated character; or a reference such as `${{ secrets.… }}` instead of a value) or `looks real`. A line that only reads the variable says "named, no value here".
+- The code: `git grep -nIE -A1 --untracked "$KEYS" | <mask> code` (on a branch scan, add `-- <the branch files>`), and the ignored env files: `git grep -nIE -A1 --untracked --no-exclude-standard "$KEYS" -- '.env*' '**/.env*' | <mask> code`. Each match (an `sk-ant-`, `sk-proj-`, `sk-svcacct-` or `sk-admin-` key, any other `sk-` key of 20 or more characters, and the value given to a variable whose name holds `ANTHROPIC` or `OPENAI` and ends in `KEY`: assigned, a `??` or `||` fallback literal, or a JSON value on the next line) comes out as `path:line`, kind, the first 4 characters and `…`, its length, an id (the same key has the same id in the code and in history) and a tag: `looks real`, `placeholder` (shorter than 20 characters after the prefix; contains `xxx`, `your`, `example`, `placeholder`, `fake`, `dummy` or `<`; one repeated character) or `reference` (`$…`, `${{ … }}`, `process.env…`, `os.environ…`: it points elsewhere). A line that only reads the variable says "named, no value here".
 - History: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | <mask> history` (on a branch scan, `<base>..HEAD` instead of `--all`). The same mask over the `+` and `-` lines of each diff only: commit id, date, file, `added` or `removed`, and the match as above.
-- A file the code pipeline lists with a match (anything but "named, no value here") is read only as `<mask> show <path>` (the file, numbered, keys masked). Every other search that prints lines of the code is piped through `<mask> show` too.
+- A file the code pipeline lists with a match (anything but "named, no value here") is read only as `<mask> show <path>` (the file, numbered, every key and every value of 8 or more characters masked; references stay). Ignored `.env*` files are read only through `<mask> show`. Every other search that prints lines of the code is piped through `<mask> show` too.
 
-There is no other way to look: never Read, cat, grep without the mask, or `git show` a line that holds a key, and never print a diff or a history line of one without the mask. A `placeholder` is not a key: mention it only next to a `looks real` value.
+There is no other way to look: never Read, cat, grep without the mask, or `git show` a line that holds a key, and never print a diff or a history line of one without the mask. A `placeholder` or a `reference` is not a key: mention it only next to a `looks real` value.
 
-A `looks real` key that ever reached history is leaked: G2 is `Critical` and the direction is "rotate the key; deleting it from history is not enough". A key in client code is G1, `Critical`: an `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` variable that holds an AI key (the build puts its value in the app, whatever the literal next to it is), or a `looks real` literal in app code.
+Subagents: a deep scan's subagent gets this section word for word and the mask's path in its prompt; otherwise it does no work that touches keys, and the key pipelines run here.
+
+A `looks real` key that ever reached history is leaked: G2 is `Critical` and the direction is "rotate the key; deleting it from history is not enough". A key in client code is G1, `Critical`: an `EXPO_PUBLIC_*`, `NEXT_PUBLIC_*` or `react-native-config` variable that holds an AI key, or an AI key in the `extra` of `app.json` or `app.config.*` (the build puts its value in the app, whatever the literal next to it is), or a `looks real` literal in app code.
 
 `facts` say: "The full search for secrets is `/scan security`."
 
