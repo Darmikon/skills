@@ -112,11 +112,11 @@ It follows `fix/SKILL.md` step 1 (the findings) like every fix.
 
 ### The rule
 
-A finding is **direct** when all three hold: the change touches at most two files, it needs no new package, and the code around it gets the same thing as before (same return type, same errors). Otherwise it is **discuss**. The rule wins over the lists below.
+A finding is **direct** when all three hold: the change touches at most two files, it needs no new package, and the code around it gets the same thing as before (same return type, same errors). Otherwise it is **discuss**. The rule wins over the lists below. One exception: E2 stays direct however many files hold the literal, as long as the other two clauses hold (no new package, callers get the same values).
 
-Usually direct: E2 (model ids into one config), E7 (`max_tokens` per call), A7 (tool failure as `is_error` result), A4 when the fix is one setting (`maxRetries: 0`), A8 (`Promise.all` → `Promise.allSettled`; a concurrency limit that needs `p-limit` is discuss), A9 (act on tool calls after the stream ends, in one function), E4 (move dynamic text after the cache breakpoint, add `cache_control`), G8 (a `permissions.deny` list in `.claude/settings.json`).
+Usually direct: E2 (model ids into one config, in however many files), E7 (`max_tokens` per call), A7 (tool failure as `is_error` result), A4 when the fix is one setting (`maxRetries: 0`), A9 (act on tool calls after the stream ends, in one function), E4 (move dynamic text after the cache breakpoint, add `cache_control`), G8 (a `permissions.deny` list in `.claude/settings.json`).
 
-Usually discuss: the retry layer (A1–A3, A5), refusal handling (A6: callers get a new error), all of B, C and D, E1, E3, E5, E6, E8, F, G1 (move the call to a backend), G3–G7, G9–G12, M.
+Usually discuss: the retry layer (A1–A3, A5), refusal handling (A6: callers get a new error), A8 (`Promise.all` → `Promise.allSettled` changes what callers get; direct only when the result never leaves the function, which already returns the same shape and errors; a concurrency limit that needs `p-limit` is always discuss), G2 (a key in history or in code: rotating and moving it is a design talk), all of B, C and D, E1, E3, E5, E6, E8, F, G1 (move the call to a backend), G3–G7, G9–G12, M.
 
 ### The plan
 
@@ -125,13 +125,13 @@ The shared plan, in two numbered groups, one numbering across both:
 - **I fix these:** one line per change, as in `fix/SKILL.md` step 2.
 - **We discuss these:** one line per finding (title, rank).
 
-End: "Do I go ahead with the first group? Answer yes, or yes except some numbers. Which of the second group do we design a fix for?"
+A group that is empty is left out of the plan and the question. End: "Do I go ahead with the first group? Answer yes, or yes except some numbers. Which of the second group do we design a fix for?"
 
 ### The work
 
 The first group: `fix/SKILL.md` steps 3 to 5, using the matching file in `fix/reference/ai/` adapted to the project's names, paths and framework. Before writing code, check the library version in the project against current docs (Context7 or the vendor's docs). Python: the same fix, written in Python from the library's docs; the examples are TypeScript.
 
-The second group: hand over as `fix/reference/handoff.md` says, adding to the topic the paths of the `fix/reference/ai/` files that cover each finding and the instruction to check package versions against current docs.
+The second group: hand over as `fix/reference/handoff.md` says (`brainstorming` when it is available, otherwise the plan made in `fix`; the message with the hand-over starts with the report of the first group and names the skill; if the user declined the first group, the report says so and the hand-over still goes ahead), adding to the topic the paths (`<skills folder>/fix/reference/ai/<file>`) of the `fix/reference/ai/` files that cover each finding and the instruction to check package versions against current docs.
 
 A leaked key: the report always says "Rotate the key; removing it from history is not enough", whatever was approved.
 

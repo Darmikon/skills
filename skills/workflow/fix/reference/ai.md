@@ -6,20 +6,19 @@ Step 1 (the findings) in [../SKILL.md](../SKILL.md) applies; steps 2 to 5 apply 
 
 ## 1. Two groups
 
-A finding is **direct** when all three hold: the change touches at most two files, it needs no new package, and the code around it gets the same thing as before (the same return type, the same errors). Otherwise it is **discuss**. This rule wins over the lists below, with one exception: replacing the same literal by the same import in many files is one mechanical change, however many files it touches (E2).
+A finding is **direct** when all three hold: the change touches at most two files, it needs no new package, and the code around it gets the same thing as before (the same return type, the same errors). Otherwise it is **discuss**. This rule wins over the lists below. One exception: E2 stays direct however many files hold the literal, as long as the other two clauses hold (no new package, callers get the same values).
 
 Usually direct:
 
-- E2: model ids into one config (`llm/models.ts`, `failures.md` §8), the literals replaced by it in every file, however many; this is direct.
+- E2: model ids into one config (`llm/models.ts`, `failures.md` §8), the literals replaced by it.
 - E7: `max_tokens` chosen per call for what the call returns.
 - A7: a tool failure returned as a `tool_result` with `is_error: true` and the error text (`failures.md` §3).
 - A4, when the fix is one setting: `maxRetries: 0` on the client under an own loop, or the own loop removed when only the SDK should retry (`failures.md` §2).
-- A8: `Promise.all` over model calls becomes `Promise.allSettled` with the failures kept (`failures.md` §4, §9). A concurrency limit that needs `p-limit` is discuss.
 - A9: tool calls acted on only after the stream ends, in one function (`failures.md` §5).
 - E4: dynamic text moved after the cache breakpoint, `cache_control` on the stable prefix (`failures.md` §6).
 - G8: a `permissions.deny` list for secret files in `.claude/settings.json` (`security.md` §5).
 
-Usually discuss: the retry layer (A1–A3, A5), refusal handling (A6: callers get a new error), all of B, C and D, E1, E3, E5, E6, E8, F, G1 (the call moves to a backend), G3–G7, G9–G12, M.
+Usually discuss: the retry layer (A1–A3, A5), refusal handling (A6: callers get a new error), A8 (`Promise.all` → `Promise.allSettled` changes what callers get; direct only when the result never leaves the function, which already returns the same shape and errors; see `failures.md` §4, §9; a concurrency limit that needs `p-limit` is always discuss), G2 (a key in history or in code: rotating and moving it is a design talk), all of B, C and D, E1, E3, E5, E6, E8, F, G1 (the call moves to a backend), G3–G7, G9–G12, M.
 
 ## 2. The plan
 
@@ -28,7 +27,7 @@ The plan of ../SKILL.md step 2, in two numbered groups with one numbering across
 - **I fix these:** one line per change: the file and line, what changes, the finding's id.
 - **We discuss these:** one line per finding: title, rank, id.
 
-End with: "Do I go ahead with the first group? Answer yes, or yes except some numbers. Which of the second group do we design a fix for? Numbers, all, or none."
+If a group is empty, leave it out of the plan and out of the question. End with: "Do I go ahead with the first group? Answer yes, or yes except some numbers. Which of the second group do we design a fix for? Numbers, all, or none."
 
 ## 3. The first group
 
@@ -36,7 +35,7 @@ Steps 3 to 5 of ../SKILL.md. Write each fix from the matching file in `reference
 
 ## 4. The second group
 
-For the findings chosen from it, do [handoff.md](handoff.md) section 2 "Hand over" (its section 1 is replaced by the answer to the plan): the `brainstorming` skill gets them, and the message that carries its first question opens with one line naming the skill as `brainstorming` (the name is not translated) and the findings it takes, then the report of the first group (section 5), then the question. Add to the topic, per finding, the `reference/ai/` files and sections that cover it (from the table below, as absolute paths), and the line "Check every package version against its current docs before writing code."
+For the findings chosen from it, do [handoff.md](handoff.md) section 2 "Hand over" (its section 1 is replaced by the answer to the plan): when `brainstorming` is available, it gets them; otherwise the plan made here, as handoff.md says, is the hand-over. The last message you write in the turn, whether it holds the skill's first question or the plan, starts with the report of the first group (section 5) and then says the findings went to `brainstorming` (the name is not translated) or, without the skill, that they went to the plan below. If the user declined the first group, the report says so, and the hand-over still goes ahead. Add to the topic, per finding, the `reference/ai/` files and sections that cover it (from the table below, as paths `<skills folder>/fix/reference/ai/<file>`, with `<skills folder>` as ../SKILL.md defines it), and the line "Check every package version against its current docs before writing code."
 
 | Ids | Example code |
 |---|---|
