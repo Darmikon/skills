@@ -137,7 +137,7 @@ A group that is empty is left out of the plan and the question. End: "Do I go ah
 
 ### The work
 
-The first group: `fix/SKILL.md` steps 3 to 5, using the matching file in `fix/reference/ai/` adapted to the project's names, paths and framework. Before writing code, check the library version in the project against current docs (Context7 or the vendor's docs). Python: the same fix, written in Python from the library's docs; the examples are TypeScript.
+The first group: `fix/SKILL.md` steps 3 to 5, using the matching file in `fix/reference/ai/` adapted to the project's names, paths and framework. Before writing code, check the library version in the project against current docs (Context7 or the vendor's docs). Python: the same fix, written in Python from the library's docs; the examples are TypeScript. One area at a time, the smallest diff first, the project's checks run after each area (from the source); the shared before and after checks still apply.
 
 The second group: hand over as `fix/reference/handoff.md` says (`brainstorming` when it is available, otherwise the plan made in `fix`; the message with the hand-over starts with the report of the first group and names the skill; if the user declined the first group, the report says so and the hand-over still goes ahead), adding to the topic the paths (`<skills folder>/fix/reference/ai/<file>`) of the `fix/reference/ai/` files that cover each finding and the instruction to check package versions against current docs.
 
@@ -157,13 +157,24 @@ Nothing extra: a router, the batches API or multi-agent orchestration is propose
 6. The `ai` package is matched by name, not by a word search.
 7. Keys are never shown in full.
 8. The full secret search is left to `/scan security`, the plain test gaps to `/scan tests`; `scan ai` checks only what is specific to AI code.
-9. Example bugs fixed:
+9. Example bugs fixed and examples changed:
    - `security.md`: the tool guard uses `os.homedir()` without importing `os`.
    - `backend-ts.md` §3 calls `dispatchTool(name, input)`, `security.md` defines `dispatchTool(name, input, ctx)`: one signature, the context passed through `runTool`.
-   - `backend-ts.md` §10: `LlmService` reads `this.config` in a field initializer, which runs before the constructor's parameter properties are set under `useDefineForClassFields` (the default for modern targets): create the client in the constructor.
-   - The retriable list: compare with what the current `@anthropic-ai/sdk` retries (408, 409, 429, 5xx at the time of writing) and match it.
-   - Missing imports (`Anthropic` types) and undefined helpers in `mobile.md` (`fetchWithTimeout`, `TemporaryError`, `RefusedError`): imported or defined.
-   - Package and API names (Langfuse, Better Stack, Sentry, OpenTelemetry, promptfoo, Helicone) checked against current docs once at port time; the "check current docs" notes stay.
+   - `backend-ts.md` §10: `LlmService` reads `this.config` in a field initializer, which runs before the constructor's parameter properties are set under `useDefineForClassFields` (the default for modern targets): create the client in the constructor. The module also provides the `LlmTelemetry` it injects, and `onRetry` passes what `recordRetry` takes.
+   - The retriable list: compare with what the current `@anthropic-ai/sdk` retries (408, 409, 429, 5xx at the time of writing) and match it; `isRetriable` obeys `x-should-retry` first, as the SDK does, and classifies a mid-stream `event: error` (no HTTP status) by its type.
+   - `callWithRetry` gets `maxWaitMs`: a `retry-after` longer than that stops the loop instead of sleeping.
+   - The client's `timeout: 60_000` is dropped: a timeout shorter than the answer turns every long call into retries; the SDK default (10 minutes) stays and long answers stream.
+   - Streaming (§5): a broken stream becomes `StreamBroken` and the whole request is retried; an error in the UI callback is not a broken stream; `onRetry` lets the UI reset its partial text.
+   - Multi-agent (§9): the token budget is checked before each worker starts, not after all have finished, and workers start through `pLimit(3)` so the budget can stop the rest.
+   - Tool guard: `Object.hasOwn` for the allow-list and the guards (no `toString` tool); the refund guard refuses a missing, non-number, zero or negative amount before the $100 rule.
+   - Claude Code settings: `MultiEdit` dropped from the hook matcher (the Claude Code docs call it a legacy tool and its tools reference no longer lists it); the sandbox wording says what it covers (`sandbox.enabled`, writes and network limited, reads open unless `denyRead`, shell only); a note that Bash calls carry no `file_path`.
+   - `mobile.md`: missing helpers defined (`fetchWithTimeout` with its own `TimeoutError`, `TemporaryError`, `RefusedError`); a `retry-after` that is an HTTP-date falls back to 2 s; React Native mocking is msw 2 `msw/native` or a mocked `fetch` (msw 3 has no published RN package); keys are found through the scan's mask.
+   - `testing.md`: msw 3's `onUnhandledFrame` (with the msw 2 name beside it), MSW started in a `setupFiles` module before the client exists, 408 and 409 in the retriable cases, the `llm.create(/*...*/)` stubs written out, Maestro's `extendedWaitUntil` for a wait longer than 7 s, and promptfoo's own `PROMPTFOO_PASS_RATE_THRESHOLD` instead of an undefined `scripts/check-eval.js`.
+   - `observability.md`: `metricReaders` (the single `metricReader` is deprecated), `LOG_PROMPTS` defined, `Anthropic` types imported.
+   - `security.md`: history scanned through the mask or `gitleaks git --redact`, never `git log -p -S` that prints the key.
+   - `max_tokens` comments mark E7 in §6 and §7.
+   - Package and API names (Langfuse, Better Stack, Sentry, OpenTelemetry, promptfoo, Helicone, msw, Maestro, gitleaks) checked against current docs at port time; the "check current docs" notes stay.
+   - Checklist items the source's checklist did not have, taken from its reference files: what the SDK retries and unknown ⇒ terminal (A1), bounded concurrency (A8), partial UI text reset on retry (A9), the wrapper and a meaningful step name (B2), the request id from the HTTP layer (B3), refusals counted, not paged (B5), sizes and hashes instead of prompts (B6), the trace id returned to clients in `x-trace-id` (B7), one tracer provider (B11), the tool error case (C2), MSW set to error (C5), tool and temperature changes gated (D4), injection cases (D5), validated at boot and rotate when found (G2), deny over ask over allow (G4), protected agent config (G6), redacted arguments (G7), managed settings (G8), G10–G12, and the M list from `mobile.md`.
 10. Python: the checklist applies; fixes are written from the library's docs.
 
 ## Tests

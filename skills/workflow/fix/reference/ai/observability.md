@@ -211,6 +211,8 @@ Serverless/cron: `await langfuseSpanProcessor.forceFlush()` before the handler r
 import { startActiveObservation } from '@langfuse/tracing';
 import type Anthropic from '@anthropic-ai/sdk';
 
+const LOG_PROMPTS = process.env.LOG_PROMPTS === 'true';   // prompts and answers only where the data policy allows
+
 export function tracedGeneration(step: string, model: string, input: unknown, call: () => Promise<Anthropic.Message>) {
   return startActiveObservation(step, async (gen) => {
     gen.update({ model, input: LOG_PROMPTS ? input : '[redacted]' });

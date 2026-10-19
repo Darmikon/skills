@@ -31,10 +31,26 @@ it('routes classify to cheap model', () => expect(pickModel('classify', 'hi')).t
 ```
 
 ## Failure-path with MSW
+
+MSW starts in a Vitest `setupFiles` module, at its top level, not in a `beforeAll`: under msw 3 an SDK client made at import time (`export const anthropic = new Anthropic(…)`, failures.md §2) keeps the `fetch` it found then, and a `beforeAll` in the test file comes after that import, so its calls reach the real API. The other way out is a client created lazily, on first use.
+
 ```ts
-// llm (LlmService), firstText, runTool, ModelRefused, RetryBudgetExhausted: llm/ (failures.md); beforeAll/it/expect: vitest globals
+// test/msw.ts — in vitest.config.ts: test: { setupFiles: ['./test/msw.ts'] }; runs before each test file's imports
+import { afterAll, afterEach } from 'vitest';
 import { setupServer } from 'msw/node';
+
+export const server = setupServer();
+// No accidental real calls. Check the installed major first: msw 3 renamed the option, and the old name is silently ignored there.
+server.listen({ onUnhandledFrame: 'error' });           // msw 3
+// server.listen({ onUnhandledRequest: 'error' });      // msw 2
+afterEach(() => server.resetHandlers());
+afterAll(() => server.close());
+```
+
+```ts
+// llm (LlmService), firstText, runTool, ModelRefused, RetryBudgetExhausted: llm/ (failures.md); it/expect: vitest globals
 import { http, HttpResponse } from 'msw';                 // msw 3 also has them at 'msw/http'
+import { server } from './msw';
 
 const URL = 'https://api.anthropic.com/v1/messages';
 const ok = (text = 'hi', stop_reason = 'end_turn') => HttpResponse.json({
@@ -46,13 +62,6 @@ const rateLimited = () => HttpResponse.json(
   { type: 'error', error: { type: 'rate_limit_error', message: 'slow down' } },
   { status: 429, headers: { 'retry-after': '0' } },
 );
-
-const server = setupServer();
-// No accidental real calls. Check the installed major first: msw 3 renamed the option, and the old name is silently ignored there.
-beforeAll(() => server.listen({ onUnhandledFrame: 'error' }));      // msw 3
-// beforeAll(() => server.listen({ onUnhandledRequest: 'error' })); // msw 2
-afterEach(() => server.resetHandlers());
-afterAll(() => server.close());
 
 it('429 then success → retries and succeeds', async () => {
   let n = 0;
@@ -118,8 +127,8 @@ appId: com.example.app
 - tapOn: "Support"
 - inputText: "Where is my order?"
 - tapOn: "Send"
-- assertVisible:
-    text: ".*order.*"
+- extendedWaitUntil:                  # assertVisible waits only about 7 s and takes no timeout
+    visible: ".*order.*"
     timeout: 15000
 ```
 Point the app at a backend that uses MSW/mock LLM for deterministic runs.
@@ -163,8 +172,7 @@ tests:
 
 CI gate:
 ```bash
-npx promptfoo eval -c promptfooconfig.yaml -o results.json
-node scripts/check-eval.js results.json --min-pass-rate 0.9   # fail build below pinned baseline
+PROMPTFOO_PASS_RATE_THRESHOLD=90 npx promptfoo eval -c promptfooconfig.yaml -o results.json   # exits 100 below 90 %: the pinned baseline
 ```
 Run on any change to prompts, tools, model IDs, or temperature. A cost cut (cheaper model) ships only if it stays above the baseline.
 

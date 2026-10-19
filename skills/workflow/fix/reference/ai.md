@@ -33,6 +33,8 @@ A key appears in the plan only as its first 4 characters and `…`, never more. 
 
 Steps 3 to 5 of ../SKILL.md. Write each fix from the matching file in `reference/ai/`, adapted to the project's names, paths and framework. Before writing code, check the version of the library in the project against its current docs (Context7 or the vendor's docs); the examples were written for `@anthropic-ai/sdk` 0.135. Python: the same fix in Python, written from the library's docs; the examples are TypeScript.
 
+Work one area at a time (A, E, G, …), the smallest diff first, and run the project's checks after each area, so a broken check points at one area; the before and after checks of ../SKILL.md step 4 still apply.
+
 A file that holds a key (a place of a G1 or G2 finding, or a file the scan's code pipeline lists with a match) is read only through `node "<skills folder>/scan/scripts/mask-keys.mjs" show <path>` (the scan's mask, section 5 of its `ai` reference); change it with a command that does not print the key's line, and leave that line as it is (moving a key is G1 or G2, a discuss finding).
 
 Nothing extra: a router, the batches API or multi-agent orchestration is proposed only when a finding shows the need.

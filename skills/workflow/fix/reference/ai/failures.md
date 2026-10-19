@@ -22,7 +22,7 @@ Adapt names/paths to the repo. All snippets assume `@anthropic-ai/sdk`. Model ID
 // llm/errors.ts
 import { APIError, APIConnectionError } from '@anthropic-ai/sdk';
 
-// What @anthropic-ai/sdk itself retries: 408, 409, 429 and every 5xx (529 = overloaded); it also obeys an `x-should-retry` header from the API, which wins over the status.
+// What @anthropic-ai/sdk itself retries: 408, 409, 429 and every 5xx (529 = overloaded); an `x-should-retry` header from the API wins over the status.
 export const RETRIABLE = new Set([408, 409, 429, 500, 502, 503, 504, 529]);
 export const TERMINAL = new Set([400, 401, 403, 404]);
 
@@ -36,9 +36,19 @@ export class StreamBroken extends Error {             // a stream that died mid-
   constructor(public streamError: unknown) { super('Stream broke mid-response'); }
 }
 
+function header(e: APIError, name: string): string | null {
+  const h = e.headers as any;
+  return (typeof h?.get === 'function' ? h.get(name) : h?.[name]) ?? null;
+}
+
 export function isRetriable(e: unknown): boolean {
   if (e instanceof StreamBroken) return true;
   if (e instanceof APIConnectionError) return true;   // check BEFORE APIError (it extends it, status undefined)
+  if (e instanceof APIError) {                        // the API's own say comes first, as in the SDK
+    const should = header(e, 'x-should-retry');
+    if (should === 'true') return true;
+    if (should === 'false') return false;
+  }
   // A mid-stream `event: error` is an APIError with no HTTP status; its type says whether a retry can help.
   // (APIUserAbortError also has no status and type null, so a user's cancel is not retried.)
   if (e instanceof APIError && e.status === undefined) return e.type === 'overloaded_error' || e.type === 'api_error' || e.type === 'timeout_error';
@@ -48,8 +58,7 @@ export function isRetriable(e: unknown): boolean {
 
 export function retryAfterMs(e: unknown): number | null {
   if (!(e instanceof APIError)) return null;
-  const h = e.headers as any;
-  const raw = typeof h?.get === 'function' ? h.get('retry-after') : h?.['retry-after'];
+  const raw = header(e, 'retry-after');
   const sec = Number(raw);
   return raw && !Number.isNaN(sec) ? sec * 1000 : null;
 }
@@ -97,6 +106,7 @@ Client must not retry on top of this:
 ```ts
 export const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY, maxRetries: 0 });
 ```
+Tests with msw 3: a client made at import time keeps the `fetch` it found then, so MSW must start before this module loads (`testing.md`, failure-path tests).
 Keep the SDK's timeout (10 minutes by default; for a call that is not streamed it also refuses a `max_tokens` too large to finish in that time). A timeout shorter than the answer turns every long call into retries; stream long answers instead.
 Alternative: keep SDK retries (`maxRetries: 2`) and write NO own loop — only app-level fallbacks. Never both.
 

@@ -72,7 +72,7 @@ Rules to check:
 ## 4. Secrets
 - Only from env / secret manager (AWS Secrets Manager, GCP Secret Manager, Vault, Doppler). Validate at boot (`ConfigService.getOrThrow`).
 - Never in repo, never in client bundles (`NEXT_PUBLIC_*`, `EXPO_PUBLIC_*`, RN `.env` via `react-native-config` = shipped to users).
-- Scan history: `git log -p -S 'sk-ant-' --all`, or `gitleaks detect`. Found ⇒ **rotate**, deleting the commit isn't enough.
+- Scan history without printing a key: `git log --all -p -G "$KEYS" --format='commit %h %ad' --date=short | node "<skills folder>/scan/scripts/mask-keys.mjs" history` (`KEYS` and the mask as the scan's `ai` reference §5 gives them), or `gitleaks git --redact` (`gitleaks detect --redact` before gitleaks 8.19). Found ⇒ **rotate**, deleting the commit isn't enough.
 - Add `gitleaks`/`trufflehog` to pre-commit or CI.
 
 ## 5. Claude Code projects (`.claude/settings.json`)
