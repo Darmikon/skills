@@ -185,6 +185,11 @@ no_key() { ! grep -qE 'sk-an|FAKEFAKE' "$LOG" "$@"; }
 # The same for a whole transcript, which also holds the skills' own text: there the prefix alone may
 # appear (the skills name it); the key itself (sk-ant- and a letter or digit) or its body may not.
 no_key_read() { ! grep -qE 'sk-ant-[A-Za-z0-9]|FAKEFAKE' "$@"; }
+# The plan /fix ai showed (its answer, before the next prompt) has both groups, in English or Russian.
+plan_has_groups() {
+  awk '/^>>> -c \/fix ai/{f=1; next} /^>>> /{f=0} f' "$LOG" > "$LOG.plan"
+  grep -qiE "I fix these|(Я )?(исправлю|исправляю)( сам)?( это| эти)?" "$LOG.plan" && grep -qiE "We discuss these|(Обсуждаем|Обсудим|обсуждаем|обсудим)" "$LOG.plan"
+}
 # The findings file and its page exist, and they and the log are clean.
 no_key_in_page() { test -s "$1" && test -s "${1%.json}.html" && no_key "$1" "${1%.json}.html"; }
 
@@ -488,7 +493,7 @@ case_scan_ai() {
   check "the table has all 63 ids" has_all_ids "$f"
   check "finds the catch-all retry (A3 on support.ts)" has_finding "$f" A3 src/llm/support.ts
   check "finds the empty tool result (A7 on tools.ts)" has_finding "$f" A7 src/llm/tools.ts
-  check "finds Promise.all" says "Promise\\.all"
+  check "finds the Promise.all fan-out (A8 on batch.ts)" has_finding "$f" A8 src/llm/batch.ts
   check "finds the key in the app" says "mobile/src/api/claude\\.ts"
   check "the app's key is a Critical G1" has_finding "$f" G1 mobile/src/api/claude.ts Critical
   check "never shows the key beyond its first characters (log, findings file, page)" no_key_in_page "$f"
@@ -515,6 +520,7 @@ case_fix_ai() {
   ask "/scan ai deep"
   ask -c "/fix ai deep"
   check "shows a plan and waits (nothing changed yet)" clean
+  check "the plan has both groups (I fix these, we discuss these)" plan_has_groups
   ask -c "да, первую группу делай. Из второй обсуждаем первую находку."
   check "model ids in one place" bash -c "[ \$(grep -rl 'claude-sonnet-5-5' '$P/src' | wc -l) -le 1 ]"
   check "tool errors go back as is_error" grep -q "is_error" "$P/src/llm/tools.ts"
