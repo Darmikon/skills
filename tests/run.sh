@@ -425,7 +425,7 @@ case_scan_ai() {
   check "finds the empty tool result" says "(is_error|tools\\.ts)"
   check "finds Promise.all" says "Promise\\.all"
   check "finds the key in the app" says "mobile/src/api/claude\\.ts"
-  check "never shows the key in full" bash -c "! grep -q 'api03-FAKE' '$LOG' && ! grep -q 'api03-FAKE' '$f' && ! grep -q 'api03-FAKE' '${f%.json}.html'"
+  check "never shows the key beyond its first characters" bash -c "test -s '$f' && test -s '${f%.json}.html' && ! grep -qE 'sk-ant-[A-Za-z0-9]' '$LOG' '$f' '${f%.json}.html'"
   check "draws a page" says "scan-ai-[0-9-]+\\.html"
   check "changes nothing" clean
 }
@@ -433,7 +433,7 @@ case_scan_ai() {
 case_scan_ai_none() {
   fresh scan_ai_none
   ask "/scan llm deep"
-  check "says there are no AI calls" says "(no|not|нет|не на).{0,60}(AI|ИИ|LLM|model|модел)|(AI|ИИ|LLM).{0,60}(none|not found|нет|не найден)"
+  check "says there are no AI calls" says "\\bno\\b.{0,30}\\b(calls?|usage)\\b.{0,30}\\b(AI|LLM|models?)\\b|\\bno\\b.{0,30}\\b(AI|LLM|model)\\b.{0,20}\\b(calls?|usage|found)\\b|\\b(AI|LLM) calls?\\b.{0,30}\\b(none|not found)\\b|(вызов|обращени|использован)[а-я]*.{0,60}(ИИ|LLM|модел).{0,60}(^|[^[:alpha:]])(нет|не найден)|(^|[^[:alpha:]])(нет|не найден[а-я]*)([^[:alpha:]]|$).{0,40}(вызов|обращени)[а-я]*.{0,40}(ИИ|LLM|модел)"
   check "draws no page" bash -c "! grep -qE 'scan-ai-[0-9-]+\\.html' '$LOG'"
   check "changes nothing" clean
 }
