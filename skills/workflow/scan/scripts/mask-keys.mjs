@@ -18,6 +18,11 @@ const BEFORE = String.raw`^|[^A-Za-z0-9]|\\[ntr]|%[0-9A-Fa-f]{2}|\\x[0-9A-Fa-f]{
 // sk-ant-, sk-proj-, sk-svcacct-, sk-admin- wherever they stand, and any other sk- key of 20 or more characters
 // (legacy OpenAI keys; after a letter or digit that is not an escape it is part of a longer word: task-…)
 const KEY = new RegExp(`sk-(ant|proj|svcacct|admin)-[A-Za-z0-9_-]*|(?<=${BEFORE})sk-[A-Za-z0-9_-]{20,}`, 'g');
+// A named prefix glued to a word (kiosk-admin-…, flask-ant-…) is a key only when its body looks like one: 40 or more
+// characters with a capital and a digit (real keys are about 95 to 160). Otherwise the line is key-shaped text.
+const GLUED = new RegExp(`(${BEFORE})$`);
+const keyLike = (k, text) => !k[1] || GLUED.test(text.slice(0, k.index)) ||
+  (k[0].length - k[1].length - 4 >= 40 && /[A-Z]/.test(k[0]) && /[0-9]/.test(k[0].slice(k[1].length + 4)));
 // a short piece of a key: "sk-", "sk-a", "sk-an" … (the rest put together elsewhere)
 const PIECE = new RegExp(`(?<=${BEFORE})sk-[A-Za-z0-9_-]{0,19}(?![A-Za-z0-9_-])`, 'g');
 // The search's own sk- pattern: a line it matches that the finder cannot place is still hidden.
@@ -28,8 +33,15 @@ const NAME = /(?<![A-Za-z0-9_-])([A-Za-z0-9_-]*?(?:anthropic|openai)[A-Za-z0-9_-
 const ONLY_NAME = /^[A-Za-z0-9_-]*?(?:anthropic|openai)[A-Za-z0-9_-]*?key$/i;
 // A string literal, or one left open at the end of the line (it goes on below).
 const QUOTED = /(["'`])((?:\\.|(?!\1)[^\\])*)(\1|$)/g;
-// A value that only points somewhere else: a variable reference, or code that fetches it (a call, await, new, this.…).
+// A value that only points somewhere else: a variable reference, or code that fetches it (a call, await, new, this.…),
+// or a property or index of a variable (cfg.openaiKey, settings.OPENAI_KEY, env["…"]: cut at the next name, cfg. or env[).
 const REFERENCE = /^(\$|process\.env|os\.environ|os\.getenv|import\.meta\.env|(await|new|this)\b|[A-Za-z_$][\w$.]*\()/;
+const MEMBER = /^[A-Za-z_$][\w$]*((\?\.|\.)[A-Za-z_$][\w$]*)*(\?\.|\.|\[|!)+$|^[A-Za-z_$][\w$]*((\?\.|\.)[A-Za-z_$][\w$]*)+!?$/;
+// ...unless a part of it looks like a secret (16 or more characters with letters and digits: abc.0123…, a JWT)
+const SECRETISH = /^(?=.*\d)(?=.*[A-Za-z])[\w$-]{16,}$/;
+const isReference = (v) => REFERENCE.test(v) || (MEMBER.test(v) && !v.split(/\?\.|\.|\[|!/).some((p) => SECRETISH.test(p)));
+// A type after `NAME:` (a TS field, a Python annotation), not a value
+const TYPE = /^(string|String|str|SecretStr|unknown|any)$/;
 
 const mask = (v) => `${v.slice(0, 4)}…`;
 // The same key gets the same id in the code and in history; 8 hex characters of a hash give nothing of the key away.
@@ -37,7 +49,7 @@ const idOf = (v) => createHash('sha256').update(v).digest('hex').slice(0, 8);
 const kindOf = (sub) => (sub === 'ant' ? 'Anthropic key' : sub ? 'OpenAI key' : 'OpenAI key (legacy)');
 
 function tag(value, prefix) {
-  if (REFERENCE.test(value)) return 'reference';
+  if (isReference(value)) return 'reference';
   const body = value.slice(prefix.length).replace(/^[a-z]+\d+-/, '');   // drop a version part such as api03-
   const placeholder =
     body.length < 20 ||
@@ -48,15 +60,20 @@ function tag(value, prefix) {
 
 // ---------- finding (code and history): what is where, and the name whose value is on the next line ----------
 
-function analyze(text, pending) {
+// `following`: the next line of the same file, if known; a key that ends its line and goes on there (+ "rest",
+// an adjacent "rest") is split.
+function analyze(text, pending, following) {
   const found = [], named = [];
   const add = (kind, v, start, prefix = '', t, above = false) => {
     if (!v || found.some((f) => f.start === start)) return;
     found.push({ kind, shown: mask(v), tag: t ?? tag(v, prefix), length: v.length, id: idOf(v), start, above });
   };
-  // a value that goes on below (+, a \ at the end, a string left open) is split: the next lines hold the rest
-  const goesOnFrom = (end, open) => (open || /^\s*(\+|\\$)/.test(text.slice(end)) ? 'split, looks real' : undefined);
-  const keys = [...text.matchAll(KEY)];
+  // a value that goes on below (+, a \ at the end, a string left open, a next line that starts with + or, after a closed
+  // string, with another string) is split: the next lines hold the rest
+  const below = (quoted) => following != null && (CONT_START.test(following) || (quoted && /^\s*["'`]/.test(following)));
+  const goesOnFrom = (end, open, quoted = true) => (open || /^\s*(\+|\\\s*$)/.test(text.slice(end)) ||
+    (/^\s*$/.test(text.slice(end)) && below(quoted)) ? 'split, looks real' : undefined);
+  const keys = [...text.matchAll(KEY)].filter((k) => keyLike(k, text));
   for (const p of text.matchAll(PIECE)) if (!keys.some((k) => p.index >= k.index && p.index < k.index + k[0].length)) keys.push(Object.assign(p, { piece: true }));
   const inKey = (i) => keys.some((k) => i >= k.index && i < k.index + k[0].length);
   let next = null;
@@ -66,7 +83,7 @@ function analyze(text, pending) {
   if (pending && !/^\s*[A-Za-z_][\w.]*\s*[:=]/.test(text) && (pending.op || /^\s*(\?\?|\|\||or\b|,)/.test(text))) {
     const q = [...text.matchAll(QUOTED)][0], b = text.match(/^\s*([^\s,;]+)/);
     if (q) add(`${pending.name} value`, q[2], q.index + 1, '', goesOnFrom(q.index + q[0].length, q[3] === ''), true);
-    else if (b && pending.op) add(`${pending.name} value`, b[1], b.index + b[0].length - b[1].length, '', goesOnFrom(b.index + b[0].length, false), true);
+    else if (b && pending.op) add(`${pending.name} value`, b[1], b.index + b[0].length - b[1].length, '', goesOnFrom(b.index + b[0].length, false, false), true);
   }
 
   for (const m of keys) {
@@ -74,7 +91,8 @@ function analyze(text, pending) {
     const prefix = m[1] ? `sk-${m[1]}-` : 'sk-';
     // a bare prefix: nothing after the prefix (or the prefix and a version part such as api03-); the rest is elsewhere
     const bare = m.piece || (m[1] !== undefined && /^([a-z]+\d+-)?$/.test(m[0].slice(prefix.length)));
-    const plus = /^\$\{/.test(after) || /^["'`]?\s*\+/.test(after) || /^["'`]\s*["'`]/.test(after);   // + rest, ${rest}, "a" "b"
+    const plus = /^\$\{/.test(after) || /^["'`]?\s*\+/.test(after) || /^["'`]\s*["'`]/.test(after) ||   // + rest, ${rest}, "a" "b"
+      /^["'`]?\s*\\\s*$/.test(after) || (/^["'`]?\s*$/.test(after) && below(/^["'`]/.test(after)));       // "a" \⏎ "b", "a"⏎ + "b"
     const stillOpen = /["'`]/.test(open ?? '') && !after.includes(open);                                // the string goes on below
     const t = stillOpen ? 'split, looks real'
       : bare ? (plus || /^["'`]\s*(,|$)/.test(after) ? 'split, looks real' : 'prefix only')         // ["prefix", rest].join, prefix⏎ rest
@@ -107,11 +125,14 @@ function analyze(text, pending) {
     if (spaced && (/^\s*(ENV|ARG|setenv|set(\s+-\w+)*)\s+$/i.test(text.slice(0, m.index)) ||
         /^(?=.*\d)(?=.*[A-Za-z])[A-Za-z0-9_+\/=-]{16,}$/.test(spaced[2]))) bare = [spaced[0], ' ', spaced[2], spaced[3]];
     if (bare && !has) {
-      const typed = bare[1] === ':' && /^\s*(\||=(?!=)|\[\])/.test(bare[3]);  // NAME: string = …, a type, not a value
+      // NAME: string = …, NAME: string;, NAME: str (a TS field, a Python annotation): a type, not a value
+      const typed = bare[1] === ':' && (/^\s*(\||=(?!=)|\[\])/.test(bare[3]) || (TYPE.test(bare[2]) && /^\s*([;,)}\]]|$)/.test(bare[3])));
       const start = from + bare[0].length - bare[3].length - bare[2].length;
       if (!typed && !inKey(start)) { add(`${m[1]} value`, bare[2], start, '', /\\$/.test(bare[2]) && !bare[3] ? 'split, looks real' : undefined); has = true; }
     }
-    if (!has && !host && /^[\])"'`]*(\s*(\?\?|\|\||=(?!=)|:|,|\(|\\|\bor\b|[|>][-+]?))+\s*$/.test(after)) { next = { name: m[1], op: true }; has = true; }
+    // NAME: otherName, NAME=OTHER_NAME: given another variable, so no value here (and none on the next line)
+    const toName = !has && n + 1 < names.length && /^\s*(:|=(?!=))\s*$/.test(after);
+    if (!has && !toName && !host && /^[\])"'`]*(\s*(\?\?|\|\||=(?!=)|:|,|\(|\\|\bor\b|[|>][-+]?))+\s*$/.test(after)) { next = { name: m[1], op: true }; has = true; }
     if (!has && !host && /^[\])"'`]*\s*$/.test(after)) next = { name: m[1], op: false };   // the name ends the line
     if (!has) named.push(m[1]);
   });
@@ -120,21 +141,24 @@ function analyze(text, pending) {
 
 // ---------- showing: the text as it is, every line of a key statement hidden whole ----------
 
-// A split key goes on below through +, a backslash, ??, ||, .concat( or a string left open at the end of a line,
-// and from above through a line that starts with +, ??, || or .concat(. Commas, colons and brackets do not carry it:
-// a key whole on its line hides that line only, and the object or call around it stays readable.
+// A key statement goes on below through +, a backslash, ??, ||, .concat( or a string left open at the end of a line,
+// from above through a line that starts with +, ??, || or .concat(, and either way through adjacent strings (a line
+// that ends in a closed string, then one that starts with a string: Python's "abc"⏎ "def"). Commas, colons and brackets
+// do not carry it: a key whole on its line hides that line only, and the object or call around it stays readable.
 const CONT_END = /(\+|\\|\?\?|\|\||\.concat\()\s*$/;
 const CONT_START = /^\s*(\+|\?\?|\|\||\.concat\()/;
 const comment = (l) => /^\s*(\/\/|#|\*|\/\*)/.test(l);
 const openAtEnd = (l) => !comment(l) && [...l.matchAll(QUOTED)].some((q) => q[3] === '' && q.index + q[0].length === l.length);
 const goesOn = (l) => !comment(l) && (CONT_END.test(l) || openAtEnd(l));
+const adjacent = (x, y) => !comment(x) && /["'`]\s*$/.test(x) && /^\s*["'`]/.test(y) && !openAtEnd(x);
+const continues = (x, y) => goesOn(x) || CONT_START.test(y) || adjacent(x, y);
 
 // The lines to hide in a list of lines: Map(line index -> the key it holds, for the note).
 function hiddenLines(lines) {
   const keyAt = new Map();
   let pending = null;
   lines.forEach((l, i) => {
-    const r = analyze(l, pending);
+    const r = analyze(l, pending, lines[i + 1]);
     pending = r.next;
     const k = r.found.find((f) => f.tag !== 'reference');               // a reference points elsewhere: nothing to hide
     if (k) keyAt.set(i, { ...k, names: r.names, above: r.found.some((f) => f.above && f.tag !== 'reference'),
@@ -145,32 +169,41 @@ function hiddenLines(lines) {
   for (const [i, k] of keyAt) {
     put(i, k);
     if (k.above && i > 0) put(i - 1, k);                                 // NAME =⏎ "value": the name's line too
-    if (!k.splits.length) continue;
     spread.push([i, k]);
     for (const col of k.splits) {                                        // a bracketed list or call of pieces: hidden whole
       const span = enclosing(lines, i, col);
       if (span) for (let j = span[0]; j <= span[1]; j++) { put(j, k); spread.push([j, k]); }
     }
   }
-  for (const [i, k] of spread) {                                         // the rest of a split key, both ways
+  for (const [i, k] of spread) {                                         // the rest of the key statement, both ways
     let a = i, b = i;
-    while (a > 0 && lines[a - 1].trim() && (goesOn(lines[a - 1]) || CONT_START.test(lines[a]))) put(--a, k);
-    while (b < lines.length - 1 && lines[b + 1].trim() && (goesOn(lines[b]) || CONT_START.test(lines[b + 1]))) put(++b, k);
+    while (a > 0 && lines[a - 1].trim() && continues(lines[a - 1], lines[a])) put(--a, k);
+    while (b < lines.length - 1 && lines[b + 1].trim() && continues(lines[b], lines[b + 1])) put(++b, k);
   }
   return hide;
 }
 
-// The [ or ( that encloses position `col` of line `i`, and the line of its match: [first, last], within 40 lines.
-// An open { or a ; met first ends the search: the key is not in a list or call of its own statement (a block, a describe(…)).
+// The [, ( or object { that encloses position `col` of line `i`, and the line of its match: [first, last], within 40 lines.
+// A block's { or a ; met first ends the search: the key is not in a list, call or object of its own statement
+// (a block, a describe(…)). A { is an object when =, (, [, ,, :, ?, |, &, return, default or the start of the file
+// stands before it (a JSON file); after ), => or another word it opens a block.
 function enclosing(lines, i, col) {
+  const before = (j, c) => {                                             // the code before position c of line j
+    let t = lines[j].slice(0, c);
+    for (let k = j - 1; k >= 0 && !t.trim(); k--) t = lines[k] + t;
+    return t.trimEnd();
+  };
   let depth = 0, a = -1, b = -1;
   for (let j = i, c = col - 1; j >= Math.max(0, i - 40) && a < 0; j--, c = (lines[j] ?? '').length - 1) {
     for (; c >= 0; c--) {
       const ch = lines[j][c];
       if (ch === ')' || ch === ']' || ch === '}') depth++;
-      else if ((ch === '{' || ch === ';') && depth === 0) return null;
-      else if (ch === '{') depth--;
-      else if (ch === '(' || ch === '[') { if (depth === 0) { a = j; break; } depth--; }
+      else if (ch === ';' && depth === 0) return null;
+      else if (ch === '{' && depth === 0) {
+        if (!/(^|[=(\[,:?|&]|\b(return|default))$/.test(before(j, c))) return null;
+        a = j; break;
+      }
+      else if (ch === '(' || ch === '[' || ch === '{') { if (depth === 0) { a = j; break; } depth--; }
     }
   }
   if (a < 0) return null;
@@ -178,8 +211,8 @@ function enclosing(lines, i, col) {
   for (let j = i, c = col; j < Math.min(lines.length, i + 40) && b < 0; j++, c = 0) {
     for (; c < lines[j].length; c++) {
       const ch = lines[j][c];
-      if (ch === '(' || ch === '[') depth++;
-      else if (ch === ')' || ch === ']') { if (depth === 0) { b = j; break; } depth--; }
+      if (ch === '(' || ch === '[' || ch === '{') depth++;
+      else if (ch === ')' || ch === ']' || ch === '}') { if (depth === 0) { b = j; break; } depth--; }
     }
   }
   return [a, b < 0 ? Math.min(lines.length - 1, i + 40) : b];
@@ -250,13 +283,14 @@ if (mode === 'show') {
 } else if (mode === 'code' || mode === 'history') {
   const input = readFileSync(0, 'utf8').split('\n');
   let commit = '', file = '', message = false, pending = null, prev = null;
-  for (const l of input) {
+  input.forEach((l, i) => {
     if (mode === 'code') {
       const m = splitSearch(l);
-      if (!m) { pending = null; continue; }
+      if (!m) { pending = null; return; }
       const here = `${m.path}:${m.n}`;
       const follows = prev && prev.path === m.path && prev.n + 1 === m.n;
-      const r = analyze(m.rest, follows ? pending : null);
+      const nx = input[i + 1] != null ? splitSearch(input[i + 1]) : null;   // the next line of the file, when the search printed it
+      const r = analyze(m.rest, follows ? pending : null, nx && nx.path === m.path && nx.n === m.n + 1 ? nx.rest : undefined);
       r.found.forEach((k) => say(line(here, k)));
       if (r.found.length && r.names.length) say(`${here}  the line names ${[...new Set(r.names)].join(', ')}`);
       if (!r.found.length && m.sep === ':') {                 // a line grep matched: it is listed whatever the finder made of it
@@ -265,20 +299,24 @@ if (mode === 'show') {
         else say(`${here}  key-shaped text`);
       }
       pending = r.next; prev = { path: m.path, n: m.n };
-      continue;
+      return;
     }
-    if (l.startsWith('commit ')) { commit = l.slice(7).trim(); file = ''; message = true; pending = null; continue; }
-    if (l.startsWith('diff --git ')) { file = l.replace(/^diff --git a\/.* b\//, ''); message = false; pending = null; continue; }
+    if (l.startsWith('commit ')) { commit = l.slice(7).trim(); file = ''; message = true; pending = null; return; }
+    if (l.startsWith('diff --git ')) { file = l.replace(/^diff --git a\/.* b\//, ''); message = false; pending = null; return; }
     // the message, indented by --format='…%n%w(0,4,4)%B', between the commit line and its first diff
     const inMessage = message && commit && l.startsWith('    ');
-    if (!inMessage && (l.startsWith('+++ ') || l.startsWith('--- '))) continue;
-    if (!inMessage && l[0] !== '+' && l[0] !== '-') { pending = null; continue; }
+    if (!inMessage && (l.startsWith('+++ ') || l.startsWith('--- '))) return;
+    if (!inMessage && l[0] !== '+' && l[0] !== '-') { pending = null; return; }
     const where = inMessage ? `${commit} message` : `${commit || 'diff'} ${file} ${l[0] === '+' ? 'added' : 'removed'}`;
-    const r = analyze(l.slice(inMessage ? 4 : 1), pending);
+    // the next line of the same text: the message's next line, or the next line of the same side of the diff
+    const nx = input[i + 1];
+    const following = nx == null ? undefined : inMessage ? (nx.startsWith('    ') ? nx.slice(4) : undefined)
+      : (nx[0] === l[0] || nx[0] === ' ') && !/^(\+\+\+|---) /.test(nx) ? nx.slice(1) : undefined;
+    const r = analyze(l.slice(inMessage ? 4 : 1), pending, following);
     for (const k of r.found) say(line(where, k));
     if (!r.found.length && RAW.test(l)) say(`${where}  key-shaped text`);   // the search matched it; the finder cannot place it
     pending = r.next;
-  }
+  });
 } else {
   console.error('usage: mask-keys.mjs code|history|show  (stdin)   or   mask-keys.mjs show <file>');
   process.exit(2);

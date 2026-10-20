@@ -576,3 +576,133 @@ test("a name inside a longer string is prose: the message stays readable, NAME=v
   assert.match(nm.code, /^prose\.ts:1  anthropicApiKey named, no value here$/m);
   assert.match(nm.code, /^prose\.ts:3  OPENAI_API_KEY value  .{4}…  \(24 chars.*looks real$/m);
 });
+
+// ---------- final audit: the rest of a key on the next line, words with sk- inside, names given a variable or a type ----------
+
+function finalShapes() {
+  const dir = mkdtempSync(join(tmpdir(), "mask-keys-final-"));
+  const sh = (cmd, args, input) => execFileSync(cmd, args, { cwd: dir, input, encoding: "utf8" });
+  const git = (...a) => sh("git", ["-c", "user.name=t", "-c", "user.email=t@e.x", ...a]);
+  const half = () => `${ANT}api03-${rnd(24)}`;
+  const gen = () => ({
+    js1a: half(), js1b: rnd(24), js2a: half(), js2b: rnd(24), py3a: half(), py3b: rnd(24), py4a: half(), py4b: rnd(24),
+    sh1a: half(), sh1b: rnd(24), shBareA: half(), shBareB: rnd(24), py2a: `${ANT}api03-${rnd(4)}`, py2b: rnd(48),
+    objBody: rnd(49), objLine: rnd(49), inArray: `${ANT}api03-${rnd(93)}AA`, oneLine: `${ANT}api03-${rnd(93)}AA`,
+    tsLiteral: rnd(40), pyLiteral: rnd(36), dotted: `${rnd(20)}7.${rnd(20)}Q`, envValue: rnd(40),
+  });
+  const build = (s) => ({
+    "js1.ts": `const k = "${s.js1a}"\n  + "${s.js1b}";\nconst after = 1;\n`,
+    "js2.ts": `const k = "${s.js2a}" +\n  "${s.js2b}";\nconst after = 1;\n`,
+    "py2.py": `ANTHROPIC_API_KEY = (\n    "${s.py2a}"\n    "${s.py2b}"\n)\nafter = 1\n`,
+    "py3.py": `ANTHROPIC_API_KEY = ("${s.py3a}"\n                     "${s.py3b}")\nafter = 1\n`,
+    "py4.py": `key = "${s.py4a}" \\\n      "${s.py4b}"\nafter = 1\n`,
+    "sh1.sh": `export ANTHROPIC_API_KEY="${s.sh1a}"\\\n"${s.sh1b}"\necho after\n`,
+    "sh2.sh": `export KEY=${s.shBareA}\\\n${s.shBareB}\necho after\n`,
+    "obj.ts": `const parts = {\n  a: "${ANT}api03-",\n  b: "${s.objBody}",\n};\nexport const key = parts.a + parts.b;\n`,
+    "obj1.ts": `const parts = { a: "${ANT}api03-", b: "${s.objLine}" };\nexport const key = parts.a + parts.b;\n`,
+    "array.ts": `const keys = [\n  "${s.inArray}",\n  "not a key",\n];\nconst after = 1;\n`,
+    "client1.ts": `import Anthropic from "@anthropic-ai/sdk";\nconst client = new Anthropic({ apiKey: "${ANT}test", baseURL, maxRetries: 0 });\nconst more = "text";\n`,
+    "words.ts": [
+      `const a = "kiosk-admin-dashboard-settings-panel";`,
+      `const b = "desk-proj-onboarding-checklist-v2";`,
+      `const c = "flask-ant-design-theme-overrides";`,
+      `const t = 'task-admin-notifications-digest';`,
+      `const route = "risk-admin-approval-workflow-steps";`,
+      `const long = "task-admin-notifications-digest-weekly-summary-email-template";`,
+    ].join("\n") + "\n",
+    "read.ts": [
+      `const llm = new ChatOpenAI({ model: "gpt-5", openAIApiKey: cfg.openaiKey, maxRetries: 0, timeout: 1000 });`,
+      `const chat = new ChatAnthropic({ anthropicApiKey: env.ANTHROPIC_KEY, maxRetries: 2 });`,
+      `interface Cfg { openaiApiKey: string; anthropicApiKey?: string }`,
+      `const m = new ChatOpenAI({ openAIApiKey: openaiKey, maxRetries: 0 });`,
+      `const model = "gpt-5-mini";`,
+      `const n = new ChatOpenAI({ openAIApiKey: cfg?.openaiKey, maxRetries: 0 });`,
+      `const o = { anthropicApiKey: env["ANTHROPIC_KEY"], maxRetries: 0 };`,
+      `const p = { openaiApiKey: settings.openai.apiKey!, maxRetries: 0 };`,
+      `const q = new ChatOpenAI({ openAIApiKey: "${s.tsLiteral}", maxRetries: 0 });`,
+    ].join("\n") + "\n",
+    "read.py": [
+      `llm = ChatOpenAI(model="gpt-5", openai_api_key=settings.OPENAI_KEY, max_retries=0)`,
+      `llm2 = ChatOpenAI(openai_api_key=OPENAI_API_KEY, max_retries=0)`,
+      `model = "gpt-5-mini"`,
+      `class S(BaseSettings):`,
+      `    openai_api_key: str`,
+      `    anthropic_api_key: SecretStr`,
+      `llm3 = ChatOpenAI(openai_api_key="${s.pyLiteral}", max_retries=0)`,
+    ].join("\n") + "\n",
+    "dotted.env": `OPENAI_API_KEY=${s.dotted}\nANTHROPIC_API_KEY=${s.envValue}\n`,
+  });
+  const { s, files } = freshValues(gen, build);
+  for (const [f, t] of Object.entries(files)) writeFileSync(join(dir, f), t);
+  sh("git", ["init", "-q"]);
+  git("add", "-A"); git("commit", "-qm", "one");
+  const show = Object.fromEntries(Object.keys(files).map((f) => [f, sh("node", [MASK, "show", f])]));
+  const code = sh("node", [MASK, "code"], sh("git", ["grep", "-nIE", "-A1", "--untracked", KEYS]));
+  const history = sh("node", [MASK, "history"], sh("git", ["log", "--all", "-p", "-G", KEYS, "--format=commit %h %ad", "--date=short"]));
+  const logp = sh("node", [MASK, "show"], sh("git", ["log", "-p"]));
+  const piped = sh("node", [MASK, "show"], sh("git", ["grep", "-nIE", "-A1", "--untracked", KEYS]));
+  const pipedAll = sh("node", [MASK, "show"], sh("git", ["grep", "-n", "--untracked", "-e", ""]));
+  return { s, show, code, history, logp, piped, all: [...Object.values(show), code, history, logp, piped, pipedAll].join("\n") };
+}
+
+const fz = finalShapes();
+const rows = (f) => fz.show[f].trimEnd().split("\n").map((l) => l.split("\t")[1]);
+const isHidden = (l) => /^<line \d+ hidden: /.test(l);
+
+test("the rest of a key on the next line is never printed: +, \\ after a string, adjacent strings, an object of pieces", () => {
+  for (const [name, v] of Object.entries(fz.s)) assert.equal(noRun(v, fz.all), null, name);
+  for (const f of ["js1.ts", "js2.ts", "py3.py", "py4.py", "sh1.sh", "sh2.sh"])
+    assert.deepEqual(rows(f).map(isHidden), [true, true, false], f);
+  assert.deepEqual(rows("py2.py").map(isHidden), [true, true, true, true, false]);   // the ( … ) that holds the pieces
+  assert.deepEqual(rows("obj.ts").map(isHidden), [true, true, true, true, false]);
+  assert.deepEqual(rows("obj1.ts").map(isHidden), [true, false]);
+});
+
+test("a key whose rest is on the next line is tagged split in the code and in history, never placeholder", () => {
+  for (const [f, n] of [["js1.ts", 1], ["js2.ts", 1], ["py3.py", 1], ["py4.py", 1], ["sh1.sh", 1], ["sh2.sh", 1], ["py2.py", 2]]) {
+    assert.match(fz.code, new RegExp(`^${f.replace(".", "\\.")}:${n}  .*split, looks real$`, "m"), f);
+    assert.doesNotMatch(fz.code, new RegExp(`^${f.replace(".", "\\.")}:${n}  .*(placeholder|  looks real)$`, "m"), f);
+    assert.match(fz.history, new RegExp(` ${f.replace(".", "\\.")} added  .*split, looks real$`, "m"), f);
+    assert.doesNotMatch(fz.history, new RegExp(` ${f.replace(".", "\\.")} added  .*placeholder$`, "m"), f);
+  }
+});
+
+test("a whole key on one line still hides that line only: the one-line client, an array item", () => {
+  assert.deepEqual(rows("client1.ts"), [`import Anthropic from "@anthropic-ai/sdk";`,
+    `<line 2 hidden: holds an AI key — Anthropic key sk-a…>`, `const more = "text";`]);
+  assert.deepEqual(rows("array.ts").map(isHidden), [false, true, false, false, false]);
+  assert.equal(rows("array.ts")[2], `  "not a key",`);
+  assert.match(fz.code, /^array\.ts:2  Anthropic key  sk-a…  \(108 chars, id [0-9a-f]{8}\)  looks real$/m);
+});
+
+test("a word with sk-ant-, sk-proj- or sk-admin- inside it is key-shaped text, not a key", () => {
+  for (const n of [1, 2, 3, 4, 5, 6]) assert.match(fz.code, new RegExp(`^words\\.ts:${n}  key-shaped text$`, "m"), `words.ts:${n}`);
+  assert.doesNotMatch(fz.code, /^words\.ts:\d+  (Anthropic|OpenAI) key/m);
+  assert.doesNotMatch(fz.history, /words\.ts added  (Anthropic|OpenAI) key/);
+  for (const l of rows("words.ts")) assert.match(l, /^<line \d hidden: key-shaped text>$/);
+});
+
+test("a key name given a variable, a property, an env reference or a type reads normally; a literal is still hidden", () => {
+  assert.deepEqual(rows("read.ts").slice(0, 8), [
+    `const llm = new ChatOpenAI({ model: "gpt-5", openAIApiKey: cfg.openaiKey, maxRetries: 0, timeout: 1000 });`,
+    `const chat = new ChatAnthropic({ anthropicApiKey: env.ANTHROPIC_KEY, maxRetries: 2 });`,
+    `interface Cfg { openaiApiKey: string; anthropicApiKey?: string }`,
+    `const m = new ChatOpenAI({ openAIApiKey: openaiKey, maxRetries: 0 });`,
+    `const model = "gpt-5-mini";`,
+    `const n = new ChatOpenAI({ openAIApiKey: cfg?.openaiKey, maxRetries: 0 });`,
+    `const o = { anthropicApiKey: env["ANTHROPIC_KEY"], maxRetries: 0 };`,
+    `const p = { openaiApiKey: settings.openai.apiKey!, maxRetries: 0 };`]);
+  assert.match(rows("read.ts")[8], /^<line 9 hidden: holds an AI key — openAIApiKey value .{4}…/);
+  assert.deepEqual(rows("read.py").slice(0, 6), [
+    `llm = ChatOpenAI(model="gpt-5", openai_api_key=settings.OPENAI_KEY, max_retries=0)`,
+    `llm2 = ChatOpenAI(openai_api_key=OPENAI_API_KEY, max_retries=0)`,
+    `model = "gpt-5-mini"`, `class S(BaseSettings):`, `    openai_api_key: str`, `    anthropic_api_key: SecretStr`]);
+  assert.match(rows("read.py")[6], /^<line 7 hidden: holds an AI key — openai_api_key value .{4}…/);
+  assert.deepEqual(rows("dotted.env").map(isHidden), [true, true]);
+  assert.match(fz.code, /^read\.ts:9  openAIApiKey value  .{4}…  \(40 chars.*looks real$/m);
+  assert.match(fz.code, /^read\.py:7  openai_api_key value  .{4}…  \(36 chars.*looks real$/m);
+  assert.match(fz.code, /^dotted\.env:1  OPENAI_API_KEY value  .{4}…  \(43 chars.*looks real$/m);
+  assert.doesNotMatch(fz.code, /^(read\.ts:[1-8]|read\.py:[1-6])  .*(placeholder|looks real)$/m);
+  assert.match(fz.code, /^read\.ts:3  openaiApiKey named, no value here$/m);
+  assert.match(fz.code, /^read\.py:5  openai_api_key named, no value here$/m);
+});
